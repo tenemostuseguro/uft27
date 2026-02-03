@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catastro de la Ciudad de Córdoba</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        line-height: 1.5;
+        --primary: #1d4ed8;
+        --secondary: #0f172a;
+        --accent: #e2e8f0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #f8fafc;
+        color: var(--secondary);
+      }
+
+      header {
+        background: linear-gradient(135deg, #1e3a8a, #2563eb);
+        color: #fff;
+        padding: 32px 16px;
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 24px;
+        align-items: center;
+      }
+
+      .hero h1 {
+        font-size: clamp(2rem, 3vw, 3rem);
+        margin: 0 0 12px;
+      }
+
+      .hero p {
+        margin: 0;
+        max-width: 520px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-top: 24px;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(6px);
+      }
+
+      main {
+        padding: 32px 0 48px;
+      }
+
+      .section-title {
+        font-size: 1.5rem;
+        margin-bottom: 16px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 20px;
+      }
+
+      .card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        background: var(--accent);
+        color: var(--secondary);
+        border-radius: 999px;
+        font-size: 0.85rem;
+        margin-bottom: 12px;
+      }
+
+      .list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 10px;
+      }
+
+      .list li {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #f1f5f9;
+      }
+
+      .list span {
+        font-weight: 600;
+        color: var(--primary);
+      }
+
+      .map {
+        background: linear-gradient(135deg, #e2e8f0, #f8fafc);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px dashed #94a3b8;
+        min-height: 220px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+
+      .cta {
+        background: #0f172a;
+        color: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .cta button {
+        background: #38bdf8;
+        color: #0f172a;
+        border: none;
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-weight: 600;
+        cursor: pointer;
+        width: fit-content;
+      }
+
+      footer {
+        padding: 24px 0 32px;
+        color: #64748b;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="container hero">
+        <div>
+          <h1>Catastro de la Ciudad de Córdoba</h1>
+          <p>
+            Portal informativo para visualizar la situación dominial, usos del suelo y
+            planificación urbana de Córdoba. Datos de referencia para ciudadanos,
+            desarrolladores y gestores públicos.
+          </p>
+        </div>
+        <div class="stats">
+          <div class="stat-card">
+            <strong>1.860.000</strong>
+            <div>Habitantes estimados</div>
+          </div>
+          <div class="stat-card">
+            <strong>576 km²</strong>
+            <div>Superficie urbana</div>
+          </div>
+          <div class="stat-card">
+            <strong>15 distritos</strong>
+            <div>División administrativa</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section>
+        <h2 class="section-title">Estado catastral por distrito</h2>
+        <div class="grid">
+          <article class="card">
+            <div class="tag">📍 Centro</div>
+            <ul class="list">
+              <li>Parcelas registradas <span>12.450</span></li>
+              <li>Usos mixtos <span>38%</span></li>
+              <li>Última actualización <span>Julio 2023</span></li>
+            </ul>
+          </article>
+          <article class="card">
+            <div class="tag">🌳 Zona Norte</div>
+            <ul class="list">
+              <li>Parcelas registradas <span>18.920</span></li>
+              <li>Áreas verdes <span>22%</span></li>
+              <li>Última actualización <span>Abril 2024</span></li>
+            </ul>
+          </article>
+          <article class="card">
+            <div class="tag">🏘️ Zona Sur</div>
+            <ul class="list">
+              <li>Parcelas registradas <span>16.305</span></li>
+              <li>Residencial <span>71%</span></li>
+              <li>Última actualización <span>Enero 2024</span></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section style="margin-top: 32px;">
+        <h2 class="section-title">Mapa de zonas y consultas rápidas</h2>
+        <div class="grid">
+          <div class="map">
+            <div>
+              <h3>Mapa catastral interactivo</h3>
+              <p>
+                Integre aquí su visor GIS con capas de parcelas, límites distritales y
+                restricciones urbanísticas.
+              </p>
+            </div>
+          </div>
+          <div class="cta">
+            <h3>Consulta online de parcelas</h3>
+            <p>
+              Ingrese el código de parcela o manzana para obtener planos, estado
+              dominial y normativa aplicable.
+            </p>
+            <button type="button">Iniciar consulta</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="container">
+      <p>
+        Catastro Córdoba · Datos referenciales. Para información oficial consulte la
+        Dirección General de Catastro Municipal.
+      </p>
+    </footer>
+  </body>
+</html>

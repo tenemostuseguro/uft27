@@ -1,37 +1,34 @@
 # Juego de Fútbol Sala 3D (Godot 4)
 
-Prototipo base de fútbol sala **3D** con flujo de menús **2D**, creador de plantilla y modo online por IP.
+Prototipo de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y más sistemas de partido.
 
-## Menús incluidos (2D)
-- **Menú principal** (`MainMenu2D.tscn`): jugar, abrir creador de plantilla o salir.
-- **Creador de plantilla** (`TemplateMenu2D.tscn`): nombre de equipo, colores y formación.
+## Novedades importantes
+- ✅ Pelota corregida para juego de futsal (no cae): movimiento en plano + fricción realista.
+- ✅ Campo ampliado a proporciones de futsal realistas (**40 x 20 m** aprox en unidades de juego).
+- ✅ IA para el resto de jugadores del equipo y del rival (presión, posicionamiento y remate).
+- ✅ Más funciones de partido: stamina del jugador, reinicio tras gol, fuera de campo, descanso con cambio de lados, eventos en HUD.
 
-## Características
-- Cancha 3D simple.
-- Jugador 3D con movimiento, sprint y disparo.
-- Pelota con física (`RigidBody3D`).
-- Marcador + cronómetro.
-- Modo online por IP (host/join) para 2 jugadores.
+## Menús 2D
+- **MainMenu2D**: entrar al partido, abrir creador de plantilla, salir.
+- **TemplateMenu2D**: editar nombre de equipo, colores y formación.
+
+## Partidos 3D (online por IP)
+- Host/Join por ENet en puerto `7777`.
+- Host autoritativo para física y marcador.
+- Sincronización de pelota y jugadores en red.
 
 ## Flujo recomendado
-1. Abrir el juego (entra al **menú principal 2D**).
-2. Ir a **Creador de plantilla** y guardar.
-3. Volver y pulsar **Jugar partido**.
-4. En la escena de partido, elegir Host o Join (IP del host).
+1. Abrir proyecto (entra al menú principal 2D).
+2. Crear plantilla en el creador.
+3. Iniciar partido.
+4. Elegir Host o Join.
 
-## Online P2P (por ahora)
-Se usa conexión directa por IP con ENet:
-- Un jugador crea sala (**Host**) en puerto `7777`.
-- El otro se conecta con la IP del host (**Join**).
-
-> Nota: técnicamente usa arquitectura host-cliente con conexión directa IP, que para prototipo cumple el flujo P2P pedido.
+## Controles
+- **Moverse:** `WASD` o flechas
+- **Sprint:** `Shift` (consume stamina)
+- **Patear:** `Espacio`
 
 ## Cómo ejecutar
 1. Abrí **Godot 4.x**.
 2. Importá la carpeta `godot-futsal`.
-3. Ejecutá el proyecto (escena principal: `res://scenes/MainMenu2D.tscn`).
-
-## Controles en partido
-- **Moverse:** `WASD` o flechas
-- **Sprint:** `Shift`
-- **Patear:** `Espacio`
+3. Ejecutá el proyecto (`res://scenes/MainMenu2D.tscn`).

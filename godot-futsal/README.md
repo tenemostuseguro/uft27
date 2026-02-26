@@ -11,7 +11,7 @@ Prototipo de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/riv
 
 ## Menús 2D
 - **MainMenu2D**: entrar al partido, abrir creador de plantilla, salir.
-- **TemplateMenu2D**: editor visual de plantilla con 5 posiciones (GK, Cierre, Ala Izq, Ala Der, Pivot), rating y chemistry.
+- **TemplateMenu2D**: editor visual de plantilla con 5 posiciones (GK, Cierre, Ala Izq, Ala Der, Pivot), tarjetas visibles sobre la cancha, rating, chemistry y progreso de posiciones completadas.
 
 ## Sistema de plantilla (nuevo)
 - Hay una base de muchos jugadores disponibles (ratings y stats básicos).

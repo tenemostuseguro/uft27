@@ -10,12 +10,19 @@ const ROLE_KEYS: Array[String] = ["GK", "Cierre", "Ala Izq", "Ala Der", "Pivot"]
 @onready var formation_input: LineEdit = $Margin/Layout/Header/ConfigPanel/ConfigForm/FormationInput
 @onready var rating_label: Label = $Margin/Layout/Header/Meta/RatingLabel
 @onready var chemistry_label: Label = $Margin/Layout/Header/Meta/ChemistryLabel
+@onready var completion_label: Label = $Margin/Layout/Header/Meta/CompletionLabel
 
-@onready var gk_option: OptionButton = $Margin/Layout/SquadArea/PitchPanel/GKCard/VBox/PlayerSelect
-@onready var cierre_option: OptionButton = $Margin/Layout/SquadArea/PitchPanel/CierreCard/VBox/PlayerSelect
-@onready var ala_izq_option: OptionButton = $Margin/Layout/SquadArea/PitchPanel/AlaIzqCard/VBox/PlayerSelect
-@onready var ala_der_option: OptionButton = $Margin/Layout/SquadArea/PitchPanel/AlaDerCard/VBox/PlayerSelect
-@onready var pivot_option: OptionButton = $Margin/Layout/SquadArea/PitchPanel/PivotCard/VBox/PlayerSelect
+@onready var gk_option: OptionButton = $Margin/Layout/SquadArea/PitchPanel/PitchCanvas/GKCard/VBox/PlayerSelect
+@onready var cierre_option: OptionButton = $Margin/Layout/SquadArea/PitchPanel/PitchCanvas/CierreCard/VBox/PlayerSelect
+@onready var ala_izq_option: OptionButton = $Margin/Layout/SquadArea/PitchPanel/PitchCanvas/AlaIzqCard/VBox/PlayerSelect
+@onready var ala_der_option: OptionButton = $Margin/Layout/SquadArea/PitchPanel/PitchCanvas/AlaDerCard/VBox/PlayerSelect
+@onready var pivot_option: OptionButton = $Margin/Layout/SquadArea/PitchPanel/PitchCanvas/PivotCard/VBox/PlayerSelect
+
+@onready var gk_card: PanelContainer = $Margin/Layout/SquadArea/PitchPanel/PitchCanvas/GKCard
+@onready var cierre_card: PanelContainer = $Margin/Layout/SquadArea/PitchPanel/PitchCanvas/CierreCard
+@onready var ala_izq_card: PanelContainer = $Margin/Layout/SquadArea/PitchPanel/PitchCanvas/AlaIzqCard
+@onready var ala_der_card: PanelContainer = $Margin/Layout/SquadArea/PitchPanel/PitchCanvas/AlaDerCard
+@onready var pivot_card: PanelContainer = $Margin/Layout/SquadArea/PitchPanel/PitchCanvas/PivotCard
 
 @onready var selected_name_label: Label = $Margin/Layout/SquadArea/PlayerInfo/InfoLayout/NameLabel
 @onready var selected_role_label: Label = $Margin/Layout/SquadArea/PlayerInfo/InfoLayout/RoleLabel
@@ -23,6 +30,7 @@ const ROLE_KEYS: Array[String] = ["GK", "Cierre", "Ala Izq", "Ala Der", "Pivot"]
 @onready var bench_list: ItemList = $Margin/Layout/SquadArea/PlayerInfo/InfoLayout/BenchList
 
 var role_options: Dictionary = {}
+var role_cards: Dictionary = {}
 
 func _ready() -> void:
 	role_options = {
@@ -31,6 +39,13 @@ func _ready() -> void:
 		"Ala Izq": ala_izq_option,
 		"Ala Der": ala_der_option,
 		"Pivot": pivot_option
+	}
+	role_cards = {
+		"GK": gk_card,
+		"Cierre": cierre_card,
+		"Ala Izq": ala_izq_card,
+		"Ala Der": ala_der_card,
+		"Pivot": pivot_card
 	}
 
 	$Margin/Layout/Footer/Buttons/SaveButton.pressed.connect(_on_save_pressed)
@@ -45,6 +60,7 @@ func _ready() -> void:
 	_refresh_team_meta()
 	_refresh_bench_preview()
 	_show_player_from_role("Pivot")
+	_refresh_position_cards()
 
 func _populate_role_option(role: String, option: OptionButton) -> void:
 	option.clear()
@@ -90,6 +106,7 @@ func _on_role_selection_changed(_index: int, role: String) -> void:
 	_show_player_from_role(role)
 	_refresh_team_meta()
 	_refresh_bench_preview()
+	_refresh_position_cards()
 
 func _show_player_from_role(role: String) -> void:
 	var option: OptionButton = role_options[role]
@@ -127,15 +144,16 @@ func _build_lineup_from_ui() -> Dictionary:
 
 func _refresh_team_meta() -> void:
 	var lineup: Dictionary = _build_lineup_from_ui()
-	var complete := true
+	var complete_count := 0
 	for role in ROLE_KEYS:
-		if str(lineup.get(role, "")).is_empty():
-			complete = false
-			break
+		if not str(lineup.get(role, "")).is_empty():
+			complete_count += 1
 
+	var complete := complete_count == ROLE_KEYS.size()
 	var preview_rating := _compute_rating_preview(lineup)
 	rating_label.text = "Rating: %d" % preview_rating
-	chemistry_label.text = "Chemistry: %d" % (100 if complete else 60)
+	chemistry_label.text = "Chemistry: %d" % (100 if complete else 40 + complete_count * 12)
+	completion_label.text = "Posiciones completas: %d/%d" % [complete_count, ROLE_KEYS.size()]
 
 func _compute_rating_preview(lineup: Dictionary) -> int:
 	var total := 0
@@ -169,8 +187,18 @@ func _refresh_bench_preview() -> void:
 			continue
 		bench_list.add_item("%s  OVR %d" % [name, int(player.get("ovr", 0))])
 		count += 1
-		if count >= 12:
+		if count >= 14:
 			break
+
+func _refresh_position_cards() -> void:
+	for role in ROLE_KEYS:
+		var option: OptionButton = role_options[role]
+		var selected_index: int = option.get_selected()
+		if selected_index < 0:
+			selected_index = 0
+		var has_player := not str(option.get_item_metadata(selected_index)).is_empty()
+		var card: PanelContainer = role_cards[role]
+		card.modulate = Color(0.95, 1.0, 0.95, 1.0) if has_player else Color(1.0, 0.8, 0.8, 1.0)
 
 func _on_save_pressed() -> void:
 	var lineup: Dictionary = _build_lineup_from_ui()
@@ -187,6 +215,7 @@ func _on_save_pressed() -> void:
 	else:
 		status_label.text = "Falta seleccionar jugador en alguna posición"
 	_refresh_team_meta()
+	_refresh_position_cards()
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)

@@ -14,26 +14,26 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.06, 0.09, 0.14, 1)
+color = Color(0.04, 0.07, 0.11, 1)
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = 18.0
-offset_right = -24.0
-offset_bottom = -18.0
+offset_left = 20.0
+offset_top = 14.0
+offset_right = -20.0
+offset_bottom = -14.0
 
 [node name="Layout" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Margin/Layout"]
 layout_mode = 2
 text = "Creador de plantilla estilo Squad"
-theme_override_font_sizes/font_size = 36
+theme_override_font_sizes/font_size = 38
 
 [node name="Header" type="HBoxContainer" parent="Margin/Layout"]
 layout_mode = 2
@@ -83,18 +83,22 @@ text = "1-2-1"
 
 [node name="Meta" type="VBoxContainer" parent="Margin/Layout/Header"]
 layout_mode = 2
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(250, 0)
 theme_override_constants/separation = 8
 
 [node name="RatingLabel" type="Label" parent="Margin/Layout/Header/Meta"]
 layout_mode = 2
 text = "Rating: 0"
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 24
 
 [node name="ChemistryLabel" type="Label" parent="Margin/Layout/Header/Meta"]
 layout_mode = 2
 text = "Chemistry: 0"
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 22
+
+[node name="CompletionLabel" type="Label" parent="Margin/Layout/Header/Meta"]
+layout_mode = 2
+text = "Posiciones completas: 0/5"
 
 [node name="SquadArea" type="HBoxContainer" parent="Margin/Layout"]
 layout_mode = 2
@@ -105,100 +109,164 @@ theme_override_constants/separation = 12
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+custom_minimum_size = Vector2(960, 490)
 
-[node name="PitchBackground" type="ColorRect" parent="Margin/Layout/SquadArea/PitchPanel"]
+[node name="PitchCanvas" type="Control" parent="Margin/Layout/SquadArea/PitchPanel"]
 layout_mode = 2
-custom_minimum_size = Vector2(900, 420)
+
+[node name="PitchBackground" type="ColorRect" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 color = Color(0.09, 0.34, 0.17, 1)
 
-[node name="GKCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel"]
+[node name="CenterLine" type="ColorRect" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas"]
 layout_mode = 1
-offset_left = 390.0
-offset_top = 325.0
-offset_right = 530.0
-offset_bottom = 415.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -1.5
+offset_right = 1.5
+color = Color(1, 1, 1, 0.4)
 
-[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/GKCard"]
+[node name="CenterCircle" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -60.0
+offset_top = -60.0
+offset_right = 60.0
+offset_bottom = 60.0
+
+[node name="GKCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.87
+anchor_right = 0.5
+anchor_bottom = 0.87
+offset_left = -90.0
+offset_top = -38.0
+offset_right = 90.0
+offset_bottom = 38.0
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/GKCard"]
 layout_mode = 2
+theme_override_constants/separation = 2
 
-[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/GKCard/VBox"]
+[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/GKCard/VBox"]
 layout_mode = 2
 text = "GK"
+horizontal_alignment = 1
 
-[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/GKCard/VBox"]
+[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/GKCard/VBox"]
 layout_mode = 2
 
-[node name="CierreCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel"]
+[node name="CierreCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas"]
 layout_mode = 1
-offset_left = 390.0
-offset_top = 232.0
-offset_right = 530.0
-offset_bottom = 322.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.66
+anchor_right = 0.5
+anchor_bottom = 0.66
+offset_left = -90.0
+offset_top = -38.0
+offset_right = 90.0
+offset_bottom = 38.0
 
-[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/CierreCard"]
+[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/CierreCard"]
 layout_mode = 2
+theme_override_constants/separation = 2
 
-[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/CierreCard/VBox"]
+[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/CierreCard/VBox"]
 layout_mode = 2
 text = "Cierre"
+horizontal_alignment = 1
 
-[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/CierreCard/VBox"]
+[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/CierreCard/VBox"]
 layout_mode = 2
 
-[node name="AlaIzqCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel"]
+[node name="AlaIzqCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas"]
 layout_mode = 1
-offset_left = 190.0
-offset_top = 145.0
-offset_right = 330.0
-offset_bottom = 235.0
+anchors_preset = 8
+anchor_left = 0.28
+anchor_top = 0.45
+anchor_right = 0.28
+anchor_bottom = 0.45
+offset_left = -90.0
+offset_top = -38.0
+offset_right = 90.0
+offset_bottom = 38.0
 
-[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/AlaIzqCard"]
+[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/AlaIzqCard"]
 layout_mode = 2
+theme_override_constants/separation = 2
 
-[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/AlaIzqCard/VBox"]
+[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/AlaIzqCard/VBox"]
 layout_mode = 2
 text = "Ala Izq"
+horizontal_alignment = 1
 
-[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/AlaIzqCard/VBox"]
+[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/AlaIzqCard/VBox"]
 layout_mode = 2
 
-[node name="AlaDerCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel"]
+[node name="AlaDerCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas"]
 layout_mode = 1
-offset_left = 590.0
-offset_top = 145.0
-offset_right = 730.0
-offset_bottom = 235.0
+anchors_preset = 8
+anchor_left = 0.72
+anchor_top = 0.45
+anchor_right = 0.72
+anchor_bottom = 0.45
+offset_left = -90.0
+offset_top = -38.0
+offset_right = 90.0
+offset_bottom = 38.0
 
-[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/AlaDerCard"]
+[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/AlaDerCard"]
 layout_mode = 2
+theme_override_constants/separation = 2
 
-[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/AlaDerCard/VBox"]
+[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/AlaDerCard/VBox"]
 layout_mode = 2
 text = "Ala Der"
+horizontal_alignment = 1
 
-[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/AlaDerCard/VBox"]
+[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/AlaDerCard/VBox"]
 layout_mode = 2
 
-[node name="PivotCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel"]
+[node name="PivotCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas"]
 layout_mode = 1
-offset_left = 390.0
-offset_top = 70.0
-offset_right = 530.0
-offset_bottom = 160.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.24
+anchor_right = 0.5
+anchor_bottom = 0.24
+offset_left = -90.0
+offset_top = -38.0
+offset_right = 90.0
+offset_bottom = 38.0
 
-[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/PivotCard"]
+[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/PivotCard"]
 layout_mode = 2
+theme_override_constants/separation = 2
 
-[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/PivotCard/VBox"]
+[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/PivotCard/VBox"]
 layout_mode = 2
 text = "Pivot"
+horizontal_alignment = 1
 
-[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/PivotCard/VBox"]
+[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/PitchCanvas/PivotCard/VBox"]
 layout_mode = 2
 
 [node name="PlayerInfo" type="PanelContainer" parent="Margin/Layout/SquadArea"]
 layout_mode = 2
-custom_minimum_size = Vector2(260, 0)
+custom_minimum_size = Vector2(300, 0)
 
 [node name="InfoLayout" type="VBoxContainer" parent="Margin/Layout/SquadArea/PlayerInfo"]
 layout_mode = 2
@@ -207,7 +275,7 @@ theme_override_constants/separation = 8
 [node name="InfoTitle" type="Label" parent="Margin/Layout/SquadArea/PlayerInfo/InfoLayout"]
 layout_mode = 2
 text = "Detalle jugador"
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 24
 
 [node name="NameLabel" type="Label" parent="Margin/Layout/SquadArea/PlayerInfo/InfoLayout"]
 layout_mode = 2

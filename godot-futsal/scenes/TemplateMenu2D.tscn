@@ -14,81 +14,238 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.07, 0.1, 0.18, 1)
+color = Color(0.06, 0.09, 0.14, 1)
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 32.0
-offset_top = 32.0
-offset_right = -32.0
-offset_bottom = -32.0
+offset_left = 24.0
+offset_top = 18.0
+offset_right = -24.0
+offset_bottom = -18.0
 
 [node name="Layout" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="Margin/Layout"]
 layout_mode = 2
-text = "Creador de plantilla"
-theme_override_font_sizes/font_size = 40
+text = "Creador de plantilla estilo Squad"
+theme_override_font_sizes/font_size = 36
 
-[node name="TemplatePanel" type="PanelContainer" parent="Margin/Layout"]
+[node name="Header" type="HBoxContainer" parent="Margin/Layout"]
 layout_mode = 2
+theme_override_constants/separation = 12
 
-[node name="TemplateForm" type="GridContainer" parent="Margin/Layout/TemplatePanel"]
+[node name="ConfigPanel" type="PanelContainer" parent="Margin/Layout/Header"]
 layout_mode = 2
-columns = 2
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 10
+size_flags_horizontal = 3
 
-[node name="TeamNameLabel" type="Label" parent="Margin/Layout/TemplatePanel/TemplateForm"]
+[node name="ConfigForm" type="GridContainer" parent="Margin/Layout/Header/ConfigPanel"]
 layout_mode = 2
-text = "Nombre equipo"
+columns = 4
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 8
 
-[node name="TeamNameInput" type="LineEdit" parent="Margin/Layout/TemplatePanel/TemplateForm"]
+[node name="TeamNameLabel" type="Label" parent="Margin/Layout/Header/ConfigPanel/ConfigForm"]
 layout_mode = 2
-placeholder_text = "Mi Equipo"
+text = "Equipo"
 
-[node name="PrimaryLabel" type="Label" parent="Margin/Layout/TemplatePanel/TemplateForm"]
+[node name="TeamNameInput" type="LineEdit" parent="Margin/Layout/Header/ConfigPanel/ConfigForm"]
 layout_mode = 2
-text = "Color principal"
+text = "Mi Equipo"
 
-[node name="PrimaryColorInput" type="LineEdit" parent="Margin/Layout/TemplatePanel/TemplateForm"]
+[node name="PrimaryColorLabel" type="Label" parent="Margin/Layout/Header/ConfigPanel/ConfigForm"]
 layout_mode = 2
-placeholder_text = "#3388ff"
+text = "Color 1"
 
-[node name="SecondaryLabel" type="Label" parent="Margin/Layout/TemplatePanel/TemplateForm"]
+[node name="PrimaryColorInput" type="LineEdit" parent="Margin/Layout/Header/ConfigPanel/ConfigForm"]
 layout_mode = 2
-text = "Color secundario"
+text = "#3388ff"
 
-[node name="SecondaryColorInput" type="LineEdit" parent="Margin/Layout/TemplatePanel/TemplateForm"]
+[node name="SecondaryColorLabel" type="Label" parent="Margin/Layout/Header/ConfigPanel/ConfigForm"]
 layout_mode = 2
-placeholder_text = "#ffffff"
+text = "Color 2"
 
-[node name="FormationLabel" type="Label" parent="Margin/Layout/TemplatePanel/TemplateForm"]
+[node name="SecondaryColorInput" type="LineEdit" parent="Margin/Layout/Header/ConfigPanel/ConfigForm"]
+layout_mode = 2
+text = "#ffffff"
+
+[node name="FormationLabel" type="Label" parent="Margin/Layout/Header/ConfigPanel/ConfigForm"]
 layout_mode = 2
 text = "Formación"
 
-[node name="FormationInput" type="LineEdit" parent="Margin/Layout/TemplatePanel/TemplateForm"]
+[node name="FormationInput" type="LineEdit" parent="Margin/Layout/Header/ConfigPanel/ConfigForm"]
 layout_mode = 2
-placeholder_text = "2-2"
+text = "1-2-1"
 
-[node name="Buttons" type="HBoxContainer" parent="Margin/Layout"]
+[node name="Meta" type="VBoxContainer" parent="Margin/Layout/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 0)
+theme_override_constants/separation = 8
+
+[node name="RatingLabel" type="Label" parent="Margin/Layout/Header/Meta"]
+layout_mode = 2
+text = "Rating: 0"
+theme_override_font_sizes/font_size = 22
+
+[node name="ChemistryLabel" type="Label" parent="Margin/Layout/Header/Meta"]
+layout_mode = 2
+text = "Chemistry: 0"
+theme_override_font_sizes/font_size = 20
+
+[node name="SquadArea" type="HBoxContainer" parent="Margin/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="PitchPanel" type="PanelContainer" parent="Margin/Layout/SquadArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="PitchBackground" type="ColorRect" parent="Margin/Layout/SquadArea/PitchPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(900, 420)
+color = Color(0.09, 0.34, 0.17, 1)
+
+[node name="GKCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel"]
+layout_mode = 1
+offset_left = 390.0
+offset_top = 325.0
+offset_right = 530.0
+offset_bottom = 415.0
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/GKCard"]
+layout_mode = 2
+
+[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/GKCard/VBox"]
+layout_mode = 2
+text = "GK"
+
+[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/GKCard/VBox"]
+layout_mode = 2
+
+[node name="CierreCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel"]
+layout_mode = 1
+offset_left = 390.0
+offset_top = 232.0
+offset_right = 530.0
+offset_bottom = 322.0
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/CierreCard"]
+layout_mode = 2
+
+[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/CierreCard/VBox"]
+layout_mode = 2
+text = "Cierre"
+
+[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/CierreCard/VBox"]
+layout_mode = 2
+
+[node name="AlaIzqCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel"]
+layout_mode = 1
+offset_left = 190.0
+offset_top = 145.0
+offset_right = 330.0
+offset_bottom = 235.0
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/AlaIzqCard"]
+layout_mode = 2
+
+[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/AlaIzqCard/VBox"]
+layout_mode = 2
+text = "Ala Izq"
+
+[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/AlaIzqCard/VBox"]
+layout_mode = 2
+
+[node name="AlaDerCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel"]
+layout_mode = 1
+offset_left = 590.0
+offset_top = 145.0
+offset_right = 730.0
+offset_bottom = 235.0
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/AlaDerCard"]
+layout_mode = 2
+
+[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/AlaDerCard/VBox"]
+layout_mode = 2
+text = "Ala Der"
+
+[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/AlaDerCard/VBox"]
+layout_mode = 2
+
+[node name="PivotCard" type="PanelContainer" parent="Margin/Layout/SquadArea/PitchPanel"]
+layout_mode = 1
+offset_left = 390.0
+offset_top = 70.0
+offset_right = 530.0
+offset_bottom = 160.0
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Layout/SquadArea/PitchPanel/PivotCard"]
+layout_mode = 2
+
+[node name="PositionLabel" type="Label" parent="Margin/Layout/SquadArea/PitchPanel/PivotCard/VBox"]
+layout_mode = 2
+text = "Pivot"
+
+[node name="PlayerSelect" type="OptionButton" parent="Margin/Layout/SquadArea/PitchPanel/PivotCard/VBox"]
+layout_mode = 2
+
+[node name="PlayerInfo" type="PanelContainer" parent="Margin/Layout/SquadArea"]
+layout_mode = 2
+custom_minimum_size = Vector2(260, 0)
+
+[node name="InfoLayout" type="VBoxContainer" parent="Margin/Layout/SquadArea/PlayerInfo"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="InfoTitle" type="Label" parent="Margin/Layout/SquadArea/PlayerInfo/InfoLayout"]
+layout_mode = 2
+text = "Detalle jugador"
+theme_override_font_sizes/font_size = 22
+
+[node name="NameLabel" type="Label" parent="Margin/Layout/SquadArea/PlayerInfo/InfoLayout"]
+layout_mode = 2
+text = "Jugador: -"
+
+[node name="RoleLabel" type="Label" parent="Margin/Layout/SquadArea/PlayerInfo/InfoLayout"]
+layout_mode = 2
+text = "Posición: -"
+
+[node name="StatsLabel" type="Label" parent="Margin/Layout/SquadArea/PlayerInfo/InfoLayout"]
+layout_mode = 2
+text = "PAC - | SHO - | PAS -\nDRI - | DEF - | PHY -"
+
+[node name="BenchTitle" type="Label" parent="Margin/Layout/SquadArea/PlayerInfo/InfoLayout"]
+layout_mode = 2
+text = "Banca (vista rápida)"
+
+[node name="BenchList" type="ItemList" parent="Margin/Layout/SquadArea/PlayerInfo/InfoLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Footer" type="HBoxContainer" parent="Margin/Layout"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StatusLabel" type="Label" parent="Margin/Layout/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Estado"
+
+[node name="Buttons" type="HBoxContainer" parent="Margin/Layout/Footer"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="SaveButton" type="Button" parent="Margin/Layout/Buttons"]
+[node name="SaveButton" type="Button" parent="Margin/Layout/Footer/Buttons"]
 layout_mode = 2
-text = "Guardar"
+text = "Guardar plantilla"
 
-[node name="BackButton" type="Button" parent="Margin/Layout/Buttons"]
+[node name="BackButton" type="Button" parent="Margin/Layout/Footer/Buttons"]
 layout_mode = 2
 text = "Volver"
-
-[node name="StatusLabel" type="Label" parent="Margin/Layout"]
-layout_mode = 2
-text = "Estado"
-theme_override_font_sizes/font_size = 18

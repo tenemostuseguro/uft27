@@ -19,13 +19,14 @@ func _on_create_template_pressed() -> void:
 		team_name_input.text,
 		primary_input.text,
 		secondary_input.text,
-		formation_input.text
+		formation_input.text,
+		MatchConfig.selected_lineup
 	)
 	status_label.text = "Plantilla guardada: %s (%s)" % [MatchConfig.team_name, MatchConfig.formation]
 
 func _on_play_pressed() -> void:
 	if not MatchConfig.template_ready:
-		status_label.text = "Primero creá una plantilla antes de jugar."
+		status_label.text = "Primero completá la plantilla antes de jugar."
 		return
 	get_tree().change_scene_to_file(MATCH_SCENE)
 

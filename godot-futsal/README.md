@@ -7,10 +7,17 @@ Prototipo de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/riv
 - ✅ Campo ampliado a proporciones de futsal realistas (**40 x 20 m** aprox en unidades de juego).
 - ✅ IA para el resto de jugadores del equipo y del rival (presión, posicionamiento y remate).
 - ✅ Más funciones de partido: stamina del jugador, reinicio tras gol, fuera de campo, descanso con cambio de lados, eventos en HUD.
+- ✅ Creador de plantilla estilo **Squad**: debés elegir un jugador para cada posición del campo.
 
 ## Menús 2D
 - **MainMenu2D**: entrar al partido, abrir creador de plantilla, salir.
-- **TemplateMenu2D**: editar nombre de equipo, colores y formación.
+- **TemplateMenu2D**: editor visual de plantilla con 5 posiciones (GK, Cierre, Ala Izq, Ala Der, Pivot), rating y chemistry.
+
+## Sistema de plantilla (nuevo)
+- Hay una base de muchos jugadores disponibles (ratings y stats básicos).
+- Cada posición tiene su selector propio (como en juegos tipo FUT/Squad Builder).
+- Si falta una posición sin jugador, la plantilla **no se puede guardar como completa**.
+- Se muestra vista de banca rápida con jugadores no usados.
 
 ## Partidos 3D (online por IP)
 - Host/Join por ENet en puerto `7777`.
@@ -19,9 +26,10 @@ Prototipo de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/riv
 
 ## Flujo recomendado
 1. Abrir proyecto (entra al menú principal 2D).
-2. Crear plantilla en el creador.
-3. Iniciar partido.
-4. Elegir Host o Join.
+2. Entrar en creador de plantilla.
+3. Seleccionar un jugador por cada posición.
+4. Guardar plantilla y volver.
+5. Iniciar partido y elegir Host o Join.
 
 ## Controles
 - **Moverse:** `WASD` o flechas

@@ -19,17 +19,23 @@ Prototipo de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/riv
 - Si falta una posición sin jugador, la plantilla **no se puede guardar como completa**.
 - Se muestra vista de banca rápida con jugadores no usados.
 
-## Partidos 3D (online por IP)
+## Partidos 3D (online por IP y vs IA)
 - Host/Join por ENet en puerto `7777`.
+- Botón **Vs IA** para jugar solo contra el equipo rival controlado por IA.
 - Host autoritativo para física y marcador.
 - Sincronización de pelota y jugadores en red.
+
+## IA mejorada de compañeros y rivales
+- Cada bot tiene rol táctico (GK, Cierre, Ala Izq, Ala Der, Pivot).
+- Cada rol se posiciona distinto y toma decisiones coherentes (cobertura, presión, pase, disparo, despeje).
+- El portero protege portería y despeja; el cierre corta y distribuye; alas abren cancha; pivot fija arriba y finaliza.
 
 ## Flujo recomendado
 1. Abrir proyecto (entra al menú principal 2D).
 2. Entrar en creador de plantilla.
 3. Seleccionar un jugador por cada posición.
 4. Guardar plantilla y volver.
-5. Iniciar partido y elegir Host o Join.
+5. Iniciar partido y elegir Host, Join o Vs IA.
 
 ## Controles
 - **Moverse:** `WASD` o flechas

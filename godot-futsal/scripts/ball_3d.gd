@@ -5,7 +5,8 @@ extends RigidBody3D
 @export var min_speed_stop := 0.08
 
 func _physics_process(_delta: float) -> void:
-	if not multiplayer.is_server():
+	var has_peer := multiplayer.has_multiplayer_peer()
+	if has_peer and not multiplayer.is_server():
 		return
 
 	linear_velocity.y = 0.0

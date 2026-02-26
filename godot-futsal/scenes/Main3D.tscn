@@ -1,0 +1,136 @@
+[gd_scene load_steps=10 format=3 uid="uid://futsal_main_3d"]
+
+[ext_resource type="Script" path="res://scripts/game_manager_3d.gd" id="1_manager"]
+[ext_resource type="Script" path="res://scripts/ball_3d.gd" id="2_ball"]
+[ext_resource type="PackedScene" path="res://scenes/Player3D.tscn" id="3_player_scene"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_field"]
+size = Vector3(24, 0.2, 14)
+
+[sub_resource type="SphereMesh" id="SphereMesh_ball"]
+radius = 0.35
+height = 0.7
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_ball"]
+radius = 0.35
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_goal"]
+size = Vector3(0.8, 2.6, 4)
+
+[sub_resource type="Environment" id="Environment_default"]
+background_mode = 1
+background_color = Color(0.06, 0.08, 0.12, 1)
+ambient_light_color = Color(0.8, 0.85, 0.9, 1)
+ambient_light_energy = 0.7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_field"]
+albedo_color = Color(0.11, 0.5, 0.25, 1)
+
+[node name="Main3D" type="Node3D"]
+script = ExtResource("1_manager")
+player_scene = ExtResource("3_player_scene")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_default")
+
+[node name="Field" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_field")
+material_override = SubResource("StandardMaterial3D_field")
+
+[node name="Ball" type="RigidBody3D" parent="."]
+position = Vector3(0, 0.45, 0)
+script = ExtResource("2_ball")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ball"]
+shape = SubResource("SphereShape3D_ball")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ball"]
+mesh = SubResource("SphereMesh_ball")
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="GoalHome" type="Area3D" parent="."]
+position = Vector3(11.6, 1.2, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GoalHome"]
+shape = SubResource("BoxShape3D_goal")
+
+[node name="GoalHomeMesh" type="MeshInstance3D" parent="GoalHome"]
+mesh = SubResource("BoxMesh_field")
+scale = Vector3(0.03, 6.0, 0.28)
+
+[node name="GoalAway" type="Area3D" parent="."]
+position = Vector3(-11.6, 1.2, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GoalAway"]
+shape = SubResource("BoxShape3D_goal")
+
+[node name="GoalAwayMesh" type="MeshInstance3D" parent="GoalAway"]
+mesh = SubResource("BoxMesh_field")
+scale = Vector3(0.03, 6.0, 0.28)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.75, -0.8, 0)
+light_energy = 2.0
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 19, 14)
+rotation = Vector3(-0.9, 0, 0)
+current = true
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="UI" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="ScoreLabel" type="Label" parent="CanvasLayer/UI"]
+offset_left = 24.0
+offset_top = 16.0
+offset_right = 220.0
+offset_bottom = 66.0
+text = "0 - 0"
+theme_override_font_sizes/font_size = 40
+
+[node name="TimerLabel" type="Label" parent="CanvasLayer/UI"]
+offset_left = 24.0
+offset_top = 62.0
+offset_right = 220.0
+offset_bottom = 96.0
+text = "03:00"
+theme_override_font_sizes/font_size = 24
+
+[node name="StatusLabel" type="Label" parent="CanvasLayer/UI"]
+offset_left = 24.0
+offset_top = 96.0
+offset_right = 520.0
+offset_bottom = 126.0
+text = "Estado"
+
+[node name="IPInput" type="LineEdit" parent="CanvasLayer/UI"]
+offset_left = 24.0
+offset_top = 132.0
+offset_right = 230.0
+offset_bottom = 164.0
+placeholder_text = "IP host (ej: 192.168.0.20)"
+text = "127.0.0.1"
+
+[node name="HostButton" type="Button" parent="CanvasLayer/UI"]
+offset_left = 238.0
+offset_top = 132.0
+offset_right = 318.0
+offset_bottom = 164.0
+text = "Host"
+
+[node name="JoinButton" type="Button" parent="CanvasLayer/UI"]
+offset_left = 326.0
+offset_top = 132.0
+offset_right = 406.0
+offset_bottom = 164.0
+text = "Join"
+
+[connection signal="body_entered" from="GoalHome" to="." method="_on_goal_home_body_entered"]
+[connection signal="body_entered" from="GoalAway" to="." method="_on_goal_away_body_entered"]

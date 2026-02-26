@@ -8,7 +8,7 @@ extends CharacterBody3D
 @export var kick_force := 8.5
 @export var kick_range := 1.7
 
-var manager: Node = null
+var manager: GameManager3D = null
 var anchor_position := Vector3.ZERO
 
 @onready var mesh: MeshInstance3D = $MeshInstance3D
@@ -23,17 +23,17 @@ func _physics_process(_delta: float) -> void:
 	if manager == null or not multiplayer.is_server():
 		return
 
-	var ball := manager.ball
-	var to_ball := ball.global_position - global_position
-	var target := anchor_position
+	var ball: RigidBody3D = manager.ball
+	var to_ball: Vector3 = ball.global_position - global_position
+	var target: Vector3 = anchor_position
 
 	if to_ball.length() < press_distance:
 		target = ball.global_position
 	elif (anchor_position - ball.global_position).length() < hold_distance:
 		target = ball.global_position.lerp(anchor_position, 0.35)
 
-	var flat_target := Vector3(target.x, global_position.y, target.z)
-	var move_dir := flat_target - global_position
+	var flat_target: Vector3 = Vector3(target.x, global_position.y, target.z)
+	var move_dir: Vector3 = flat_target - global_position
 	move_dir.y = 0.0
 
 	if move_dir.length() > 0.1:
@@ -45,8 +45,8 @@ func _physics_process(_delta: float) -> void:
 	move_and_slide()
 
 	if to_ball.length() <= kick_range:
-		var goal_target := Vector3(manager.field_half_length * -team_side, ball.global_position.y, 0.0)
-		var kick_dir := (goal_target - ball.global_position).normalized()
+		var goal_target: Vector3 = Vector3(manager.field_half_length * -team_side, ball.global_position.y, 0.0)
+		var kick_dir: Vector3 = (goal_target - ball.global_position).normalized()
 		ball.apply_central_impulse(kick_dir * kick_force)
 
 	rpc("sync_state", global_position, rotation.y)

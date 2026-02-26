@@ -1,4 +1,5 @@
 extends Node3D
+class_name GameManager3D
 
 const PORT := 7777
 const MAX_PLAYERS := 2
@@ -154,7 +155,7 @@ func _spawn_bots_if_needed() -> void:
 	if not multiplayer.is_server() or bot_scene == null or bots.size() > 0:
 		return
 
-	for i in ai_players_per_side:
+	for i: int in range(ai_players_per_side):
 		_create_bot(-1, i)
 		_create_bot(1, i)
 
@@ -173,13 +174,13 @@ func _team_side_for_peer(id: int) -> int:
 	return -1 if id % 2 == 1 else 1
 
 func _spawn_position_for_side(side: int, id: int) -> Vector3:
-	var lane := 1.5 if id % 3 == 0 else -1.5
+	var lane: float = 1.5 if id % 3 == 0 else -1.5
 	return Vector3((field_half_length - 3.0) * side, 0.0, lane)
 
 func _bot_anchor(side: int, index: int) -> Vector3:
-	var x := side * (8.0 - index * 2.6)
-	var z_positions := [-5.5, 0.0, 5.5]
-	var z := z_positions[index % z_positions.size()]
+	var x: float = side * (8.0 - index * 2.6)
+	var z_positions: Array[float] = [-5.5, 0.0, 5.5]
+	var z: float = z_positions[index % z_positions.size()]
 	return Vector3(x, 0.0, z)
 
 func request_kick_from_player(player_id: int, player_pos: Vector3, forward: Vector3, force: float, kick_range: float) -> void:
@@ -197,10 +198,10 @@ func request_kick_server(player_id: int, player_pos: Vector3, forward: Vector3, 
 	_apply_kick(player_id, player_pos, forward, force, kick_range)
 
 func _apply_kick(_player_id: int, player_pos: Vector3, forward: Vector3, force: float, kick_range: float) -> void:
-	var to_ball := ball.global_position - player_pos
+	var to_ball: Vector3 = ball.global_position - player_pos
 	if to_ball.length() > kick_range:
 		return
-	var dir := forward.normalized()
+	var dir: Vector3 = forward.normalized()
 	if dir.length() <= 0.001:
 		dir = to_ball.normalized()
 	ball.apply_central_impulse(dir * force)
@@ -221,12 +222,13 @@ func _on_goal_away_body_entered(body: Node3D) -> void:
 	_reset_after_goal()
 
 func _reset_after_goal() -> void:
-	for id in players.keys():
-		var side := players[id].team_side
+	for id_variant in players.keys():
+		var id: int = int(id_variant)
+		var side: int = int(players[id].team_side)
 		players[id].global_position = _spawn_position_for_side(side, id)
 		players[id].velocity = Vector3.ZERO
-	for i in bots.size():
-		bots[i].global_position = _bot_anchor(bots[i].team_side, i % ai_players_per_side)
+	for i: int in range(bots.size()):
+		bots[i].global_position = _bot_anchor(int(bots[i].team_side), i % ai_players_per_side)
 	ball.global_position = Vector3(0.0, 0.35, 0.0)
 	ball.linear_velocity = Vector3.ZERO
 	ball.angular_velocity = Vector3.ZERO
@@ -234,7 +236,7 @@ func _reset_after_goal() -> void:
 	update_ui()
 
 func _update_local_hud() -> void:
-	var local_player := _get_local_player()
+	var local_player: Node = _get_local_player()
 	if local_player == null:
 		stamina_label.text = "Stamina: --"
 		return

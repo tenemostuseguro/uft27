@@ -20,7 +20,8 @@ func _ready() -> void:
 		mesh.material_override = _material(Color(0.12, 0.8, 0.95))
 
 func _physics_process(delta: float) -> void:
-	if manager == null or not manager._is_authority():
+	if manager == null or not manager._is_authority() or not manager.can_play():
+		velocity = Vector3.ZERO
 		return
 
 	var ball_pos: Vector3 = manager.ball.global_position

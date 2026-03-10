@@ -27,6 +27,10 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if local_control:
+		if manager != null and not manager.can_play():
+			velocity = Vector3.ZERO
+			stamina = min(max_stamina, stamina + stamina_recovery * delta)
+			return
 		_process_local_input(delta)
 		rpc("sync_remote_state", global_position, rotation.y, velocity, stamina)
 

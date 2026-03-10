@@ -49,6 +49,7 @@ var halftime_done := false
 var offline_vs_ai := false
 var last_touch_side := -1
 var foul_cooldown := 0.0
+var match_finished := false
 
 var dead_ball := false
 var restart_timer := 0.0
@@ -88,14 +89,22 @@ func _process(delta: float) -> void:
 	if not _is_authority():
 		return
 
+	_update_match_clock(delta)
+	if match_finished:
+		_update_possession_label()
+		update_ui()
+		return
+
 	if dead_ball:
 		restart_timer = max(0.0, restart_timer - delta)
 		if restart_timer <= 0.0:
 			_apply_restart()
+		foul_cooldown = max(0.0, foul_cooldown - delta)
+		_update_possession_label()
+		update_ui()
 		return
 
 	foul_cooldown = max(0.0, foul_cooldown - delta)
-	_update_match_clock(delta)
 	_check_ball_out_events()
 	_check_foul_events()
 	_constrain_entities_to_field()
@@ -152,14 +161,35 @@ func _update_match_clock(delta: float) -> void:
 	var half_time: float = match_duration * 0.5
 	if not halftime_done and time_left <= half_time:
 		halftime_done = true
+		home_fouls = 0
+		away_fouls = 0
+		_update_foul_label()
 		event_label.text = "Descanso: cambio de lados"
 		_swap_sides()
 
 	if time_left <= 0.0:
-		event_label.text = "Final: %d - %d" % [home_score, away_score]
+		_finish_match()
 
 	if multiplayer.has_multiplayer_peer():
 		rpc("sync_match_state", home_score, away_score, time_left, home_fouls, away_fouls)
+
+func _finish_match() -> void:
+	if match_finished:
+		return
+	match_finished = true
+	dead_ball = true
+	restart_timer = 0.0
+	ball.linear_velocity = Vector3.ZERO
+	ball.angular_velocity = Vector3.ZERO
+	for raw_player in players.values():
+		var p: CharacterBody3D = raw_player
+		p.velocity = Vector3.ZERO
+	for b in bots:
+		b.velocity = Vector3.ZERO
+	event_label.text = "Final: %d - %d" % [home_score, away_score]
+
+func can_play() -> bool:
+	return not match_finished and time_left > 0.0
 
 func _swap_sides() -> void:
 	for raw_player in players.values():
@@ -171,7 +201,28 @@ func _swap_sides() -> void:
 		bot.anchor_position.x *= -1.0
 		bot.team_side *= -1
 
+func _prepare_new_match() -> void:
+	home_score = 0
+	away_score = 0
+	home_fouls = 0
+	away_fouls = 0
+	time_left = match_duration
+	halftime_done = false
+	last_touch_side = 0
+	foul_cooldown = 0.0
+	match_finished = false
+	dead_ball = false
+	restart_timer = 0.0
+	restart_reason = ""
+	restart_position = Vector3.ZERO
+	ball.global_position = Vector3(0.0, 0.35, 0.0)
+	ball.linear_velocity = Vector3.ZERO
+	ball.angular_velocity = Vector3.ZERO
+	_update_foul_label()
+	update_ui()
+
 func _on_vs_ai_pressed() -> void:
+	_prepare_new_match()
 	offline_vs_ai = true
 	status_label.text = "Modo local vs IA"
 	mode_label.text = "Modo: local vs IA"
@@ -181,6 +232,7 @@ func _on_vs_ai_pressed() -> void:
 	_spawn_bots_balanced(true)
 
 func _on_host_pressed() -> void:
+	_prepare_new_match()
 	offline_vs_ai = false
 	var peer := ENetMultiplayerPeer.new()
 	var err := peer.create_server(PORT, MAX_PLAYERS)
@@ -226,6 +278,7 @@ func _on_peer_disconnected(id: int) -> void:
 	event_label.text = "Rival desconectado"
 
 func _on_connected_to_server() -> void:
+	_prepare_new_match()
 	status_label.text = "Conectado al host"
 	_spawn_player(multiplayer.get_unique_id(), true, 1)
 
@@ -435,7 +488,11 @@ func _apply_restart() -> void:
 	event_label.text = "%s | ¡Jueguen!" % restart_reason
 
 func _side_name(side: int) -> String:
-	return "Local" if side < 0 else "Visitante"
+	if side < 0:
+		return "Local"
+	if side > 0:
+		return "Visitante"
+	return "Neutral"
 
 func register_touch(side: int) -> void:
 	last_touch_side = side
@@ -502,7 +559,7 @@ func request_kick_server(player_id: int, player_pos: Vector3, forward: Vector3, 
 	_apply_kick(player_id, player_pos, forward, force, kick_range)
 
 func _apply_kick(player_id: int, player_pos: Vector3, forward: Vector3, force: float, kick_range: float) -> void:
-	if dead_ball:
+	if dead_ball or match_finished:
 		return
 	var to_ball: Vector3 = ball.global_position - player_pos
 	if to_ball.length() > kick_range:
@@ -516,7 +573,7 @@ func _apply_kick(player_id: int, player_pos: Vector3, forward: Vector3, force: f
 	event_label.text = "¡Remate!"
 
 func apply_bot_kick(side: int, dir: Vector3, power: float) -> void:
-	if dead_ball:
+	if dead_ball or match_finished:
 		return
 	register_touch(side)
 	ball.apply_central_impulse(dir * power)
@@ -536,6 +593,7 @@ func _on_goal_away_body_entered(body: Node3D) -> void:
 	_reset_after_goal()
 
 func _reset_after_goal() -> void:
+	match_finished = false
 	dead_ball = false
 	for id_variant in players.keys():
 		var id: int = int(id_variant)

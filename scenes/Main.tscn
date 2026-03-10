@@ -1,0 +1,154 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/Main.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/views/HomeView.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/views/EventView.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/views/MarketView.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/views/MatchView.tscn" id="5"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.06, 0.09, 0.12, 1)
+
+[node name="HUD" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = 32.0
+offset_right = -32.0
+offset_bottom = -32.0
+alignment = 0
+
+[node name="Title" type="Label" parent="./HUD"]
+layout_mode = 2
+text = "Futsal Arcade - Evento Semanal"
+
+[node name="Nav" type="HBoxContainer" parent="./HUD"]
+layout_mode = 2
+
+[node name="HomeButton" type="Button" parent="./HUD/Nav"]
+layout_mode = 2
+text = "Home"
+
+[node name="EventButton" type="Button" parent="./HUD/Nav"]
+layout_mode = 2
+text = "Evento"
+
+[node name="MarketButton" type="Button" parent="./HUD/Nav"]
+layout_mode = 2
+text = "Mercado"
+
+[node name="MatchButton" type="Button" parent="./HUD/Nav"]
+layout_mode = 2
+text = "Match"
+
+[node name="Stats" type="HBoxContainer" parent="./HUD"]
+layout_mode = 2
+
+[node name="EnergyLabel" type="Label" parent="./HUD/Stats"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Energia: 20"
+
+[node name="TokensLabel" type="Label" parent="./HUD/Stats"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Tokens: 0"
+
+[node name="StarsLabel" type="Label" parent="./HUD/Stats"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Estrellas: 0"
+
+[node name="Buttons" type="GridContainer" parent="./HUD"]
+layout_mode = 2
+columns = 2
+
+[node name="SkillGameButton" type="Button" parent="./HUD/Buttons"]
+layout_mode = 2
+text = "Jugar Skill Game"
+
+[node name="MiniMatchButton" type="Button" parent="./HUD/Buttons"]
+layout_mode = 2
+text = "Jugar Mini Partido"
+
+[node name="AdvancePathButton" type="Button" parent="./HUD/Buttons"]
+layout_mode = 2
+text = "Avanzar Path"
+
+[node name="BuyStoreButton" type="Button" parent="./HUD/Buttons"]
+layout_mode = 2
+text = "Comprar Item Tienda"
+
+[node name="MarketSellButton" type="Button" parent="./HUD/Buttons"]
+layout_mode = 2
+text = "Vender en Mercado"
+
+[node name="RechargeButton" type="Button" parent="./HUD/Buttons"]
+layout_mode = 2
+text = "Recargar Energia"
+
+[node name="LogLabel" type="Label" parent="./HUD"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Listo"
+
+[node name="ViewContainer" type="PanelContainer" parent="./HUD"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 480)
+
+[node name="ViewStack" type="Control" parent="./HUD/ViewContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="HomeView" parent="./HUD/ViewContainer/ViewStack" instance=ExtResource("2")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="EventView" parent="./HUD/ViewContainer/ViewStack" instance=ExtResource("3")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+
+[node name="MarketView" parent="./HUD/ViewContainer/ViewStack" instance=ExtResource("4")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+
+[node name="MatchView" parent="./HUD/ViewContainer/ViewStack" instance=ExtResource("5")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+
+[connection signal="pressed" from="HUD/Nav/HomeButton" to="." method="_on_home_pressed"]
+[connection signal="pressed" from="HUD/Nav/EventButton" to="." method="_on_event_pressed"]
+[connection signal="pressed" from="HUD/Nav/MarketButton" to="." method="_on_market_pressed"]
+[connection signal="pressed" from="HUD/Nav/MatchButton" to="." method="_on_match_pressed"]
+[connection signal="pressed" from="HUD/Buttons/SkillGameButton" to="." method="_on_skill_game_pressed"]
+[connection signal="pressed" from="HUD/Buttons/MiniMatchButton" to="." method="_on_mini_match_pressed"]
+[connection signal="pressed" from="HUD/Buttons/AdvancePathButton" to="." method="_on_advance_path_pressed"]
+[connection signal="pressed" from="HUD/Buttons/BuyStoreButton" to="." method="_on_buy_store_item_pressed"]
+[connection signal="pressed" from="HUD/Buttons/MarketSellButton" to="." method="_on_market_sell_pressed"]
+[connection signal="pressed" from="HUD/Buttons/RechargeButton" to="." method="_on_recharge_pressed"]

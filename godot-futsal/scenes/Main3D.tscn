@@ -1,0 +1,347 @@
+[gd_scene load_steps=17 format=3 uid="uid://futsal_main_3d"]
+
+[ext_resource type="Script" path="res://scripts/game_manager_3d.gd" id="1_manager"]
+[ext_resource type="Script" path="res://scripts/ball_3d.gd" id="2_ball"]
+[ext_resource type="PackedScene" path="res://scenes/Player3D.tscn" id="3_player_scene"]
+[ext_resource type="PackedScene" path="res://scenes/BotPlayer3D.tscn" id="4_bot_scene"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_field"]
+size = Vector3(40, 0.2, 20)
+
+[sub_resource type="SphereMesh" id="SphereMesh_ball"]
+radius = 0.35
+height = 0.7
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_ball"]
+radius = 0.35
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_goal"]
+size = Vector3(0.9, 2.2, 3.2)
+
+[sub_resource type="Environment" id="Environment_default"]
+background_mode = 1
+background_color = Color(0.05, 0.07, 0.1, 1)
+ambient_light_color = Color(0.9, 0.9, 0.92, 1)
+ambient_light_energy = 0.75
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_field"]
+albedo_color = Color(0.11, 0.52, 0.24, 1)
+roughness = 0.9
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor_collision"]
+size = Vector3(40.0, 0.2, 20.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_side_wall"]
+size = Vector3(40.0, 2.0, 0.4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_end_wall"]
+size = Vector3(0.4, 2.0, 20.0)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_center"]
+top_radius = 3.0
+bottom_radius = 3.0
+height = 0.05
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_line"]
+albedo_color = Color(1, 1, 1, 0.82)
+transparency = 1
+
+[node name="Main3D" type="Node3D"]
+script = ExtResource("1_manager")
+player_scene = ExtResource("3_player_scene")
+bot_scene = ExtResource("4_bot_scene")
+field_half_length = 20.0
+field_half_width = 10.0
+ai_players_per_side = 4
+match_duration = 360.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_default")
+
+[node name="Field" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_field")
+material_override = SubResource("StandardMaterial3D_field")
+
+[node name="FieldCollision" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="FieldCollision"]
+shape = SubResource("BoxShape3D_floor_collision")
+
+[node name="TopWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 1.0, -10.2)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TopWall"]
+shape = SubResource("BoxShape3D_side_wall")
+
+[node name="BottomWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 1.0, 10.2)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BottomWall"]
+shape = SubResource("BoxShape3D_side_wall")
+
+[node name="LeftWall" type="StaticBody3D" parent="."]
+position = Vector3(-20.2, 1.0, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="LeftWall"]
+shape = SubResource("BoxShape3D_end_wall")
+
+[node name="RightWall" type="StaticBody3D" parent="."]
+position = Vector3(20.2, 1.0, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RightWall"]
+shape = SubResource("BoxShape3D_end_wall")
+
+[node name="CenterCircle" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.12, 0)
+mesh = SubResource("CylinderMesh_center")
+material_override = SubResource("StandardMaterial3D_line")
+
+[node name="Ball" type="RigidBody3D" parent="."]
+position = Vector3(0, 0.35, 0)
+gravity_scale = 0.0
+axis_lock_linear_y = true
+script = ExtResource("2_ball")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ball"]
+shape = SubResource("SphereShape3D_ball")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ball"]
+mesh = SubResource("SphereMesh_ball")
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="Bots" type="Node3D" parent="."]
+
+[node name="GoalHome" type="Area3D" parent="."]
+position = Vector3(-19.2, 1.1, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GoalHome"]
+shape = SubResource("BoxShape3D_goal")
+
+[node name="GoalHomeMesh" type="MeshInstance3D" parent="GoalHome"]
+mesh = SubResource("BoxMesh_field")
+scale = Vector3(0.022, 5.5, 0.16)
+
+[node name="GoalAway" type="Area3D" parent="."]
+position = Vector3(19.2, 1.1, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GoalAway"]
+shape = SubResource("BoxShape3D_goal")
+
+[node name="GoalAwayMesh" type="MeshInstance3D" parent="GoalAway"]
+mesh = SubResource("BoxMesh_field")
+scale = Vector3(0.022, 5.5, 0.16)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.8, -0.75, 0)
+light_energy = 2.4
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 31, 21)
+rotation = Vector3(-0.93, 0, 0)
+current = true
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="UI" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Hud" type="PanelContainer" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 640.0
+offset_bottom = 250.0
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/UI/Hud"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ScoreLabel" type="Label" parent="CanvasLayer/UI/Hud/VBox"]
+layout_mode = 2
+text = "Local 0 - 0 Visitante"
+theme_override_font_sizes/font_size = 34
+
+[node name="TimerLabel" type="Label" parent="CanvasLayer/UI/Hud/VBox"]
+layout_mode = 2
+text = "06:00"
+theme_override_font_sizes/font_size = 26
+
+[node name="StaminaLabel" type="Label" parent="CanvasLayer/UI/Hud/VBox"]
+layout_mode = 2
+text = "Stamina: --"
+
+[node name="PossessionLabel" type="Label" parent="CanvasLayer/UI/Hud/VBox"]
+layout_mode = 2
+text = "Posesión: --"
+
+[node name="FoulLabel" type="Label" parent="CanvasLayer/UI/Hud/VBox"]
+layout_mode = 2
+text = "Faltas L/V: 0 / 0"
+
+[node name="ChangeLabel" type="Label" parent="CanvasLayer/UI/Hud/VBox"]
+layout_mode = 2
+text = "Cambios L/V: 0 / 0"
+
+[node name="ModeLabel" type="Label" parent="CanvasLayer/UI/Hud/VBox"]
+layout_mode = 2
+text = "Modo: menú"
+
+[node name="StatusLabel" type="Label" parent="CanvasLayer/UI/Hud/VBox"]
+layout_mode = 2
+text = "Estado"
+
+[node name="EventLabel" type="Label" parent="CanvasLayer/UI/Hud/VBox"]
+layout_mode = 2
+text = "Eventos"
+
+[node name="NetworkRow" type="HBoxContainer" parent="CanvasLayer/UI/Hud/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="IPInput" type="LineEdit" parent="CanvasLayer/UI/Hud/VBox/NetworkRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(210, 0)
+placeholder_text = "IP host (ej: 192.168.0.20)"
+text = "127.0.0.1"
+
+[node name="HostButton" type="Button" parent="CanvasLayer/UI/Hud/VBox/NetworkRow"]
+layout_mode = 2
+text = "Host"
+
+[node name="JoinButton" type="Button" parent="CanvasLayer/UI/Hud/VBox/NetworkRow"]
+layout_mode = 2
+text = "Join"
+
+[node name="VsAIButton" type="Button" parent="CanvasLayer/UI/Hud/VBox/NetworkRow"]
+layout_mode = 2
+text = "Vs IA"
+
+
+[node name="PauseMenu" type="PanelContainer" parent="CanvasLayer/UI"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -170.0
+offset_top = -130.0
+offset_right = 170.0
+offset_bottom = 130.0
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/UI/PauseMenu"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="CanvasLayer/UI/PauseMenu/VBox"]
+layout_mode = 2
+text = "Pausa"
+theme_override_font_sizes/font_size = 30
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="CanvasLayer/UI/PauseMenu/VBox"]
+layout_mode = 2
+text = "Reanudar"
+
+[node name="RestartButton" type="Button" parent="CanvasLayer/UI/PauseMenu/VBox"]
+layout_mode = 2
+text = "Reiniciar partido"
+
+[node name="BackMenuButton" type="Button" parent="CanvasLayer/UI/PauseMenu/VBox"]
+layout_mode = 2
+text = "Volver al menú"
+
+[node name="MobileControls" type="Control" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="MovePad" type="PanelContainer" parent="CanvasLayer/UI/MobileControls"]
+layout_mode = 1
+anchors_preset = 3
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -220.0
+offset_right = 236.0
+offset_bottom = -16.0
+
+[node name="Grid" type="GridContainer" parent="CanvasLayer/UI/MobileControls/MovePad"]
+layout_mode = 2
+columns = 3
+
+[node name="Empty1" type="Control" parent="CanvasLayer/UI/MobileControls/MovePad/Grid"]
+layout_mode = 2
+custom_minimum_size = Vector2(60, 60)
+
+[node name="UpButton" type="Button" parent="CanvasLayer/UI/MobileControls/MovePad/Grid"]
+layout_mode = 2
+text = "↑"
+
+[node name="Empty2" type="Control" parent="CanvasLayer/UI/MobileControls/MovePad/Grid"]
+layout_mode = 2
+custom_minimum_size = Vector2(60, 60)
+
+[node name="LeftButton" type="Button" parent="CanvasLayer/UI/MobileControls/MovePad/Grid"]
+layout_mode = 2
+text = "←"
+
+[node name="Empty3" type="Control" parent="CanvasLayer/UI/MobileControls/MovePad/Grid"]
+layout_mode = 2
+custom_minimum_size = Vector2(60, 60)
+
+[node name="RightButton" type="Button" parent="CanvasLayer/UI/MobileControls/MovePad/Grid"]
+layout_mode = 2
+text = "→"
+
+[node name="Empty4" type="Control" parent="CanvasLayer/UI/MobileControls/MovePad/Grid"]
+layout_mode = 2
+custom_minimum_size = Vector2(60, 60)
+
+[node name="DownButton" type="Button" parent="CanvasLayer/UI/MobileControls/MovePad/Grid"]
+layout_mode = 2
+text = "↓"
+
+[node name="Empty5" type="Control" parent="CanvasLayer/UI/MobileControls/MovePad/Grid"]
+layout_mode = 2
+custom_minimum_size = Vector2(60, 60)
+
+[node name="ActionPad" type="PanelContainer" parent="CanvasLayer/UI/MobileControls"]
+layout_mode = 1
+anchors_preset = 9
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -236.0
+offset_top = -220.0
+offset_right = -16.0
+offset_bottom = -16.0
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/UI/MobileControls/ActionPad"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ShootButton" type="Button" parent="CanvasLayer/UI/MobileControls/ActionPad/VBox"]
+layout_mode = 2
+text = "PATEAR"
+
+[node name="SprintButton" type="Button" parent="CanvasLayer/UI/MobileControls/ActionPad/VBox"]
+layout_mode = 2
+text = "SPRINT"
+
+[node name="ChangeButton" type="Button" parent="CanvasLayer/UI/MobileControls/ActionPad/VBox"]
+layout_mode = 2
+text = "CAMBIO"
+
+[connection signal="body_entered" from="GoalHome" to="." method="_on_goal_home_body_entered"]
+[connection signal="body_entered" from="GoalAway" to="." method="_on_goal_away_body_entered"]

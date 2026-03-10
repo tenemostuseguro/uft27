@@ -55,6 +55,10 @@ func _process_local_input(delta: float) -> void:
 	velocity.y = 0.0
 	move_and_slide()
 
+	if manager != null:
+		global_position.x = clamp(global_position.x, -manager.field_half_length + 0.4, manager.field_half_length - 0.4)
+		global_position.z = clamp(global_position.z, -manager.field_half_width + 0.4, manager.field_half_width - 0.4)
+
 	if direction.length() > 0.05:
 		look_at(global_position + direction, Vector3.UP)
 

@@ -10,17 +10,19 @@ const MAX_PLAYERS := 2
 @export var match_duration := 300.0
 @export var field_half_length := 20.0
 @export var field_half_width := 10.0
+@export var goal_half_width := 1.6
 
 @onready var players_root: Node3D = $Players
 @onready var bots_root: Node3D = $Bots
 @onready var ball: RigidBody3D = $Ball
-@onready var score_label: Label = $CanvasLayer/UI/Hud/ScoreLabel
-@onready var timer_label: Label = $CanvasLayer/UI/Hud/TimerLabel
-@onready var status_label: Label = $CanvasLayer/UI/Hud/StatusLabel
-@onready var event_label: Label = $CanvasLayer/UI/Hud/EventLabel
-@onready var stamina_label: Label = $CanvasLayer/UI/Hud/StaminaLabel
-@onready var mode_label: Label = $CanvasLayer/UI/Hud/ModeLabel
-@onready var possession_label: Label = $CanvasLayer/UI/Hud/PossessionLabel
+@onready var score_label: Label = $CanvasLayer/UI/Hud/VBox/ScoreLabel
+@onready var timer_label: Label = $CanvasLayer/UI/Hud/VBox/TimerLabel
+@onready var stamina_label: Label = $CanvasLayer/UI/Hud/VBox/StaminaLabel
+@onready var possession_label: Label = $CanvasLayer/UI/Hud/VBox/PossessionLabel
+@onready var mode_label: Label = $CanvasLayer/UI/Hud/VBox/ModeLabel
+@onready var status_label: Label = $CanvasLayer/UI/Hud/VBox/StatusLabel
+@onready var event_label: Label = $CanvasLayer/UI/Hud/VBox/EventLabel
+@onready var foul_label: Label = $CanvasLayer/UI/Hud/VBox/FoulLabel
 
 @onready var ip_input: LineEdit = $CanvasLayer/UI/Hud/VBox/NetworkRow/IPInput
 @onready var host_button: Button = $CanvasLayer/UI/Hud/VBox/NetworkRow/HostButton
@@ -32,16 +34,26 @@ const MAX_PLAYERS := 2
 @onready var move_down_button: Button = $CanvasLayer/UI/MobileControls/MovePad/Grid/DownButton
 @onready var move_left_button: Button = $CanvasLayer/UI/MobileControls/MovePad/Grid/LeftButton
 @onready var move_right_button: Button = $CanvasLayer/UI/MobileControls/MovePad/Grid/RightButton
-@onready var shoot_button: Button = $CanvasLayer/UI/MobileControls/ActionPad/ShootButton
-@onready var sprint_button: Button = $CanvasLayer/UI/MobileControls/ActionPad/SprintButton
+@onready var shoot_button: Button = $CanvasLayer/UI/MobileControls/ActionPad/VBox/ShootButton
+@onready var sprint_button: Button = $CanvasLayer/UI/MobileControls/ActionPad/VBox/SprintButton
 
 var home_score := 0
 var away_score := 0
+var home_fouls := 0
+var away_fouls := 0
 var time_left := 300.0
 var players: Dictionary = {}
 var bots: Array[CharacterBody3D] = []
+
 var halftime_done := false
 var offline_vs_ai := false
+var last_touch_side := -1
+var foul_cooldown := 0.0
+
+var dead_ball := false
+var restart_timer := 0.0
+var restart_position := Vector3.ZERO
+var restart_reason := ""
 
 var mobile_left := false
 var mobile_right := false
@@ -68,14 +80,25 @@ func _ready() -> void:
 	event_label.text = "Elegí modo de juego"
 	status_label.text = "Host, Join o Vs IA"
 	mode_label.text = "Modo: menú"
+	_update_foul_label()
 	update_ui()
 
 func _process(delta: float) -> void:
 	_update_local_hud()
 	if not _is_authority():
 		return
+
+	if dead_ball:
+		restart_timer = max(0.0, restart_timer - delta)
+		if restart_timer <= 0.0:
+			_apply_restart()
+		return
+
+	foul_cooldown = max(0.0, foul_cooldown - delta)
 	_update_match_clock(delta)
-	_check_ball_bounds()
+	_check_ball_out_events()
+	_check_foul_events()
+	_constrain_entities_to_field()
 	_update_possession_label()
 	update_ui()
 
@@ -136,7 +159,7 @@ func _update_match_clock(delta: float) -> void:
 		event_label.text = "Final: %d - %d" % [home_score, away_score]
 
 	if multiplayer.has_multiplayer_peer():
-		rpc("sync_match_state", home_score, away_score, time_left)
+		rpc("sync_match_state", home_score, away_score, time_left, home_fouls, away_fouls)
 
 func _swap_sides() -> void:
 	for raw_player in players.values():
@@ -147,14 +170,6 @@ func _swap_sides() -> void:
 		bot.global_position.x *= -1.0
 		bot.anchor_position.x *= -1.0
 		bot.team_side *= -1
-
-func _check_ball_bounds() -> void:
-	var pos: Vector3 = ball.global_position
-	if abs(pos.x) > field_half_length + 3.0 or abs(pos.z) > field_half_width + 3.0:
-		event_label.text = "Pelota fuera: saque neutral"
-		ball.global_position = Vector3(0.0, 0.35, 0.0)
-		ball.linear_velocity = Vector3.ZERO
-		ball.angular_velocity = Vector3.ZERO
 
 func _on_vs_ai_pressed() -> void:
 	offline_vs_ai = true
@@ -302,6 +317,129 @@ func _bot_anchor_by_role(side: int, role: String) -> Vector3:
 			x = side * (field_half_length - 8.0)
 	return Vector3(x, 0.0, z)
 
+func _constrain_entities_to_field() -> void:
+	for raw_player in players.values():
+		var p: CharacterBody3D = raw_player
+		p.global_position.x = clamp(p.global_position.x, -field_half_length + 0.4, field_half_length - 0.4)
+		p.global_position.z = clamp(p.global_position.z, -field_half_width + 0.4, field_half_width - 0.4)
+	for b in bots:
+		b.global_position.x = clamp(b.global_position.x, -field_half_length + 0.4, field_half_length - 0.4)
+		b.global_position.z = clamp(b.global_position.z, -field_half_width + 0.4, field_half_width - 0.4)
+
+func _check_ball_out_events() -> void:
+	var pos: Vector3 = ball.global_position
+	if abs(pos.z) > field_half_width:
+		_schedule_throw_in(pos)
+		return
+
+	if abs(pos.x) > field_half_length:
+		if abs(pos.z) <= goal_half_width:
+			return # zona de gol, lo resuelve Area3D
+		_schedule_goal_line_restart(pos)
+
+func _schedule_throw_in(pos: Vector3) -> void:
+	var restart_x := clamp(pos.x, -field_half_length + 1.2, field_half_length - 1.2)
+	var restart_z := sign(pos.z) * (field_half_width - 0.35)
+	var receiving_side := -_resolve_last_touch_side(pos)
+	_schedule_restart("Saque de banda (%s)" % _side_name(receiving_side), Vector3(restart_x, 0.35, restart_z))
+
+func _schedule_goal_line_restart(pos: Vector3) -> void:
+	var ball_out_right := pos.x > 0.0
+	var defense_side := 1 if ball_out_right else -1
+	var attack_side := -defense_side
+	var touch_side := _resolve_last_touch_side(pos)
+	var restart_pos := Vector3(defense_side * (field_half_length - 1.5), 0.35, clamp(pos.z, -3.5, 3.5))
+	if touch_side == defense_side:
+		restart_pos = Vector3(attack_side * (field_half_length - 1.4), 0.35, clamp(pos.z, -3.5, 3.5))
+		_schedule_restart("Córner para %s" % _side_name(attack_side), restart_pos)
+	else:
+		_schedule_restart("Saque de meta para %s" % _side_name(defense_side), restart_pos)
+
+func _resolve_last_touch_side(pos: Vector3) -> int:
+	if last_touch_side == -1 or last_touch_side == 1:
+		return last_touch_side
+	# Si no hubo toque registrado (p.ej. rebote inicial), asumimos que atacaba
+	# el equipo del lado desde donde salió la pelota.
+	return 1 if pos.x > 0.0 else -1
+
+func _check_foul_events() -> void:
+	if foul_cooldown > 0.0 or dead_ball:
+		return
+	var carrier := _get_ball_carrier()
+	if carrier == null:
+		return
+
+	var carrier_side := int(carrier.team_side)
+	var foe := get_closest_opponent(carrier.global_position, carrier_side)
+	if foe == null:
+		return
+
+	var dist := carrier.global_position.distance_to(foe.global_position)
+	if dist > 1.2:
+		return
+
+	var relative_speed := (carrier.velocity - foe.velocity).length()
+	if relative_speed < 6.2:
+		return
+
+	if abs(carrier.global_position.x) > field_half_length - 0.8:
+		return
+
+	foul_cooldown = 2.2
+	_register_foul(-carrier_side)
+	ball.linear_velocity = Vector3.ZERO
+	_schedule_restart("Falta para %s" % _side_name(carrier_side), Vector3(carrier.global_position.x, 0.35, carrier.global_position.z))
+
+func _register_foul(side_committed: int) -> void:
+	if side_committed < 0:
+		home_fouls += 1
+	else:
+		away_fouls += 1
+	_update_foul_label()
+
+func _update_foul_label() -> void:
+	foul_label.text = "Faltas L/V: %d / %d" % [home_fouls, away_fouls]
+
+func _get_ball_carrier() -> Node3D:
+	var nearest: Node3D = null
+	var best := 1.35
+	for raw_player in players.values():
+		var p: Node3D = raw_player
+		var d := p.global_position.distance_to(ball.global_position)
+		if d < best:
+			best = d
+			nearest = p
+	for b in bots:
+		var d2 := b.global_position.distance_to(ball.global_position)
+		if d2 < best:
+			best = d2
+			nearest = b
+	return nearest
+
+func _schedule_restart(reason: String, position: Vector3) -> void:
+	if dead_ball:
+		return
+	dead_ball = true
+	restart_timer = 1.0
+	restart_reason = reason
+	restart_position = position
+	event_label.text = reason
+	ball.linear_velocity = Vector3.ZERO
+	ball.angular_velocity = Vector3.ZERO
+
+func _apply_restart() -> void:
+	dead_ball = false
+	ball.global_position = restart_position
+	ball.linear_velocity = Vector3.ZERO
+	ball.angular_velocity = Vector3.ZERO
+	event_label.text = "%s | ¡Jueguen!" % restart_reason
+
+func _side_name(side: int) -> String:
+	return "Local" if side < 0 else "Visitante"
+
+func register_touch(side: int) -> void:
+	last_touch_side = side
+
 func get_attack_goal_position(side: int) -> Vector3:
 	return Vector3(-side * (field_half_length - 0.8), 0.35, 0.0)
 
@@ -363,7 +501,9 @@ func request_kick_server(player_id: int, player_pos: Vector3, forward: Vector3, 
 		return
 	_apply_kick(player_id, player_pos, forward, force, kick_range)
 
-func _apply_kick(_player_id: int, player_pos: Vector3, forward: Vector3, force: float, kick_range: float) -> void:
+func _apply_kick(player_id: int, player_pos: Vector3, forward: Vector3, force: float, kick_range: float) -> void:
+	if dead_ball:
+		return
 	var to_ball: Vector3 = ball.global_position - player_pos
 	if to_ball.length() > kick_range:
 		return
@@ -371,7 +511,15 @@ func _apply_kick(_player_id: int, player_pos: Vector3, forward: Vector3, force: 
 	if dir.length() <= 0.001:
 		dir = to_ball.normalized()
 	ball.apply_central_impulse(dir * force)
+	if players.has(player_id):
+		register_touch(int(players[player_id].team_side))
 	event_label.text = "¡Remate!"
+
+func apply_bot_kick(side: int, dir: Vector3, power: float) -> void:
+	if dead_ball:
+		return
+	register_touch(side)
+	ball.apply_central_impulse(dir * power)
 
 func _on_goal_home_body_entered(body: Node3D) -> void:
 	if not _is_authority() or body != ball:
@@ -388,6 +536,7 @@ func _on_goal_away_body_entered(body: Node3D) -> void:
 	_reset_after_goal()
 
 func _reset_after_goal() -> void:
+	dead_ball = false
 	for id_variant in players.keys():
 		var id: int = int(id_variant)
 		var side: int = int(players[id].team_side)
@@ -401,7 +550,7 @@ func _reset_after_goal() -> void:
 	ball.linear_velocity = Vector3.ZERO
 	ball.angular_velocity = Vector3.ZERO
 	if multiplayer.has_multiplayer_peer():
-		rpc("sync_match_state", home_score, away_score, time_left)
+		rpc("sync_match_state", home_score, away_score, time_left, home_fouls, away_fouls)
 	update_ui()
 
 func _update_local_hud() -> void:
@@ -442,10 +591,13 @@ func _get_local_player() -> Node:
 	return null
 
 @rpc("authority", "reliable")
-func sync_match_state(home: int, away: int, clock_left: float) -> void:
+func sync_match_state(home: int, away: int, clock_left: float, fouls_home: int, fouls_away: int) -> void:
 	home_score = home
 	away_score = away
 	time_left = clock_left
+	home_fouls = fouls_home
+	away_fouls = fouls_away
+	_update_foul_label()
 	update_ui()
 
 @rpc("authority", "unreliable")

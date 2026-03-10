@@ -180,6 +180,10 @@ text = "Stamina: --"
 layout_mode = 2
 text = "Posesión: --"
 
+[node name="FoulLabel" type="Label" parent="CanvasLayer/UI/Hud/VBox"]
+layout_mode = 2
+text = "Faltas L/V: 0 / 0"
+
 [node name="ModeLabel" type="Label" parent="CanvasLayer/UI/Hud/VBox"]
 layout_mode = 2
 text = "Modo: menú"

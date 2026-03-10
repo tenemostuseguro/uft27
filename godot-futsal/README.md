@@ -7,7 +7,8 @@ Prototipo de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/riv
 - ✅ Campo ampliado a proporciones de futsal realistas (**40 x 20 m** aprox en unidades de juego).
 - ✅ IA mejorada por roles (GK, Cierre, Ala Izq, Ala Der, Pivot) con decisiones más coherentes.
 - ✅ Modo **Vs IA** para jugar en solitario contra la máquina.
-- ✅ HUD repensado: panel compacto con marcador, reloj, stamina, posesión, modo y eventos.
+- ✅ HUD repensado: panel compacto con marcador, reloj, stamina, posesión, faltas, modo y eventos.
+- ✅ Reglas básicas añadidas: límites de campo, faltas, saques de banda, córners y saques de meta.
 - ✅ Controles móviles en pantalla (D-Pad + Patear + Sprint).
 
 ## Menús 2D

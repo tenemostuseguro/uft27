@@ -87,14 +87,14 @@ func _try_action_with_ball(ball_pos: Vector3) -> void:
 
 	if role_name == "GK":
 		var clear_dir: Vector3 = (attack_goal - manager.ball.global_position).normalized()
-		manager.ball.apply_central_impulse(clear_dir * (kick_force + 2.0))
+		manager.apply_bot_kick(team_side, clear_dir, kick_force + 2.0)
 		return
 
 	if enemy_close and role_name != "Pivot":
 		var mate: Node3D = manager.get_closest_teammate(global_position, team_side, self)
 		if mate != null:
 			var pass_dir: Vector3 = (mate.global_position - manager.ball.global_position).normalized()
-			manager.ball.apply_central_impulse(pass_dir * (kick_force - 1.2))
+			manager.apply_bot_kick(team_side, pass_dir, kick_force - 1.2)
 			return
 
 	var shot_dir: Vector3 = (attack_goal - manager.ball.global_position).normalized()
@@ -104,7 +104,7 @@ func _try_action_with_ball(ball_pos: Vector3) -> void:
 	elif role_name == "Cierre":
 		shot_power -= 0.8
 
-	manager.ball.apply_central_impulse(shot_dir * shot_power)
+	manager.apply_bot_kick(team_side, shot_dir, shot_power)
 
 func _is_offside_like(target: Vector3) -> bool:
 	# Regla simple para que no rompan la estructura: el pivot no puede quedarse pegado al arco rival todo el tiempo.

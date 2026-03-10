@@ -11,7 +11,7 @@ extends CharacterBody3D
 @export var stamina_sprint_cost := 28.0
 
 var local_control := false
-var manager: Node = null
+var manager: GameManager3D = null
 var stamina := 100.0
 
 @onready var mesh: MeshInstance3D = $MeshInstance3D
@@ -31,10 +31,19 @@ func _physics_process(delta: float) -> void:
 		rpc("sync_remote_state", global_position, rotation.y, velocity, stamina)
 
 func _process_local_input(delta: float) -> void:
-	var input_dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	var direction := Vector3(input_dir.x, 0.0, input_dir.y)
+	var key_input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var mobile_input := Vector2.ZERO
+	if manager != null:
+		mobile_input = manager.get_mobile_move_vector()
+
+	var final_input := key_input
+	if mobile_input.length() > final_input.length():
+		final_input = mobile_input
+
+	var direction := Vector3(final_input.x, 0.0, final_input.y)
 	var speed := move_speed
-	var can_sprint := Input.is_action_pressed("sprint") and stamina > 1.0 and direction.length() > 0.01
+	var mobile_sprint := manager != null and manager.is_mobile_sprint_pressed()
+	var can_sprint := (Input.is_action_pressed("sprint") or mobile_sprint) and stamina > 1.0 and direction.length() > 0.01
 	if can_sprint:
 		speed *= sprint_multiplier
 		stamina = max(0.0, stamina - stamina_sprint_cost * delta)
@@ -49,7 +58,8 @@ func _process_local_input(delta: float) -> void:
 	if direction.length() > 0.05:
 		look_at(global_position + direction, Vector3.UP)
 
-	if Input.is_action_just_pressed("shoot") and manager != null:
+	var mobile_shoot := manager != null and manager.consume_mobile_shoot()
+	if (Input.is_action_just_pressed("shoot") or mobile_shoot) and manager != null:
 		manager.request_kick_from_player(player_id, global_position, -global_transform.basis.z, kick_force, kick_range)
 
 @rpc("any_peer", "unreliable")

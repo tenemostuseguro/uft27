@@ -14,15 +14,26 @@ const MAX_PLAYERS := 2
 @onready var players_root: Node3D = $Players
 @onready var bots_root: Node3D = $Bots
 @onready var ball: RigidBody3D = $Ball
-@onready var score_label: Label = $CanvasLayer/UI/ScoreLabel
-@onready var timer_label: Label = $CanvasLayer/UI/TimerLabel
-@onready var status_label: Label = $CanvasLayer/UI/StatusLabel
-@onready var ip_input: LineEdit = $CanvasLayer/UI/IPInput
-@onready var host_button: Button = $CanvasLayer/UI/HostButton
-@onready var join_button: Button = $CanvasLayer/UI/JoinButton
-@onready var vs_ai_button: Button = $CanvasLayer/UI/VsAIButton
-@onready var stamina_label: Label = $CanvasLayer/UI/StaminaLabel
-@onready var event_label: Label = $CanvasLayer/UI/EventLabel
+@onready var score_label: Label = $CanvasLayer/UI/Hud/ScoreLabel
+@onready var timer_label: Label = $CanvasLayer/UI/Hud/TimerLabel
+@onready var status_label: Label = $CanvasLayer/UI/Hud/StatusLabel
+@onready var event_label: Label = $CanvasLayer/UI/Hud/EventLabel
+@onready var stamina_label: Label = $CanvasLayer/UI/Hud/StaminaLabel
+@onready var mode_label: Label = $CanvasLayer/UI/Hud/ModeLabel
+@onready var possession_label: Label = $CanvasLayer/UI/Hud/PossessionLabel
+
+@onready var ip_input: LineEdit = $CanvasLayer/UI/Hud/VBox/NetworkRow/IPInput
+@onready var host_button: Button = $CanvasLayer/UI/Hud/VBox/NetworkRow/HostButton
+@onready var join_button: Button = $CanvasLayer/UI/Hud/VBox/NetworkRow/JoinButton
+@onready var vs_ai_button: Button = $CanvasLayer/UI/Hud/VBox/NetworkRow/VsAIButton
+
+@onready var mobile_controls: Control = $CanvasLayer/UI/MobileControls
+@onready var move_up_button: Button = $CanvasLayer/UI/MobileControls/MovePad/Grid/UpButton
+@onready var move_down_button: Button = $CanvasLayer/UI/MobileControls/MovePad/Grid/DownButton
+@onready var move_left_button: Button = $CanvasLayer/UI/MobileControls/MovePad/Grid/LeftButton
+@onready var move_right_button: Button = $CanvasLayer/UI/MobileControls/MovePad/Grid/RightButton
+@onready var shoot_button: Button = $CanvasLayer/UI/MobileControls/ActionPad/ShootButton
+@onready var sprint_button: Button = $CanvasLayer/UI/MobileControls/ActionPad/SprintButton
 
 var home_score := 0
 var away_score := 0
@@ -32,11 +43,21 @@ var bots: Array[CharacterBody3D] = []
 var halftime_done := false
 var offline_vs_ai := false
 
+var mobile_left := false
+var mobile_right := false
+var mobile_up := false
+var mobile_down := false
+var mobile_sprint := false
+var mobile_shoot_request := false
+
 func _ready() -> void:
 	time_left = match_duration
 	host_button.pressed.connect(_on_host_pressed)
 	join_button.pressed.connect(_on_join_pressed)
 	vs_ai_button.pressed.connect(_on_vs_ai_pressed)
+
+	_connect_mobile_controls()
+	mobile_controls.visible = OS.has_feature("mobile")
 
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
@@ -46,6 +67,7 @@ func _ready() -> void:
 
 	event_label.text = "Elegí modo de juego"
 	status_label.text = "Host, Join o Vs IA"
+	mode_label.text = "Modo: menú"
 	update_ui()
 
 func _process(delta: float) -> void:
@@ -54,6 +76,7 @@ func _process(delta: float) -> void:
 		return
 	_update_match_clock(delta)
 	_check_ball_bounds()
+	_update_possession_label()
 	update_ui()
 
 func _physics_process(_delta: float) -> void:
@@ -62,6 +85,41 @@ func _physics_process(_delta: float) -> void:
 
 func _is_authority() -> bool:
 	return not multiplayer.has_multiplayer_peer() or multiplayer.is_server()
+
+func _connect_mobile_controls() -> void:
+	move_up_button.button_down.connect(func() -> void: mobile_up = true)
+	move_up_button.button_up.connect(func() -> void: mobile_up = false)
+	move_down_button.button_down.connect(func() -> void: mobile_down = true)
+	move_down_button.button_up.connect(func() -> void: mobile_down = false)
+	move_left_button.button_down.connect(func() -> void: mobile_left = true)
+	move_left_button.button_up.connect(func() -> void: mobile_left = false)
+	move_right_button.button_down.connect(func() -> void: mobile_right = true)
+	move_right_button.button_up.connect(func() -> void: mobile_right = false)
+	sprint_button.button_down.connect(func() -> void: mobile_sprint = true)
+	sprint_button.button_up.connect(func() -> void: mobile_sprint = false)
+	shoot_button.pressed.connect(func() -> void: mobile_shoot_request = true)
+
+func get_mobile_move_vector() -> Vector2:
+	var x := 0.0
+	var y := 0.0
+	if mobile_left:
+		x -= 1.0
+	if mobile_right:
+		x += 1.0
+	if mobile_up:
+		y -= 1.0
+	if mobile_down:
+		y += 1.0
+	return Vector2(x, y).normalized()
+
+func is_mobile_sprint_pressed() -> bool:
+	return mobile_sprint
+
+func consume_mobile_shoot() -> bool:
+	if mobile_shoot_request:
+		mobile_shoot_request = false
+		return true
+	return false
 
 func _update_match_clock(delta: float) -> void:
 	if time_left <= 0.0:
@@ -101,6 +159,7 @@ func _check_ball_bounds() -> void:
 func _on_vs_ai_pressed() -> void:
 	offline_vs_ai = true
 	status_label.text = "Modo local vs IA"
+	mode_label.text = "Modo: local vs IA"
 	event_label.text = "Partido iniciado"
 	if players.is_empty():
 		_spawn_player(1, true, -1)
@@ -116,6 +175,7 @@ func _on_host_pressed() -> void:
 
 	multiplayer.multiplayer_peer = peer
 	status_label.text = "Host activo en puerto %d" % PORT
+	mode_label.text = "Modo: host online"
 	event_label.text = "Esperando rival..."
 	if players.is_empty():
 		_spawn_player(multiplayer.get_unique_id(), true, -1)
@@ -134,6 +194,7 @@ func _on_join_pressed() -> void:
 		return
 
 	multiplayer.multiplayer_peer = peer
+	mode_label.text = "Modo: cliente online"
 	status_label.text = "Conectando a %s:%d..." % [ip, PORT]
 
 func _on_peer_connected(id: int) -> void:
@@ -349,6 +410,29 @@ func _update_local_hud() -> void:
 		stamina_label.text = "Stamina: --"
 		return
 	stamina_label.text = "Stamina: %d%%" % int(local_player.stamina_ratio() * 100.0)
+
+func _update_possession_label() -> void:
+	var closest_home := _closest_entity_to_ball(-1)
+	var closest_away := _closest_entity_to_ball(1)
+	if closest_home == INF and closest_away == INF:
+		possession_label.text = "Posesión: --"
+	elif closest_home <= closest_away:
+		possession_label.text = "Posesión: Local"
+	else:
+		possession_label.text = "Posesión: Visitante"
+
+func _closest_entity_to_ball(side: int) -> float:
+	var best := INF
+	for raw_player in players.values():
+		var player: Node3D = raw_player
+		if int(player.team_side) != side:
+			continue
+		best = min(best, player.global_position.distance_to(ball.global_position))
+	for bot in bots:
+		if int(bot.team_side) != side:
+			continue
+		best = min(best, bot.global_position.distance_to(ball.global_position))
+	return best
 
 func _get_local_player() -> Node:
 	for raw_player in players.values():

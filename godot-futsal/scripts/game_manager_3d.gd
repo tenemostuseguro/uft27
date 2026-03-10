@@ -441,9 +441,9 @@ func _check_ball_out_events() -> void:
 		_schedule_goal_line_restart(pos)
 
 func _schedule_throw_in(pos: Vector3) -> void:
-	var restart_x := clamp(pos.x, -field_half_length + 1.2, field_half_length - 1.2)
+	var restart_x: float = clampf(pos.x, -field_half_length + 1.2, field_half_length - 1.2)
 	var restart_z: float = (1.0 if pos.z >= 0.0 else -1.0) * (field_half_width - 0.35)
-	var receiving_side := -_resolve_last_touch_side(pos)
+	var receiving_side: int = -_resolve_last_touch_side(pos)
 	_schedule_restart("Saque de banda (%s)" % _side_name(receiving_side), Vector3(restart_x, 0.35, restart_z))
 
 func _schedule_goal_line_restart(pos: Vector3) -> void:

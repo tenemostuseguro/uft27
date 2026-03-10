@@ -468,12 +468,12 @@ func _resolve_last_touch_side(pos: Vector3) -> int:
 func _check_foul_events() -> void:
 	if foul_cooldown > 0.0 or dead_ball:
 		return
-	var carrier := _get_ball_carrier()
+	var carrier: CharacterBody3D = _get_ball_carrier()
 	if carrier == null:
 		return
 
 	var carrier_side := int(carrier.team_side)
-	var foe := get_closest_opponent(carrier.global_position, carrier_side)
+	var foe: CharacterBody3D = get_closest_opponent(carrier.global_position, carrier_side)
 	if foe == null:
 		return
 
@@ -481,7 +481,7 @@ func _check_foul_events() -> void:
 	if dist > 1.2:
 		return
 
-	var relative_speed := (carrier.velocity - foe.velocity).length()
+	var relative_speed: float = (carrier.velocity - foe.velocity).length()
 	if relative_speed < 6.2:
 		return
 
@@ -562,11 +562,11 @@ func _apply_substitution(player_id: int) -> void:
 	_update_change_label()
 	event_label.text = "Cambio %s" % _side_name(side)
 
-func _get_ball_carrier() -> Node3D:
-	var nearest: Node3D = null
+func _get_ball_carrier() -> CharacterBody3D:
+	var nearest: CharacterBody3D = null
 	var best := 1.35
 	for raw_player in players.values():
-		var p: Node3D = raw_player
+		var p: CharacterBody3D = raw_player
 		var d := p.global_position.distance_to(ball.global_position)
 		if d < best:
 			best = d
@@ -612,8 +612,8 @@ func get_attack_goal_position(side: int) -> Vector3:
 func get_defend_goal_position(side: int) -> Vector3:
 	return Vector3(side * (field_half_length - 0.8), 0.35, 0.0)
 
-func get_closest_teammate(position: Vector3, side: int, exclude: Node3D) -> Node3D:
-	var best: Node3D = null
+func get_closest_teammate(position: Vector3, side: int, exclude: Node3D) -> CharacterBody3D:
+	var best: CharacterBody3D = null
 	var best_d := INF
 	for raw_player in players.values():
 		var player: Node3D = raw_player
@@ -632,9 +632,9 @@ func get_closest_teammate(position: Vector3, side: int, exclude: Node3D) -> Node
 			best = bot
 	return best
 
-func get_closest_opponent(position: Vector3, side: int) -> Node3D:
+func get_closest_opponent(position: Vector3, side: int) -> CharacterBody3D:
 	var enemy_side := -side
-	var best: Node3D = null
+	var best: CharacterBody3D = null
 	var best_d := INF
 	for raw_player in players.values():
 		var player: Node3D = raw_player

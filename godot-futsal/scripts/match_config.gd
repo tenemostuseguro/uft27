@@ -133,9 +133,9 @@ func _build_player_pool() -> Array[Dictionary]:
 
 	return pool
 
-func _make_player(name: String, roles: Array[String], ovr: int, pac: int, sho: int, pas: int, dri: int, deff: int, phy: int) -> Dictionary:
+func _make_player(player_name: String, roles: Array[String], ovr: int, pac: int, sho: int, pas: int, dri: int, deff: int, phy: int) -> Dictionary:
 	return {
-		"name": name,
+		"name": player_name,
 		"roles": roles,
 		"ovr": ovr,
 		"pac": pac,

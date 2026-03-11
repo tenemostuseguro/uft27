@@ -34,7 +34,8 @@ func _physics_process(delta: float) -> void:
 			stamina = min(max_stamina, stamina + stamina_recovery * delta)
 			return
 		_process_local_input(delta)
-		rpc("sync_remote_state", global_position, rotation.y, velocity, stamina)
+		if _can_sync_remote_state():
+			rpc("sync_remote_state", global_position, rotation.y, velocity, stamina)
 
 func _process_local_input(delta: float) -> void:
 	var key_input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -76,6 +77,14 @@ func _process_local_input(delta: float) -> void:
 	var mobile_shoot := manager != null and manager.consume_mobile_shoot()
 	if (Input.is_action_just_pressed("shoot") or mobile_shoot) and manager != null:
 		manager.request_kick_from_player(player_id, global_position, -global_transform.basis.z, kick_force, kick_range)
+
+func _can_sync_remote_state() -> bool:
+	if not multiplayer.has_multiplayer_peer():
+		return false
+	var peer := multiplayer.multiplayer_peer
+	if peer == null:
+		return false
+	return peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED
 
 @rpc("any_peer", "unreliable")
 func sync_remote_state(pos: Vector3, yaw: float, vel: Vector3, remote_stamina: float) -> void:

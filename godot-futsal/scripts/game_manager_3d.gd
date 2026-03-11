@@ -26,8 +26,8 @@ const MAX_PLAYERS := 2
 @onready var change_label: Label = $CanvasLayer/UI/Hud/VBox/ChangeLabel
 
 @onready var network_row: HBoxContainer = $CanvasLayer/UI/Hud/VBox/NetworkRow
-@onready var center_score_label: Label = $CanvasLayer/UI/CenterScore/Score
-@onready var center_timer_label: Label = $CanvasLayer/UI/CenterScore/Clock
+var center_score_label: Label
+var center_timer_label: Label
 
 @onready var mobile_controls: Control = $CanvasLayer/UI/MobileControls
 @onready var move_up_button: Button = $CanvasLayer/UI/MobileControls/MovePad/Grid/UpButton
@@ -88,6 +88,8 @@ func _ready() -> void:
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 
 	network_row.visible = false
+	center_score_label = get_node_or_null("CanvasLayer/UI/CenterScore/Score")
+	center_timer_label = get_node_or_null("CanvasLayer/UI/CenterScore/Clock")
 	event_label.text = "Partido cargado"
 	status_label.text = "Inicializando modo..."
 	mode_label.text = "Modo: inicializando"
@@ -792,5 +794,7 @@ func update_ui() -> void:
 	var minutes := int(time_left) / 60
 	var seconds := int(time_left) % 60
 	timer_label.text = "%02d:%02d" % [minutes, seconds]
-	center_score_label.text = "%d  -  %d" % [home_score, away_score]
-	center_timer_label.text = "%02d:%02d" % [minutes, seconds]
+	if center_score_label != null:
+		center_score_label.text = "%d  -  %d" % [home_score, away_score]
+	if center_timer_label != null:
+		center_timer_label.text = "%02d:%02d" % [minutes, seconds]

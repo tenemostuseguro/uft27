@@ -17,6 +17,19 @@ var selected_lineup: Dictionary = {
 
 var player_pool: Array[Dictionary] = []
 
+const MODE_VS_AI := "vs_ai"
+const MODE_HOST := "host"
+const MODE_JOIN := "join"
+
+var start_mode := MODE_VS_AI
+var join_ip := "127.0.0.1"
+
+func set_match_start(mode: String, ip: String = "127.0.0.1") -> void:
+	start_mode = mode
+	join_ip = ip.strip_edges()
+	if join_ip.is_empty():
+		join_ip = "127.0.0.1"
+
 func _ready() -> void:
 	if player_pool.is_empty():
 		player_pool = _build_player_pool()

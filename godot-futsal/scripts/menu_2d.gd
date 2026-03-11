@@ -1,6 +1,6 @@
 extends Control
 
-const MATCH_SCENE := "res://scenes/Main3D.tscn"
+const MATCH_MODE_SCENE := "res://scenes/MatchModeMenu2D.tscn"
 
 @onready var status_label: Label = $Margin/Layout/StatusLabel
 @onready var team_name_input: LineEdit = $Margin/Layout/TemplatePanel/TemplateForm/TeamNameInput
@@ -28,7 +28,7 @@ func _on_play_pressed() -> void:
 	if not MatchConfig.template_ready:
 		status_label.text = "Primero completá la plantilla antes de jugar."
 		return
-	get_tree().change_scene_to_file(MATCH_SCENE)
+	get_tree().change_scene_to_file(MATCH_MODE_SCENE)
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()

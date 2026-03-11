@@ -201,6 +201,7 @@ layout_mode = 2
 text = "Eventos"
 
 [node name="NetworkRow" type="HBoxContainer" parent="CanvasLayer/UI/Hud/VBox"]
+visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
 
@@ -257,6 +258,32 @@ text = "Reiniciar partido"
 [node name="BackMenuButton" type="Button" parent="CanvasLayer/UI/PauseMenu/VBox"]
 layout_mode = 2
 text = "Volver al menú"
+
+[node name="CenterScore" type="PanelContainer" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -140.0
+offset_top = 10.0
+offset_right = 140.0
+offset_bottom = 88.0
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/UI/CenterScore"]
+layout_mode = 2
+alignment = 1
+
+[node name="Score" type="Label" parent="CanvasLayer/UI/CenterScore/VBox"]
+layout_mode = 2
+text = "0  -  0"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 34
+
+[node name="Clock" type="Label" parent="CanvasLayer/UI/CenterScore/VBox"]
+layout_mode = 2
+text = "06:00"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 24
 
 [node name="MobileControls" type="Control" parent="CanvasLayer/UI"]
 layout_mode = 1

@@ -1,6 +1,6 @@
 extends Control
 
-const MATCH_SCENE := "res://scenes/Main3D.tscn"
+const MATCH_MODE_SCENE := "res://scenes/MatchModeMenu2D.tscn"
 const TEMPLATE_SCENE := "res://scenes/TemplateMenu2D.tscn"
 const HELP_SCENE := "res://scenes/HelpMenu2D.tscn"
 const SETTINGS_SCENE := "res://scenes/SettingsMenu2D.tscn"
@@ -20,7 +20,7 @@ func _on_play_pressed() -> void:
 	if not MatchConfig.template_ready:
 		status_label.text = "Antes de jugar, creá tu plantilla."
 		return
-	get_tree().change_scene_to_file(MATCH_SCENE)
+	get_tree().change_scene_to_file(MATCH_MODE_SCENE)
 
 func _on_template_pressed() -> void:
 	get_tree().change_scene_to_file(TEMPLATE_SCENE)
@@ -28,7 +28,7 @@ func _on_template_pressed() -> void:
 func _on_quick_match_pressed() -> void:
 	MatchConfig.template_ready = false
 	status_label.text = "Entrando en partido rápido..."
-	get_tree().change_scene_to_file(MATCH_SCENE)
+	get_tree().change_scene_to_file(MATCH_MODE_SCENE)
 
 func _on_help_pressed() -> void:
 	get_tree().change_scene_to_file(HELP_SCENE)

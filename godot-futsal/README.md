@@ -15,6 +15,7 @@ Prototipo de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/riv
 
 ## Menús 2D
 - **MainMenu2D**: jugar con plantilla, partido rápido, abrir ayuda, ajustes o salir.
+- **MatchModeMenu2D**: selector exclusivo de modo (Host, Join, Vs IA) antes de entrar al partido.
 - **TemplateMenu2D**: editor visual de plantilla con 5 posiciones, rating, chemistry y progreso.
 - **HelpMenu2D**: guía rápida de controles y reglas activas.
 - **SettingsMenu2D**: ajustes básicos de pantalla completa y volumen master.
@@ -25,8 +26,8 @@ Prototipo de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/riv
 - Vista rápida de banca y detalle de jugador.
 
 ## Partidos 3D (online por IP y vs IA)
-- Host/Join por ENet en puerto `7777`.
-- Botón **Vs IA** para jugar solo contra el equipo rival controlado por IA.
+- Host/Join por ENet en puerto `7777` desde menú de modo.
+- Opción **Vs IA** desde menú de modo, separada del HUD del partido.
 - Host autoritativo para física y marcador en online.
 - Sincronización de pelota y jugadores por RPC.
 

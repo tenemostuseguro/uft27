@@ -25,10 +25,9 @@ const MAX_PLAYERS := 2
 @onready var foul_label: Label = $CanvasLayer/UI/Hud/VBox/FoulLabel
 @onready var change_label: Label = $CanvasLayer/UI/Hud/VBox/ChangeLabel
 
-@onready var ip_input: LineEdit = $CanvasLayer/UI/Hud/VBox/NetworkRow/IPInput
-@onready var host_button: Button = $CanvasLayer/UI/Hud/VBox/NetworkRow/HostButton
-@onready var join_button: Button = $CanvasLayer/UI/Hud/VBox/NetworkRow/JoinButton
-@onready var vs_ai_button: Button = $CanvasLayer/UI/Hud/VBox/NetworkRow/VsAIButton
+@onready var network_row: HBoxContainer = $CanvasLayer/UI/Hud/VBox/NetworkRow
+@onready var center_score_label: Label = $CanvasLayer/UI/CenterScore/Score
+@onready var center_timer_label: Label = $CanvasLayer/UI/CenterScore/Clock
 
 @onready var mobile_controls: Control = $CanvasLayer/UI/MobileControls
 @onready var move_up_button: Button = $CanvasLayer/UI/MobileControls/MovePad/Grid/UpButton
@@ -75,10 +74,6 @@ var paused_by_menu := false
 
 func _ready() -> void:
 	time_left = match_duration
-	host_button.pressed.connect(_on_host_pressed)
-	join_button.pressed.connect(_on_join_pressed)
-	vs_ai_button.pressed.connect(_on_vs_ai_pressed)
-
 	_connect_mobile_controls()
 	mobile_controls.visible = OS.has_feature("mobile")
 	pause_menu.visible = false
@@ -92,11 +87,13 @@ func _ready() -> void:
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 
-	event_label.text = "Elegí modo de juego"
-	status_label.text = "Host, Join o Vs IA"
-	mode_label.text = "Modo: menú"
+	network_row.visible = false
+	event_label.text = "Partido cargado"
+	status_label.text = "Inicializando modo..."
+	mode_label.text = "Modo: inicializando"
 	_update_foul_label()
 	_update_change_label()
+	_auto_start_from_menu_selection()
 	update_ui()
 
 func _process(delta: float) -> void:
@@ -271,6 +268,15 @@ func _prepare_new_match() -> void:
 	_update_change_label()
 	update_ui()
 
+func _auto_start_from_menu_selection() -> void:
+	match MatchConfig.start_mode:
+		MatchConfig.MODE_HOST:
+			_on_host_pressed()
+		MatchConfig.MODE_JOIN:
+			_on_join_pressed()
+		_:
+			_on_vs_ai_pressed()
+
 func _on_vs_ai_pressed() -> void:
 	_prepare_new_match()
 	offline_vs_ai = true
@@ -300,7 +306,7 @@ func _on_host_pressed() -> void:
 
 func _on_join_pressed() -> void:
 	offline_vs_ai = false
-	var ip := ip_input.text.strip_edges()
+	var ip := MatchConfig.join_ip.strip_edges()
 	if ip.is_empty():
 		ip = "127.0.0.1"
 
@@ -786,3 +792,5 @@ func update_ui() -> void:
 	var minutes := int(time_left) / 60
 	var seconds := int(time_left) % 60
 	timer_label.text = "%02d:%02d" % [minutes, seconds]
+	center_score_label.text = "%d  -  %d" % [home_score, away_score]
+	center_timer_label.text = "%02d:%02d" % [minutes, seconds]

@@ -5,17 +5,23 @@ const TEMPLATE_SCENE := "res://scenes/TemplateMenu2D.tscn"
 const PROFILE_SCENE := "res://scenes/ProfileMenu2D.tscn"
 const HELP_SCENE := "res://scenes/HelpMenu2D.tscn"
 const SETTINGS_SCENE := "res://scenes/SettingsMenu2D.tscn"
+const CHANGELOG_SCENE := "res://scenes/ChangelogMenu2D.tscn"
 
-@onready var status_label: Label = $Margin/Layout/StatusLabel
+@onready var status_label: Label = $MainRow/RightPanel/RightVBox/StatusLabel
+@onready var game_label: Label = $TopBar/TopRow/GameLabel
+@onready var build_label: Label = $TopBar/TopRow/BuildLabel
 
 func _ready() -> void:
-	$Margin/Layout/Buttons/PlayButton.pressed.connect(_on_play_pressed)
-	$Margin/Layout/Buttons/QuickMatchButton.pressed.connect(_on_quick_match_pressed)
-	$Margin/Layout/Buttons/TemplateButton.pressed.connect(_on_template_pressed)
-	$Margin/Layout/Buttons/ProfileButton.pressed.connect(_on_profile_pressed)
-	$Margin/Layout/Buttons/HelpButton.pressed.connect(_on_help_pressed)
-	$Margin/Layout/Buttons/SettingsButton.pressed.connect(_on_settings_pressed)
-	$Margin/Layout/Buttons/QuitButton.pressed.connect(_on_quit_pressed)
+	$MainRow/CenterArea/KickoffCard/KickoffVBox/PlayButton.pressed.connect(_on_play_pressed)
+	$MainRow/LeftNav/QuickMatchButton.pressed.connect(_on_quick_match_pressed)
+	$MainRow/LeftNav/TemplateButton.pressed.connect(_on_template_pressed)
+	$MainRow/LeftNav/ProfileButton.pressed.connect(_on_profile_pressed)
+	$MainRow/LeftNav/ChangeLogButton.pressed.connect(_on_changelog_pressed)
+	$TopBar/TopRow/HelpButton.pressed.connect(_on_help_pressed)
+	$TopBar/TopRow/SettingsButton.pressed.connect(_on_settings_pressed)
+	$TopBar/TopRow/QuitButton.pressed.connect(_on_quit_pressed)
+	game_label.text = MatchConfig.GAME_NAME
+	build_label.text = MatchConfig.get_build_label()
 	_refresh_status()
 
 func _on_play_pressed() -> void:
@@ -29,6 +35,9 @@ func _on_template_pressed() -> void:
 
 func _on_profile_pressed() -> void:
 	get_tree().change_scene_to_file(PROFILE_SCENE)
+
+func _on_changelog_pressed() -> void:
+	get_tree().change_scene_to_file(CHANGELOG_SCENE)
 
 func _on_quick_match_pressed() -> void:
 	MatchConfig.template_ready = false

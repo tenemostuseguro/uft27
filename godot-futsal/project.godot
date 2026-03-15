@@ -2,7 +2,7 @@
 config_version=5
 
 [application]
-config/name="Futsal Godot 3D Online"
+config/name="UFT 27 (Ultimate Futsal Team)"
 run/main_scene="res://scenes/MainMenu2D.tscn"
 config/features=PackedStringArray("4.2")
 

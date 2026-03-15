@@ -1,6 +1,10 @@
-# Juego de Fútbol Sala 3D (Godot 4)
+# UFT 27 (Ultimate Futsal Team) - Prealpha
 
-Prototipo de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y sistema de partidos más pulido.
+Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y sistema de partidos en evolución.
+
+## Versionado y changelog
+- Versión actual: **0.0.2-prealpha**
+- Archivo oficial de cambios: `CHANGELOG.md`
 
 ## Novedades importantes
 - ✅ Pelota corregida para juego de futsal (no cae): movimiento en plano + fricción realista.

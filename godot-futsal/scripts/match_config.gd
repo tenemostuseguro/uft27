@@ -57,7 +57,7 @@ func set_template(new_name: String, primary_hex: String, secondary_hex: String, 
 	if not photo_path.strip_edges().is_empty():
 		profile_photo_path = photo_path.strip_edges()
 
-	template_ready = _is_lineup_complete(selected_lineup) and not selected_crest_id.is_empty()
+	template_ready = _is_lineup_complete(selected_lineup)
 
 func get_players_for_role(role: String) -> Array[Dictionary]:
 	var players: Array[Dictionary] = []
@@ -109,7 +109,7 @@ func set_profile_photo(path: String) -> void:
 
 func set_selected_crest(crest_id: String) -> void:
 	selected_crest_id = crest_id.strip_edges()
-	template_ready = _is_lineup_complete(selected_lineup) and not selected_crest_id.is_empty()
+	template_ready = _is_lineup_complete(selected_lineup)
 
 func get_available_countries() -> Array[String]:
 	var countries: Array[String] = []

@@ -56,6 +56,10 @@ text = "Partido rápido (sin plantilla)"
 layout_mode = 2
 text = "Creador de plantilla"
 
+[node name="ProfileButton" type="Button" parent="Margin/Layout/Buttons"]
+layout_mode = 2
+text = "Perfil (foto + escudo)"
+
 [node name="HelpButton" type="Button" parent="Margin/Layout/Buttons"]
 layout_mode = 2
 text = "Ayuda / Controles"

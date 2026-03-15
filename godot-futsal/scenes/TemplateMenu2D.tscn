@@ -100,36 +100,13 @@ theme_override_font_sizes/font_size = 22
 layout_mode = 2
 text = "Posiciones completas: 0/5"
 
-[node name="ProfilePhotoLabel" type="Label" parent="Margin/Layout/Header/Meta"]
-layout_mode = 2
-text = "Foto de perfil"
 
-[node name="ProfilePhotoPreview" type="TextureRect" parent="Margin/Layout/Header/Meta"]
-custom_minimum_size = Vector2(84, 84)
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
 
-[node name="ProfilePhotoButton" type="Button" parent="Margin/Layout/Header/Meta"]
-layout_mode = 2
-text = "Seleccionar foto"
 
-[node name="CrestTitle" type="Label" parent="Margin/Layout/Header/Meta"]
-layout_mode = 2
-text = "Escudo (obligatorio)"
 
-[node name="CountryFilter" type="OptionButton" parent="Margin/Layout/Header/Meta"]
-layout_mode = 2
 
-[node name="LeagueFilter" type="OptionButton" parent="Margin/Layout/Header/Meta"]
-layout_mode = 2
 
-[node name="CrestSelect" type="OptionButton" parent="Margin/Layout/Header/Meta"]
-layout_mode = 2
 
-[node name="CrestPreview" type="Label" parent="Margin/Layout/Header/Meta"]
-layout_mode = 2
-text = "Escudo: -"
 
 [node name="SquadArea" type="HBoxContainer" parent="Margin/Layout"]
 layout_mode = 2
@@ -348,8 +325,3 @@ text = "Guardar plantilla"
 [node name="BackButton" type="Button" parent="Margin/Layout/Footer/Buttons"]
 layout_mode = 2
 text = "Volver"
-
-[node name="ProfilePhotoDialog" type="FileDialog" parent="."]
-file_mode = 0
-access = 2
-filters = PackedStringArray("*.png ; PNG", "*.jpg ; JPG", "*.jpeg ; JPEG", "*.webp ; WEBP")

@@ -2,6 +2,7 @@ extends Control
 
 const MATCH_MODE_SCENE := "res://scenes/MatchModeMenu2D.tscn"
 const TEMPLATE_SCENE := "res://scenes/TemplateMenu2D.tscn"
+const PROFILE_SCENE := "res://scenes/ProfileMenu2D.tscn"
 const HELP_SCENE := "res://scenes/HelpMenu2D.tscn"
 const SETTINGS_SCENE := "res://scenes/SettingsMenu2D.tscn"
 
@@ -11,6 +12,7 @@ func _ready() -> void:
 	$Margin/Layout/Buttons/PlayButton.pressed.connect(_on_play_pressed)
 	$Margin/Layout/Buttons/QuickMatchButton.pressed.connect(_on_quick_match_pressed)
 	$Margin/Layout/Buttons/TemplateButton.pressed.connect(_on_template_pressed)
+	$Margin/Layout/Buttons/ProfileButton.pressed.connect(_on_profile_pressed)
 	$Margin/Layout/Buttons/HelpButton.pressed.connect(_on_help_pressed)
 	$Margin/Layout/Buttons/SettingsButton.pressed.connect(_on_settings_pressed)
 	$Margin/Layout/Buttons/QuitButton.pressed.connect(_on_quit_pressed)
@@ -24,6 +26,9 @@ func _on_play_pressed() -> void:
 
 func _on_template_pressed() -> void:
 	get_tree().change_scene_to_file(TEMPLATE_SCENE)
+
+func _on_profile_pressed() -> void:
+	get_tree().change_scene_to_file(PROFILE_SCENE)
 
 func _on_quick_match_pressed() -> void:
 	MatchConfig.template_ready = false

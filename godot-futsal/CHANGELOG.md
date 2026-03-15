@@ -5,7 +5,8 @@
 ## 0.0.5-prealpha
 - Se eliminaron los campos editables de conexión a Supabase del `LoginMenu2D` para evitar cambios de configuración desde la UI.
 - Login y registro quedaron orientados sólo a `username + contraseña` en pantalla.
-- Se endureció validación de username para evitar errores de alta/login al mapear a auth interno.
+- Se eliminó la dependencia de email en auth: ahora el backend usa `player_accounts` con `password_hash` y funciones RPC para registrar/autenticar por username.
+- Se endureció validación de username para evitar errores de alta/login.
 
 ## 0.0.4-prealpha
 - Se preconfiguró Supabase con URL/anon key oficiales del entorno actual.

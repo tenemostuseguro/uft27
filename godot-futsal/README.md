@@ -71,4 +71,5 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 ## Cuenta y Supabase
 - El login se usa únicamente con **username + contraseña** desde la UI.
 - La conexión a Supabase queda fija en código (URL + anon key internas) y ya no es editable desde el juego.
-- Importa `supabase/schema.sql` en tu proyecto Supabase para crear `profiles` y políticas.
+- El esquema usa `player_accounts` con `password_hash` y `profiles` enlazado por `id` (sin depender de email de `auth.users`).
+- Importá `supabase/schema.sql` en tu proyecto Supabase para crear tablas y funciones RPC de registro/login.

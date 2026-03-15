@@ -5,7 +5,7 @@ const POSITIONS: Array[String] = ["GK", "Cierre", "Ala Izq", "Ala Der", "Pivot"]
 const GAME_NAME := "UFT 27"
 const GAME_SUBTITLE := "Ultimate Futsal Team"
 const GAME_STAGE := "prealpha"
-const GAME_VERSION := "0.0.2-prealpha"
+const GAME_VERSION := "0.0.3-prealpha"
 
 var team_name := "Mi Equipo"
 var primary_color := Color(0.2, 0.5, 1.0, 1.0)

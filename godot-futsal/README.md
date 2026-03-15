@@ -3,7 +3,7 @@
 Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y sistema de partidos en evolución.
 
 ## Versionado y changelog
-- Versión actual: **0.0.2-prealpha**
+- Versión actual: **0.0.3-prealpha**
 - Archivo oficial de cambios: `CHANGELOG.md`
 
 ## Novedades importantes
@@ -18,6 +18,7 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 - ✅ Controles móviles en pantalla (D-Pad + Patear + Sprint).
 
 ## Menús 2D
+- **LoginMenu2D**: acceso con cuenta Supabase (usuario + contraseña) o modo offline.
 - **MainMenu2D**: jugar con plantilla, partido rápido, abrir ayuda, ajustes o salir.
 - **MatchModeMenu2D**: selector exclusivo de modo (Host, Join, Vs IA) antes de entrar al partido.
 - **TemplateMenu2D**: editor visual de plantilla con 5 posiciones, rating, chemistry y progreso.
@@ -65,3 +66,9 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 1. Abrí **Godot 4.x**.
 2. Importá la carpeta `godot-futsal`.
 3. Ejecutá el proyecto (`res://scenes/MainMenu2D.tscn`).
+
+
+## Cuenta y Supabase
+- El login usa Supabase Auth con esquema de email derivado: `usuario@uft27.local`.
+- Debes cargar en pantalla de login: `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
+- Importa `supabase/schema.sql` en tu proyecto Supabase para crear `profiles` y políticas.

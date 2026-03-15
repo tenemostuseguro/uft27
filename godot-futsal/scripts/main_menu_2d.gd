@@ -55,6 +55,6 @@ func _on_quit_pressed() -> void:
 
 func _refresh_status() -> void:
 	if MatchConfig.template_ready:
-		status_label.text = "Plantilla lista: %s (%s)" % [MatchConfig.team_name, MatchConfig.formation]
+		status_label.text = "Cuenta: %s | Plantilla lista: %s (%s)" % [AuthService.username if AuthService.is_authenticated() else "offline", MatchConfig.team_name, MatchConfig.formation]
 	else:
-		status_label.text = "No hay plantilla creada todavía."
+		status_label.text = "Cuenta: %s | No hay plantilla creada todavía." % [AuthService.username if AuthService.is_authenticated() else "offline"]

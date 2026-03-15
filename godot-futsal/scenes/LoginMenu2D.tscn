@@ -1,0 +1,82 @@
+[gd_scene load_steps=2 format=3 uid="uid://uft27_login_menu"]
+
+[ext_resource type="Script" path="res://scripts/login_menu_2d.gd" id="1_login"]
+
+[node name="LoginMenu2D" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_login")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.02, 0.06, 0.12, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Card" type="PanelContainer" parent="Center"]
+layout_mode = 2
+custom_minimum_size = Vector2(460, 0)
+
+[node name="VBox" type="VBoxContainer" parent="Center/Card"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Center/Card/VBox"]
+layout_mode = 2
+text = "UFT 27 - Cuenta"
+theme_override_font_sizes/font_size = 34
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Center/Card/VBox"]
+layout_mode = 2
+text = "Iniciar sesión o crear cuenta"
+horizontal_alignment = 1
+
+[node name="SupabaseUrlInput" type="LineEdit" parent="Center/Card/VBox"]
+layout_mode = 2
+placeholder_text = "SUPABASE_URL (https://xxxx.supabase.co)"
+
+[node name="AnonKeyInput" type="LineEdit" parent="Center/Card/VBox"]
+layout_mode = 2
+placeholder_text = "SUPABASE_ANON_KEY"
+secret = true
+
+[node name="UsernameInput" type="LineEdit" parent="Center/Card/VBox"]
+layout_mode = 2
+placeholder_text = "Nombre de usuario"
+
+[node name="PasswordInput" type="LineEdit" parent="Center/Card/VBox"]
+layout_mode = 2
+placeholder_text = "Contraseña"
+secret = true
+
+[node name="Buttons" type="HBoxContainer" parent="Center/Card/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="LoginButton" type="Button" parent="Center/Card/VBox/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Entrar"
+
+[node name="SignUpButton" type="Button" parent="Center/Card/VBox/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Crear cuenta"
+
+[node name="StatusLabel" type="Label" parent="Center/Card/VBox"]
+layout_mode = 2
+text = "Cargá URL + key de Supabase"
+
+[node name="OfflineButton" type="Button" parent="Center/Card/VBox"]
+layout_mode = 2
+text = "Continuar sin cuenta (offline)"

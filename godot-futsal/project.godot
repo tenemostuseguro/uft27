@@ -3,7 +3,7 @@ config_version=5
 
 [application]
 config/name="UFT 27 (Ultimate Futsal Team)"
-run/main_scene="res://scenes/MainMenu2D.tscn"
+run/main_scene="res://scenes/LoginMenu2D.tscn"
 config/features=PackedStringArray("4.2")
 
 [display]
@@ -39,3 +39,4 @@ shoot={
 
 [autoload]
 MatchConfig="*res://scripts/match_config.gd"
+AuthService="*res://scripts/auth_service.gd"

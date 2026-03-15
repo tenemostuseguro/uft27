@@ -12,9 +12,14 @@ func _ready() -> void:
 	$Center/Card/VBox/Buttons/LoginButton.pressed.connect(_on_login_pressed)
 	$Center/Card/VBox/Buttons/SignUpButton.pressed.connect(_on_signup_pressed)
 	$Center/Card/VBox/OfflineButton.pressed.connect(_on_offline_pressed)
+	if supabase_url_input.text.strip_edges().is_empty():
+		supabase_url_input.text = AuthService.supabase_url
+	if anon_key_input.text.strip_edges().is_empty():
+		anon_key_input.text = AuthService.supabase_anon_key
+	status_label.text = "Supabase listo. Podés registrarte o iniciar sesión."
 
 func _on_login_pressed() -> void:
-	AuthService.configure(supabase_url_input.text, anon_key_input.text)
+	_configure_auth_service_from_inputs()
 	status_label.text = "Iniciando sesión..."
 	var result: Dictionary = await AuthService.login(username_input.text, password_input.text)
 	if result.get("ok", false):
@@ -24,7 +29,7 @@ func _on_login_pressed() -> void:
 		status_label.text = "Error login: %s" % str(result.get("error", "desconocido"))
 
 func _on_signup_pressed() -> void:
-	AuthService.configure(supabase_url_input.text, anon_key_input.text)
+	_configure_auth_service_from_inputs()
 	status_label.text = "Creando cuenta..."
 	var result: Dictionary = await AuthService.sign_up(username_input.text, password_input.text)
 	if result.get("ok", false):

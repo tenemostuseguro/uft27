@@ -44,10 +44,12 @@ horizontal_alignment = 1
 [node name="SupabaseUrlInput" type="LineEdit" parent="Center/Card/VBox"]
 layout_mode = 2
 placeholder_text = "SUPABASE_URL (https://xxxx.supabase.co)"
+text = "https://tykwhhbhbllwycfggwnq.supabase.co"
 
 [node name="AnonKeyInput" type="LineEdit" parent="Center/Card/VBox"]
 layout_mode = 2
 placeholder_text = "SUPABASE_ANON_KEY"
+text = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5a3doaGJoYmxsd3ljZmdnd25xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTEwOTYsImV4cCI6MjA4OTE4NzA5Nn0.5GNKzDpUv0r4k6rJaOwy1-nMroD-7bPH5iJus7rznEw"
 secret = true
 
 [node name="UsernameInput" type="LineEdit" parent="Center/Card/VBox"]

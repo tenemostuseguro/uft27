@@ -1,9 +1,11 @@
 extends Node
 
 const EMAIL_DOMAIN := "@uft27.local"
+const DEFAULT_SUPABASE_URL := "https://tykwhhbhbllwycfggwnq.supabase.co"
+const DEFAULT_SUPABASE_ANON_KEY := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5a3doaGJoYmxsd3ljZmdnd25xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTEwOTYsImV4cCI6MjA4OTE4NzA5Nn0.5GNKzDpUv0r4k6rJaOwy1-nMroD-7bPH5iJus7rznEw"
 
-var supabase_url := ""
-var supabase_anon_key := ""
+var supabase_url := DEFAULT_SUPABASE_URL
+var supabase_anon_key := DEFAULT_SUPABASE_ANON_KEY
 
 var access_token := ""
 var refresh_token := ""
@@ -13,6 +15,10 @@ var username := ""
 func configure(url: String, anon_key: String) -> void:
 	supabase_url = url.strip_edges().trim_suffix("/")
 	supabase_anon_key = anon_key.strip_edges()
+
+func reset_to_defaults() -> void:
+	supabase_url = DEFAULT_SUPABASE_URL
+	supabase_anon_key = DEFAULT_SUPABASE_ANON_KEY
 
 func is_configured() -> bool:
 	return not supabase_url.is_empty() and not supabase_anon_key.is_empty()

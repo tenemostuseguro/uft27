@@ -3,7 +3,7 @@
 Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y sistema de partidos en evolución.
 
 ## Versionado y changelog
-- Versión actual: **0.0.3-prealpha**
+- Versión actual: **0.0.4-prealpha**
 - Archivo oficial de cambios: `CHANGELOG.md`
 
 ## Novedades importantes
@@ -70,5 +70,5 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 
 ## Cuenta y Supabase
 - El login usa Supabase Auth con esquema de email derivado: `usuario@uft27.local`.
-- Debes cargar en pantalla de login: `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
+- El login viene preconfigurado con Supabase por defecto (URL + anon key), pero podés editarlo en pantalla si necesitás otro proyecto.
 - Importa `supabase/schema.sql` en tu proyecto Supabase para crear `profiles` y políticas.

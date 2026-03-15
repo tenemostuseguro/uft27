@@ -2,6 +2,11 @@
 
 > Proyecto en **prealpha**. Cada cambio funcional importante incrementa versión.
 
+## 0.0.4-prealpha
+- Se preconfiguró Supabase con URL/anon key oficiales del entorno actual.
+- Login/registro ahora cargan credenciales por defecto automáticamente en `LoginMenu2D`.
+- Se añadió fallback para restaurar defaults de Supabase si inputs están vacíos.
+
 ## 0.0.3-prealpha
 - Se añadió sistema de cuentas con Supabase (registro e inicio de sesión con usuario + contraseña).
 - Se incorporó `LoginMenu2D` como pantalla inicial y opción de continuar offline.

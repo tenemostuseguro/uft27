@@ -6,6 +6,8 @@ var team_name := "Mi Equipo"
 var primary_color := Color(0.2, 0.5, 1.0, 1.0)
 var secondary_color := Color(1.0, 1.0, 1.0, 1.0)
 var formation := "1-2-1"
+var profile_photo_path := ""
+var selected_crest_id := ""
 var template_ready := false
 var selected_lineup: Dictionary = {
 	"GK": "",
@@ -16,6 +18,7 @@ var selected_lineup: Dictionary = {
 }
 
 var player_pool: Array[Dictionary] = []
+var crest_catalog: Array[Dictionary] = []
 
 const MODE_VS_AI := "vs_ai"
 const MODE_HOST := "host"
@@ -33,8 +36,10 @@ func set_match_start(mode: String, ip: String = "127.0.0.1") -> void:
 func _ready() -> void:
 	if player_pool.is_empty():
 		player_pool = _build_player_pool()
+	if crest_catalog.is_empty():
+		crest_catalog = _build_crest_catalog()
 
-func set_template(new_name: String, primary_hex: String, secondary_hex: String, new_formation: String, new_lineup: Dictionary) -> void:
+func set_template(new_name: String, primary_hex: String, secondary_hex: String, new_formation: String, new_lineup: Dictionary, crest_id: String = "", photo_path: String = "") -> void:
 	team_name = new_name.strip_edges()
 	if team_name.is_empty():
 		team_name = "Mi Equipo"
@@ -46,7 +51,13 @@ func set_template(new_name: String, primary_hex: String, secondary_hex: String, 
 		formation = "1-2-1"
 
 	selected_lineup = _sanitize_lineup(new_lineup)
-	template_ready = _is_lineup_complete(selected_lineup)
+
+	if not crest_id.strip_edges().is_empty():
+		selected_crest_id = crest_id.strip_edges()
+	if not photo_path.strip_edges().is_empty():
+		profile_photo_path = photo_path.strip_edges()
+
+	template_ready = _is_lineup_complete(selected_lineup) and not selected_crest_id.is_empty()
 
 func get_players_for_role(role: String) -> Array[Dictionary]:
 	var players: Array[Dictionary] = []
@@ -92,6 +103,72 @@ func _is_lineup_complete(lineup: Dictionary) -> bool:
 		if str(lineup.get(role, "")).is_empty():
 			return false
 	return true
+
+func set_profile_photo(path: String) -> void:
+	profile_photo_path = path.strip_edges()
+
+func set_selected_crest(crest_id: String) -> void:
+	selected_crest_id = crest_id.strip_edges()
+	template_ready = _is_lineup_complete(selected_lineup) and not selected_crest_id.is_empty()
+
+func get_available_countries() -> Array[String]:
+	var countries: Array[String] = []
+	var seen: Dictionary = {}
+	for crest in crest_catalog:
+		var country: String = str(crest.get("country", ""))
+		if country.is_empty() or seen.has(country):
+			continue
+		seen[country] = true
+		countries.append(country)
+	countries.sort()
+	return countries
+
+func get_leagues_for_country(country: String) -> Array[String]:
+	var leagues: Array[String] = []
+	var seen: Dictionary = {}
+	for crest in crest_catalog:
+		if str(crest.get("country", "")) != country:
+			continue
+		var league: String = str(crest.get("league", ""))
+		if league.is_empty() or seen.has(league):
+			continue
+		seen[league] = true
+		leagues.append(league)
+	leagues.sort()
+	return leagues
+
+func get_crests(country: String, league: String) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for crest in crest_catalog:
+		if str(crest.get("country", "")) != country:
+			continue
+		if str(crest.get("league", "")) != league:
+			continue
+		result.append(crest)
+	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return str(a.get("team", "")) < str(b.get("team", "")))
+	return result
+
+func find_crest_by_id(crest_id: String) -> Dictionary:
+	for crest in crest_catalog:
+		if str(crest.get("id", "")) == crest_id:
+			return crest
+	return {}
+
+func _build_crest_catalog() -> Array[Dictionary]:
+	return [
+		{"id":"ar_lp_boca","country":"Argentina","league":"Liga Profesional","team":"Boca Juniors","crest":"🔵🟡"},
+		{"id":"ar_lp_river","country":"Argentina","league":"Liga Profesional","team":"River Plate","crest":"⚪🔴"},
+		{"id":"ar_lp_racing","country":"Argentina","league":"Liga Profesional","team":"Racing Club","crest":"🔵⚪"},
+		{"id":"es_lal_rm","country":"España","league":"LaLiga","team":"Real Madrid","crest":"👑⚪"},
+		{"id":"es_lal_fcb","country":"España","league":"LaLiga","team":"FC Barcelona","crest":"🔵🔴"},
+		{"id":"es_lal_atm","country":"España","league":"LaLiga","team":"Atlético Madrid","crest":"🔴⚪"},
+		{"id":"eng_pl_ars","country":"Inglaterra","league":"Premier League","team":"Arsenal","crest":"🔴⚪"},
+		{"id":"eng_pl_mci","country":"Inglaterra","league":"Premier League","team":"Manchester City","crest":"🔵"},
+		{"id":"eng_pl_liv","country":"Inglaterra","league":"Premier League","team":"Liverpool","crest":"🔴"},
+		{"id":"it_sa_juv","country":"Italia","league":"Serie A","team":"Juventus","crest":"⚫⚪"},
+		{"id":"it_sa_milan","country":"Italia","league":"Serie A","team":"AC Milan","crest":"🔴⚫"},
+		{"id":"it_sa_inter","country":"Italia","league":"Serie A","team":"Inter","crest":"🔵⚫"}
+	]
 
 func _build_player_pool() -> Array[Dictionary]:
 	var pool: Array[Dictionary] = []

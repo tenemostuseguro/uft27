@@ -54,7 +54,14 @@ func _on_quit_pressed() -> void:
 	get_tree().quit()
 
 func _refresh_status() -> void:
+	var account := "offline"
+	var auth = _get_auth_service()
+	if auth != null and auth.is_authenticated():
+		account = str(auth.username)
 	if MatchConfig.template_ready:
-		status_label.text = "Cuenta: %s | Plantilla lista: %s (%s)" % [AuthService.username if AuthService.is_authenticated() else "offline", MatchConfig.team_name, MatchConfig.formation]
+		status_label.text = "Cuenta: %s | Plantilla lista: %s (%s)" % [account, MatchConfig.team_name, MatchConfig.formation]
 	else:
-		status_label.text = "Cuenta: %s | No hay plantilla creada todavía." % [AuthService.username if AuthService.is_authenticated() else "offline"]
+		status_label.text = "Cuenta: %s | No hay plantilla creada todavía." % [account]
+
+func _get_auth_service():
+	return get_node_or_null("/root/AuthService")

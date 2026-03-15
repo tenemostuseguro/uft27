@@ -12,16 +12,25 @@ func _ready() -> void:
 	$Center/Card/VBox/Buttons/LoginButton.pressed.connect(_on_login_pressed)
 	$Center/Card/VBox/Buttons/SignUpButton.pressed.connect(_on_signup_pressed)
 	$Center/Card/VBox/OfflineButton.pressed.connect(_on_offline_pressed)
-	if supabase_url_input.text.strip_edges().is_empty():
-		supabase_url_input.text = AuthService.supabase_url
-	if anon_key_input.text.strip_edges().is_empty():
-		anon_key_input.text = AuthService.supabase_anon_key
-	status_label.text = "Supabase listo. Podés registrarte o iniciar sesión."
+
+	var auth = _get_auth_service()
+	if auth != null:
+		if supabase_url_input.text.strip_edges().is_empty():
+			supabase_url_input.text = str(auth.supabase_url)
+		if anon_key_input.text.strip_edges().is_empty():
+			anon_key_input.text = str(auth.supabase_anon_key)
+		status_label.text = "Supabase listo. Podés registrarte o iniciar sesión."
+	else:
+		status_label.text = "AuthService no está disponible. Revisá autoloads."
 
 func _on_login_pressed() -> void:
-	_configure_auth_service_from_inputs()
+	var auth = _get_auth_service()
+	if auth == null:
+		status_label.text = "AuthService no disponible"
+		return
+	_configure_auth_service_from_inputs(auth)
 	status_label.text = "Iniciando sesión..."
-	var result: Dictionary = await AuthService.login(username_input.text, password_input.text)
+	var result: Dictionary = await auth.login(username_input.text, password_input.text)
 	if result.get("ok", false):
 		status_label.text = "Sesión iniciada ✅"
 		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
@@ -29,14 +38,33 @@ func _on_login_pressed() -> void:
 		status_label.text = "Error login: %s" % str(result.get("error", "desconocido"))
 
 func _on_signup_pressed() -> void:
-	_configure_auth_service_from_inputs()
+	var auth = _get_auth_service()
+	if auth == null:
+		status_label.text = "AuthService no disponible"
+		return
+	_configure_auth_service_from_inputs(auth)
 	status_label.text = "Creando cuenta..."
-	var result: Dictionary = await AuthService.sign_up(username_input.text, password_input.text)
+	var result: Dictionary = await auth.sign_up(username_input.text, password_input.text)
 	if result.get("ok", false):
 		status_label.text = "Cuenta creada. Ahora iniciá sesión."
 	else:
 		status_label.text = "Error registro: %s" % str(result.get("error", "desconocido"))
 
 func _on_offline_pressed() -> void:
-	AuthService.logout()
+	var auth = _get_auth_service()
+	if auth != null:
+		auth.logout()
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+
+func _configure_auth_service_from_inputs(auth) -> void:
+	var url := supabase_url_input.text.strip_edges()
+	var key := anon_key_input.text.strip_edges()
+	if url.is_empty() or key.is_empty():
+		auth.reset_to_defaults()
+		supabase_url_input.text = str(auth.supabase_url)
+		anon_key_input.text = str(auth.supabase_anon_key)
+	else:
+		auth.configure(url, key)
+
+func _get_auth_service():
+	return get_node_or_null("/root/AuthService")

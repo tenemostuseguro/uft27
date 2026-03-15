@@ -2,6 +2,11 @@
 
 > Proyecto en **prealpha**. Cada cambio funcional importante incrementa versión.
 
+## 0.0.6-prealpha
+- Se corrigió la migración de `profiles`: ahora el schema elimina el FK viejo y lo recrea apuntando a `player_accounts(id)`.
+- Se limpian trigger/función legacy de `auth.users` para evitar altas conflictivas.
+- El nuevo FK se crea como `NOT VALID` para no romper instalaciones con datos legacy, pero validar altas nuevas.
+
 ## 0.0.5-prealpha
 - Se eliminaron los campos editables de conexión a Supabase del `LoginMenu2D` para evitar cambios de configuración desde la UI.
 - Login y registro quedaron orientados sólo a `username + contraseña` en pantalla.

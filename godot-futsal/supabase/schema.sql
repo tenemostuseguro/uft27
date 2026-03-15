@@ -1,4 +1,4 @@
--- UFT 27 (Ultimate Futsal Team) - Supabase schema bootstrap
+-- UFT 27 (Ultimate Futsal Team) - Supabase schema bootstrap / migration
 -- Ejecutar en SQL Editor de Supabase.
 
 create extension if not exists pgcrypto;
@@ -12,11 +12,24 @@ create table if not exists public.player_accounts (
 );
 
 create table if not exists public.profiles (
-  id uuid primary key references public.player_accounts(id) on delete cascade,
+  id uuid primary key,
   username text not null unique,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Migración desde versión anterior:
+-- si profiles todavía apunta a auth.users, reemplazar el FK para que apunte a player_accounts.
+alter table if exists public.profiles
+  drop constraint if exists profiles_id_fkey;
+
+alter table if exists public.profiles
+  add constraint profiles_id_fkey
+  foreign key (id) references public.player_accounts(id) on delete cascade not valid;
+
+-- Limpieza de objetos legacy ligados a auth.users (si existen).
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists public.handle_new_user();
 
 create or replace function public.register_player(p_username text, p_password_hash text)
 returns uuid

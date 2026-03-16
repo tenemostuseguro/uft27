@@ -3,7 +3,7 @@
 Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y sistema de partidos en evolución.
 
 ## Versionado y changelog
-- Versión actual: **0.0.6-prealpha**
+- Versión actual: **0.0.7-prealpha**
 - Archivo oficial de cambios: `CHANGELOG.md`
 
 ## Novedades importantes
@@ -73,3 +73,15 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 - La conexión a Supabase queda fija en código (URL + anon key internas) y ya no es editable desde el juego.
 - El esquema usa `player_accounts` con `password_hash` y `profiles` enlazado por `id` (sin depender de email de `auth.users`).
 - Importá (o reejecutá) `supabase/schema.sql` en tu proyecto Supabase para crear/migrar tablas y funciones RPC de registro/login.
+
+
+## Panel de administración (PHP)
+- Archivo: `admin.php` (en la raíz del repo).
+- Permite listar usuarios de `player_accounts`, resetear contraseña y eliminar cuentas.
+- Variables de entorno requeridas:
+  - `SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `ADMIN_PANEL_PASSWORD`
+- Ejemplo local:
+  - `SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... ADMIN_PANEL_PASSWORD=admin123 php -S 127.0.0.1:8080`
+  - Abrir `http://127.0.0.1:8080/admin.php`

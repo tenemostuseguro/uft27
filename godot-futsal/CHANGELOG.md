@@ -2,6 +2,10 @@
 
 > Proyecto en **prealpha**. Cada cambio funcional importante incrementa versión.
 
+## 0.0.7-prealpha
+- Se añadió `admin.php` para moderación de usuarios en Supabase (`player_accounts`).
+- Incluye login de admin por `ADMIN_PANEL_PASSWORD`, listado de usuarios, borrado de cuenta y reset de contraseña.
+
 ## 0.0.6-prealpha
 - Se corrigió la migración de `profiles`: ahora el schema elimina el FK viejo y lo recrea apuntando a `player_accounts(id)`.
 - Se limpian trigger/función legacy de `auth.users` para evitar altas conflictivas.

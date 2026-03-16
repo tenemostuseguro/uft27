@@ -78,6 +78,41 @@ func login(user_name: String, password: String) -> Dictionary:
 
 	return {"ok": true, "username": username}
 
+func get_unread_notifications(limit: int = 10) -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	if not is_authenticated():
+		return {"ok": true, "notifications": []}
+
+	var endpoint := "%s/rest/v1/rpc/list_player_notifications" % DEFAULT_SUPABASE_URL
+	var payload := {
+		"p_player_id": user_id,
+		"p_limit": limit
+	}
+	var result := await _request_json(endpoint, HTTPClient.METHOD_POST, payload)
+	if not result.get("ok", false):
+		return result
+
+	var notifications: Variant = result.get("json", [])
+	if notifications is not Array:
+		return {"ok": true, "notifications": []}
+	return {"ok": true, "notifications": notifications}
+
+func mark_notification_read(notification_id: String) -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	if not is_authenticated():
+		return {"ok": false, "error": "No hay sesión activa"}
+	if notification_id.strip_edges().is_empty():
+		return {"ok": false, "error": "Notificación inválida"}
+
+	var endpoint := "%s/rest/v1/rpc/mark_player_notification_read" % DEFAULT_SUPABASE_URL
+	var payload := {
+		"p_player_id": user_id,
+		"p_notification_id": notification_id.strip_edges()
+	}
+	return await _request_json(endpoint, HTTPClient.METHOD_POST, payload)
+
 func _validate_username(user_name: String) -> Dictionary:
 	var normalized_username := user_name.strip_edges().to_lower()
 	if normalized_username.length() < 3:

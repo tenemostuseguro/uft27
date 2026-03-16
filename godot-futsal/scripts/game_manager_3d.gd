@@ -41,6 +41,13 @@ var center_timer_label: Label
 @onready var resume_button: Button = $CanvasLayer/UI/PauseMenu/VBox/ResumeButton
 @onready var restart_button: Button = $CanvasLayer/UI/PauseMenu/VBox/RestartButton
 @onready var back_menu_button: Button = $CanvasLayer/UI/PauseMenu/VBox/BackMenuButton
+@onready var notification_panel: PanelContainer = $CanvasLayer/UI/NotificationPanel
+@onready var notification_header_label: Label = $CanvasLayer/UI/NotificationPanel/Margin/VBox/Header
+@onready var notification_title_label: Label = $CanvasLayer/UI/NotificationPanel/Margin/VBox/Body/Left/Title
+@onready var notification_body_label: RichTextLabel = $CanvasLayer/UI/NotificationPanel/Margin/VBox/Body/Left/BodyText
+@onready var notification_image_rect: TextureRect = $CanvasLayer/UI/NotificationPanel/Margin/VBox/Body/Right/Image
+@onready var notification_counter_label: Label = $CanvasLayer/UI/NotificationPanel/Margin/VBox/Footer/Counter
+@onready var notification_close_button: Button = $CanvasLayer/UI/NotificationPanel/Margin/VBox/Footer/CloseButton
 
 var home_score := 0
 var away_score := 0
@@ -71,6 +78,9 @@ var mobile_sprint := false
 var mobile_shoot_request := false
 var mobile_change_request := false
 var paused_by_menu := false
+var notification_queue: Array[Dictionary] = []
+var active_notification: Dictionary = {}
+
 
 func _ready() -> void:
 	time_left = match_duration
@@ -80,6 +90,8 @@ func _ready() -> void:
 	resume_button.pressed.connect(_on_resume_pressed)
 	restart_button.pressed.connect(_on_restart_pressed)
 	back_menu_button.pressed.connect(_on_back_menu_pressed)
+	notification_panel.visible = false
+	notification_close_button.pressed.connect(_on_notification_close_pressed)
 
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
@@ -96,11 +108,12 @@ func _ready() -> void:
 	_update_foul_label()
 	_update_change_label()
 	_auto_start_from_menu_selection()
+	_load_notifications()
 	update_ui()
 
 func _process(delta: float) -> void:
 	_update_local_hud()
-	if paused_by_menu:
+	if paused_by_menu or notification_panel.visible:
 		return
 	if not _is_authority():
 		return
@@ -128,10 +141,15 @@ func _process(delta: float) -> void:
 	update_ui()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if notification_panel.visible and event.is_action_pressed("ui_accept"):
+		_on_notification_close_pressed()
+		return
 	if event.is_action_pressed("ui_cancel"):
 		_toggle_pause_menu()
 
 func _toggle_pause_menu() -> void:
+	if notification_panel.visible:
+		return
 	paused_by_menu = not paused_by_menu
 	pause_menu.visible = paused_by_menu
 	event_label.text = "Pausa" if paused_by_menu else "Partido reanudado"
@@ -730,6 +748,85 @@ func _reset_after_goal() -> void:
 	if multiplayer.has_multiplayer_peer():
 		rpc("sync_match_state", home_score, away_score, time_left, home_fouls, away_fouls, home_changes_left, away_changes_left)
 	update_ui()
+
+func _load_notifications() -> void:
+	var auth := _get_auth_service()
+	if auth == null or not auth.is_authenticated():
+		return
+	var result: Dictionary = await auth.get_unread_notifications(12)
+	if not result.get("ok", false):
+		status_label.text = "No se pudieron cargar notificaciones"
+		return
+	var rows: Variant = result.get("notifications", [])
+	if rows is not Array:
+		return
+	notification_queue.clear()
+	for row in rows:
+		if row is Dictionary:
+			notification_queue.append(row)
+	if notification_queue.size() > 0:
+		_show_next_notification()
+
+func _show_next_notification() -> void:
+	if notification_queue.is_empty():
+		notification_panel.visible = false
+		active_notification = {}
+		return
+	var next_notification: Dictionary = notification_queue.pop_front()
+	active_notification = next_notification
+	notification_panel.visible = true
+	notification_header_label.text = str(active_notification.get("header", "MENSAJE DEL EQUIPO UFT"))
+	notification_title_label.text = str(active_notification.get("title", "Actualización"))
+	notification_body_label.text = str(active_notification.get("body", ""))
+	notification_counter_label.text = "Pendientes: %d" % (notification_queue.size() + 1)
+	_load_notification_image(str(active_notification.get("image_url", "")))
+	paused_by_menu = false
+	pause_menu.visible = false
+
+func _load_notification_image(image_url: String) -> void:
+	notification_image_rect.texture = null
+	if image_url.strip_edges().is_empty():
+		return
+	var image := Image.new()
+	var err: int = image.load_from_file(image_url)
+	if err == OK:
+		notification_image_rect.texture = ImageTexture.create_from_image(image)
+		return
+	if image_url.begins_with("http://") or image_url.begins_with("https://"):
+		var http := HTTPRequest.new()
+		add_child(http)
+		http.request_completed.connect(_on_notification_image_downloaded.bind(http))
+		var req_err: int = http.request(image_url)
+		if req_err != OK:
+			http.queue_free()
+
+func _on_notification_image_downloaded(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray, http: HTTPRequest) -> void:
+	http.queue_free()
+	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
+		return
+	var image := Image.new()
+	var err: int = image.load_png_from_buffer(body)
+	if err != OK:
+		err = image.load_jpg_from_buffer(body)
+	if err != OK:
+		return
+	notification_image_rect.texture = ImageTexture.create_from_image(image)
+
+func _on_notification_close_pressed() -> void:
+	if active_notification.is_empty():
+		notification_panel.visible = false
+		return
+	var auth := _get_auth_service()
+	if auth != null and auth.is_authenticated():
+		await auth.mark_notification_read(str(active_notification.get("id", "")))
+	active_notification = {}
+	if notification_queue.size() > 0:
+		_show_next_notification()
+	else:
+		notification_panel.visible = false
+
+func _get_auth_service() -> Node:
+	return get_node_or_null("/root/AuthService")
 
 func _update_local_hud() -> void:
 	var local_player: Node = _get_local_player()

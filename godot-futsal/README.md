@@ -3,7 +3,7 @@
 Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y sistema de partidos en evolución.
 
 ## Versionado y changelog
-- Versión actual: **0.0.7-prealpha**
+- Versión actual: **0.0.8-prealpha**
 - Archivo oficial de cambios: `CHANGELOG.md`
 
 ## Novedades importantes
@@ -68,6 +68,17 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 3. Ejecutá el proyecto (`res://scenes/MainMenu2D.tscn`).
 
 
+
+## Notificaciones in-game (Supabase)
+- Panel de notificación grande en partido (ocupando gran parte de la pantalla), con estilo de anuncio oficial.
+- Cada notificación puede tener: `header`, `title`, `body` e `image_url` (ruta local `res://...` o URL http/https).
+- Flujo: al cerrar/aceptar se marca como leída en Supabase y pasa a la siguiente pendiente.
+- SQL incluido en `supabase/schema.sql`:
+  - `notifications`
+  - `player_notification_reads`
+  - RPC `list_player_notifications(...)`
+  - RPC `mark_player_notification_read(...)`
+
 ## Cuenta y Supabase
 - El login se usa únicamente con **username + contraseña** desde la UI.
 - La conexión a Supabase queda fija en código (URL + anon key internas) y ya no es editable desde el juego.
@@ -78,6 +89,7 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 ## Panel de administración (PHP)
 - Archivo: `admin.php` (en la raíz del repo).
 - Permite listar usuarios de `player_accounts`, resetear contraseña y eliminar cuentas.
+- Incluye publicación de notificaciones in-game (`notifications`) con título, contenido e imagen URL.
 - Variables de entorno requeridas:
   - `SUPABASE_URL`
   - `SUPABASE_SERVICE_ROLE_KEY`

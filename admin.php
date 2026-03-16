@@ -160,10 +160,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
                 }
             }
         }
+
+        if ($action === 'create_notification') {
+            $header = trim((string) ($_POST['header'] ?? 'MENSAJE DEL EQUIPO UFT'));
+            $title = trim((string) ($_POST['title'] ?? ''));
+            $body = trim((string) ($_POST['body'] ?? ''));
+            $imageUrl = trim((string) ($_POST['image_url'] ?? ''));
+
+            if ($title === '' || $body === '') {
+                $errors[] = 'Título y contenido son obligatorios para la notificación.';
+            } else {
+                $url = $supabaseUrl . '/rest/v1/notifications';
+                $payload = [
+                    'header' => $header === '' ? 'MENSAJE DEL EQUIPO UFT' : $header,
+                    'title' => $title,
+                    'body' => $body,
+                    'image_url' => $imageUrl,
+                    'active' => true,
+                ];
+                $result = api_request('POST', $url, $serviceRoleKey, $payload);
+                if ($result['ok']) {
+                    $success = 'Notificación creada correctamente.';
+                } else {
+                    $errors[] = 'No se pudo crear notificación: ' . $result['error'];
+                }
+            }
+        }
     }
 }
 
 $users = [];
+$notifications = [];
 if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
     $url = $supabaseUrl . '/rest/v1/player_accounts?select=id,username,created_at,updated_at&order=created_at.desc';
     $result = api_request('GET', $url, $serviceRoleKey);
@@ -171,6 +198,14 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
         $users = $result['data'];
     } elseif (!$result['ok']) {
         $errors[] = 'No se pudo cargar lista de usuarios: ' . $result['error'];
+    }
+
+    $notificationsUrl = $supabaseUrl . '/rest/v1/notifications?select=id,header,title,image_url,active,created_at&order=created_at.desc';
+    $notificationsResult = api_request('GET', $notificationsUrl, $serviceRoleKey);
+    if ($notificationsResult['ok'] && is_array($notificationsResult['data'])) {
+        $notifications = $notificationsResult['data'];
+    } elseif (!$notificationsResult['ok']) {
+        $errors[] = 'No se pudo cargar lista de notificaciones: ' . $notificationsResult['error'];
     }
 }
 ?>
@@ -189,7 +224,9 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
         th {background:#111827;}
         .error {background:#7f1d1d; border:1px solid #ef4444; padding:10px; border-radius:8px; margin-top:10px;}
         .success {background:#14532d; border:1px solid #22c55e; padding:10px; border-radius:8px; margin-top:10px;}
-        input[type="password"] {padding:8px; border-radius:8px; border:1px solid #334155; background:#0b1220; color:#e2e8f0; width:180px;}
+        input[type="password"], input[type="text"], textarea {padding:8px; border-radius:8px; border:1px solid #334155; background:#0b1220; color:#e2e8f0;}
+input[type="password"] {width:180px;}
+textarea {width:100%; box-sizing:border-box;}
         .btn {padding:8px 12px; border-radius:8px; border:none; cursor:pointer; color:#fff;}
         .btn-primary {background:#2563eb;}
         .btn-danger {background:#dc2626;}
@@ -253,6 +290,46 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
                                 <button class="btn btn-primary" type="submit">Reset pass</button>
                             </form>
                         </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="panel">
+        <h2 style="margin-top:0;">Notificaciones in-game</h2>
+        <p style="color:#94a3b8; margin-top:0;">Creá eventos con imagen (URL pública o ruta accesible) para mostrarlos en el juego.</p>
+        <form method="post" style="display:grid; gap:10px; max-width:900px;">
+            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="action" value="create_notification">
+            <input type="text" name="header" placeholder="Header (ej: MESSAGE FROM THE UFT TEAM)">
+            <input type="text" name="title" placeholder="Título" required>
+            <textarea name="body" rows="5" placeholder="Texto de la notificación" required></textarea>
+            <input type="text" name="image_url" placeholder="URL de imagen (https://...) o ruta local del cliente">
+            <button class="btn btn-primary" type="submit" style="width:max-content;">Publicar notificación</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Header</th>
+                    <th>Imagen</th>
+                    <th>Estado</th>
+                    <th>Creada</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (count($notifications) === 0): ?>
+                    <tr><td colspan="5">Sin notificaciones.</td></tr>
+                <?php endif; ?>
+                <?php foreach ($notifications as $notification): ?>
+                    <tr>
+                        <td><?php echo h((string) ($notification['title'] ?? '')); ?></td>
+                        <td><?php echo h((string) ($notification['header'] ?? '')); ?></td>
+                        <td><code><?php echo h((string) ($notification['image_url'] ?? '')); ?></code></td>
+                        <td><?php echo ((bool) ($notification['active'] ?? false)) ? 'Activa' : 'Inactiva'; ?></td>
+                        <td><?php echo h((string) ($notification['created_at'] ?? '')); ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

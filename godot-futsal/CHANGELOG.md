@@ -2,6 +2,11 @@
 
 > Proyecto en **prealpha**. Cada cambio funcional importante incrementa versión.
 
+## 0.0.8-prealpha
+- Se añadió sistema de notificaciones in-game conectado a Supabase en `Main3D`: panel grande estilo mensaje oficial con título, cuerpo e imagen.
+- Al cerrar una notificación, se marca como leída en Supabase y se muestra la siguiente; si no hay más, el panel se cierra.
+- Se amplió `supabase/schema.sql` con tablas y RPC para eventos/notificaciones: `notifications`, `player_notification_reads`, `list_player_notifications`, `mark_player_notification_read`.
+
 ## 0.0.7-prealpha
 - Se añadió `admin.php` para moderación de usuarios en Supabase (`player_accounts`).
 - Incluye login de admin por `ADMIN_PANEL_PASSWORD`, listado de usuarios, borrado de cuenta y reset de contraseña.

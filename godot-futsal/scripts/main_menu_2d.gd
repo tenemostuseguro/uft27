@@ -124,10 +124,9 @@ func _load_notification_image(image_url: String) -> void:
 	notification_image_rect.texture = null
 	if image_url.strip_edges().is_empty():
 		return
-	var image := Image.new()
-	var err: int = image.load_from_file(image_url)
-	if err == OK:
-		notification_image_rect.texture = ImageTexture.create_from_image(image)
+	var loaded_image: Image = Image.load_from_file(image_url)
+	if loaded_image != null:
+		notification_image_rect.texture = ImageTexture.create_from_image(loaded_image)
 		return
 	if image_url.begins_with("http://") or image_url.begins_with("https://"):
 		var http := HTTPRequest.new()

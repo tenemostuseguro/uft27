@@ -155,6 +155,79 @@ text = "Valor del equipo\n1.267.000"
 layout_mode = 2
 text = "Estado"
 
+[node name="NotificationPanel" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 80.0
+offset_top = 70.0
+offset_right = -80.0
+offset_bottom = -70.0
+
+[node name="Margin" type="MarginContainer" parent="NotificationPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBox" type="VBoxContainer" parent="NotificationPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Header" type="Label" parent="NotificationPanel/Margin/VBox"]
+layout_mode = 2
+text = "MENSAJE DEL EQUIPO UFT"
+theme_override_font_sizes/font_size = 36
+
+[node name="Body" type="HBoxContainer" parent="NotificationPanel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 18
+
+[node name="Left" type="VBoxContainer" parent="NotificationPanel/Margin/VBox/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Title" type="Label" parent="NotificationPanel/Margin/VBox/Body/Left"]
+layout_mode = 2
+text = "Título de notificación"
+theme_override_font_sizes/font_size = 52
+autowrap_mode = 3
+
+[node name="BodyText" type="RichTextLabel" parent="NotificationPanel/Margin/VBox/Body/Left"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Descripción de la notificación"
+fit_content = false
+scroll_active = true
+
+[node name="Right" type="PanelContainer" parent="NotificationPanel/Margin/VBox/Body"]
+layout_mode = 2
+custom_minimum_size = Vector2(420, 0)
+size_flags_vertical = 3
+
+[node name="Image" type="TextureRect" parent="NotificationPanel/Margin/VBox/Body/Right"]
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Footer" type="HBoxContainer" parent="NotificationPanel/Margin/VBox"]
+layout_mode = 2
+alignment = 2
+theme_override_constants/separation = 12
+
+[node name="Counter" type="Label" parent="NotificationPanel/Margin/VBox/Footer"]
+layout_mode = 2
+text = "Pendientes: 0"
+
+[node name="CloseButton" type="Button" parent="NotificationPanel/Margin/VBox/Footer"]
+layout_mode = 2
+text = "Aceptar"
+
 [node name="BottomBar" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 12

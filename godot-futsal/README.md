@@ -3,7 +3,7 @@
 Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y sistema de partidos en evolución.
 
 ## Versionado y changelog
-- Versión actual: **0.0.8-prealpha**
+- Versión actual: **0.0.9-prealpha**
 - Archivo oficial de cambios: `CHANGELOG.md`
 
 ## Novedades importantes
@@ -70,7 +70,7 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 
 
 ## Notificaciones in-game (Supabase)
-- Panel de notificación grande en partido (ocupando gran parte de la pantalla), con estilo de anuncio oficial.
+- Panel de notificación grande en **menú principal** (ocupando gran parte de la pantalla), con estilo de anuncio oficial.
 - Cada notificación puede tener: `header`, `title`, `body` e `image_url` (ruta local `res://...` o URL http/https).
 - Flujo: al cerrar/aceptar se marca como leída en Supabase y pasa a la siguiente pendiente.
 - SQL incluido en `supabase/schema.sql`:

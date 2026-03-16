@@ -2,6 +2,11 @@
 
 > Proyecto en **prealpha**. Cada cambio funcional importante incrementa versión.
 
+## 0.0.9-prealpha
+- Se movió el sistema de notificaciones para que aparezca en el **menú principal** (no durante el partido).
+- El panel mantiene cola de mensajes, carga desde Supabase y marcado como leída al cerrar cada notificación.
+- Se retiró el overlay de notificaciones de `Main3D` para no mezclar avisos con el motor de juego.
+
 ## 0.0.8-prealpha
 - Se añadió sistema de notificaciones in-game conectado a Supabase en `Main3D`: panel grande estilo mensaje oficial con título, cuerpo e imagen.
 - Al cerrar una notificación, se marca como leída en Supabase y se muestra la siguiente; si no hay más, el panel se cierra.

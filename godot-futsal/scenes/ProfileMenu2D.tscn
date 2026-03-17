@@ -1,0 +1,118 @@
+[gd_scene load_steps=2 format=3 uid="uid://futsal_profile_menu_2d"]
+
+[ext_resource type="Script" path="res://scripts/profile_menu_2d.gd" id="1_profile"]
+
+[node name="ProfileMenu2D" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_profile")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.04, 0.07, 0.11, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 22.0
+offset_top = 18.0
+offset_right = -22.0
+offset_bottom = -18.0
+
+[node name="VBox" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Margin/VBox"]
+layout_mode = 2
+text = "Perfil"
+theme_override_font_sizes/font_size = 38
+
+[node name="Row" type="HBoxContainer" parent="Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="PhotoPanel" type="PanelContainer" parent="Margin/VBox/Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(230, 220)
+
+[node name="PhotoVBox" type="VBoxContainer" parent="Margin/VBox/Row/PhotoPanel"]
+layout_mode = 2
+
+[node name="PhotoTitle" type="Label" parent="Margin/VBox/Row/PhotoPanel/PhotoVBox"]
+layout_mode = 2
+text = "Foto de perfil"
+
+[node name="PhotoPreview" type="TextureRect" parent="Margin/VBox/Row/PhotoPanel/PhotoVBox"]
+custom_minimum_size = Vector2(180, 180)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PhotoButton" type="Button" parent="Margin/VBox/Row/PhotoPanel/PhotoVBox"]
+layout_mode = 2
+text = "Elegir imagen"
+
+[node name="CrestPanel" type="PanelContainer" parent="Margin/VBox/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CrestVBox" type="VBoxContainer" parent="Margin/VBox/Row/CrestPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LogoTitle" type="Label" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
+layout_mode = 2
+text = "Logo de perfil (evento/equipo)"
+
+[node name="LogoSelect" type="OptionButton" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
+layout_mode = 2
+
+[node name="CustomLogoUrl" type="LineEdit" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
+layout_mode = 2
+placeholder_text = "URL opcional de logo (.png o .gif)"
+
+[node name="CrestTitle" type="Label" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
+layout_mode = 2
+text = "Escudo del equipo (obligatorio)"
+
+[node name="CountryFilter" type="OptionButton" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
+layout_mode = 2
+
+[node name="LeagueFilter" type="OptionButton" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
+layout_mode = 2
+
+[node name="CrestSelect" type="OptionButton" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
+layout_mode = 2
+
+[node name="CrestPreview" type="Label" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
+layout_mode = 2
+text = "Escudo: -"
+
+[node name="Status" type="Label" parent="Margin/VBox"]
+layout_mode = 2
+text = "Seleccioná foto y escudo para tu perfil"
+
+[node name="Buttons" type="HBoxContainer" parent="Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SaveButton" type="Button" parent="Margin/VBox/Buttons"]
+layout_mode = 2
+text = "Guardar perfil"
+
+[node name="BackButton" type="Button" parent="Margin/VBox/Buttons"]
+layout_mode = 2
+text = "Volver"
+
+[node name="PhotoDialog" type="FileDialog" parent="."]
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.png ; PNG", "*.jpg ; JPG", "*.jpeg ; JPEG", "*.webp ; WEBP", "*.gif ; GIF")

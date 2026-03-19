@@ -1,0 +1,13 @@
+# Godot cache
+.godot/
+
+# Block image binaries in this repo (branch policy)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+*.ico
+
+*.svg

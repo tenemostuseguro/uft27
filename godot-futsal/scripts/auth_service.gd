@@ -3,11 +3,15 @@ extends Node
 const USERNAME_PATTERN := "^[a-zA-Z0-9_.-]{3,32}$"
 const DEFAULT_SUPABASE_URL := "https://tykwhhbhbllwycfggwnq.supabase.co"
 const DEFAULT_SUPABASE_ANON_KEY := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5a3doaGJoYmxsd3ljZmdnd25xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTEwOTYsImV4cCI6MjA4OTE4NzA5Nn0.5GNKzDpUv0r4k6rJaOwy1-nMroD-7bPH5iJus7rznEw"
+const SESSION_PATH := "user://auth_session.cfg"
 
 var access_token := ""
 var refresh_token := ""
 var user_id := ""
 var username := ""
+
+func _ready() -> void:
+	_load_session()
 
 func is_configured() -> bool:
 	return not DEFAULT_SUPABASE_URL.is_empty() and not DEFAULT_SUPABASE_ANON_KEY.is_empty()
@@ -20,6 +24,7 @@ func logout() -> void:
 	refresh_token = ""
 	user_id = ""
 	username = ""
+	_clear_session()
 
 func sign_up(user_name: String, password: String) -> Dictionary:
 	if not is_configured():
@@ -76,6 +81,7 @@ func login(user_name: String, password: String) -> Dictionary:
 	if not is_authenticated():
 		return {"ok": false, "error": "Respuesta inválida del servidor"}
 
+	_save_session()
 	return {"ok": true, "username": username}
 
 func get_unread_notifications(limit: int = 10) -> Dictionary:
@@ -112,7 +118,6 @@ func mark_notification_read(notification_id: String) -> Dictionary:
 		"p_notification_id": notification_id.strip_edges()
 	}
 	return await _request_json(endpoint, HTTPClient.METHOD_POST, payload)
-
 
 func list_profile_logos() -> Dictionary:
 	if not is_configured():
@@ -209,3 +214,26 @@ func _request_json(url: String, method: int, payload: Dictionary) -> Dictionary:
 		return {"ok": false, "error": msg}
 
 	return {"ok": true, "json": parsed}
+
+func _save_session() -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("session", "user_id", user_id)
+	cfg.set_value("session", "username", username)
+	cfg.set_value("session", "access_token", access_token)
+	cfg.set_value("session", "refresh_token", refresh_token)
+	cfg.save(SESSION_PATH)
+
+func _load_session() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SESSION_PATH) != OK:
+		return
+	user_id = str(cfg.get_value("session", "user_id", ""))
+	username = str(cfg.get_value("session", "username", ""))
+	access_token = str(cfg.get_value("session", "access_token", "local_session"))
+	refresh_token = str(cfg.get_value("session", "refresh_token", ""))
+	if not is_authenticated():
+		logout()
+
+func _clear_session() -> void:
+	if FileAccess.file_exists(SESSION_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SESSION_PATH))

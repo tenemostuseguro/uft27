@@ -2,6 +2,12 @@
 
 > Proyecto en **prealpha**. Cada cambio funcional importante incrementa versión.
 
+## 0.0.21-prealpha
+- Se añadió flujo de arranque con intro (`res://assets/intro.mp4`) saltable y pantalla de carga con barra usando `res://assets/loading.png`.
+- `AuthService` ahora persiste la sesión en `user://auth_session.cfg` para restaurar usuario automáticamente al reabrir el juego.
+- Se dejó `godot-futsal/assets/` versionada con `.gitkeep` para evitar faltantes de carpeta en el repo.
+- `MainMenu2D` dejó de intentar abrir URLs remotas con `Image.load_from_file()` y ahora hace fallback seguro para logos remotos incompatibles, incluyendo `.gif`.
+
 ## 0.0.20-prealpha
 - Se ajustaron `scripts/codex_force_text_snapshot.sh` y `scripts/rebuild_branch_without_binaries.sh` para usar la rama actual por defecto cuando no se pasa parámetro.
 - Se añadió protección para evitar reescritura accidental de `main/master` salvo override explícito con `ALLOW_MAIN=1`.

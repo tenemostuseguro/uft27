@@ -6,6 +6,7 @@ const PROFILE_SCENE := "res://scenes/ProfileMenu2D.tscn"
 const HELP_SCENE := "res://scenes/HelpMenu2D.tscn"
 const SETTINGS_SCENE := "res://scenes/SettingsMenu2D.tscn"
 const CHANGELOG_SCENE := "res://scenes/ChangelogMenu2D.tscn"
+const DEFAULT_LOGO_PATH := "res://assets/default_profile_logo.png"
 
 @onready var status_label: Label = $MainRow/RightPanel/RightVBox/StatusLabel
 @onready var game_label: Label = $TopBar/TopRow/GameLabel
@@ -18,7 +19,6 @@ const CHANGELOG_SCENE := "res://scenes/ChangelogMenu2D.tscn"
 @onready var notification_image_rect: TextureRect = $NotificationPanel/Margin/VBox/Body/Right/Image
 @onready var notification_counter_label: Label = $NotificationPanel/Margin/VBox/Footer/Counter
 @onready var notification_close_button: Button = $NotificationPanel/Margin/VBox/Footer/CloseButton
-
 
 var notification_queue: Array[Dictionary] = []
 var active_notification: Dictionary = {}
@@ -93,44 +93,94 @@ func _get_auth_service():
 func _load_profile_logo() -> void:
 	var auth = _get_auth_service()
 	if auth == null or not auth.is_authenticated():
-		_load_logo_texture("res://assets/default_profile_logo.png")
+		_apply_profile_logo_texture(_load_local_texture(DEFAULT_LOGO_PATH))
 		return
 	var profile_result: Dictionary = await auth.get_profile_logo()
 	if not profile_result.get("ok", false):
-		_load_logo_texture("res://assets/default_profile_logo.png")
+		_apply_profile_logo_texture(_load_local_texture(DEFAULT_LOGO_PATH))
 		return
 	var profile: Dictionary = profile_result.get("profile", {})
 	var image_url: String = str(profile.get("resolved_image_url", ""))
 	if image_url.is_empty():
-		image_url = "res://assets/default_profile_logo.png"
+		image_url = DEFAULT_LOGO_PATH
 	_load_logo_texture(image_url)
 
 func _load_logo_texture(path_or_url: String) -> void:
 	profile_logo_rect.texture = null
 	if path_or_url.strip_edges().is_empty():
+		_apply_profile_logo_texture(_load_local_texture(DEFAULT_LOGO_PATH))
 		return
-	var local_image: Image = Image.load_from_file(path_or_url)
-	if local_image != null:
-		profile_logo_rect.texture = ImageTexture.create_from_image(local_image)
+	if _is_remote_path(path_or_url):
+		_request_remote_texture(path_or_url, _on_profile_logo_texture_ready)
 		return
-	if path_or_url.begins_with("http://") or path_or_url.begins_with("https://"):
-		var http := HTTPRequest.new()
-		add_child(http)
-		http.request_completed.connect(_on_profile_logo_downloaded.bind(http))
-		if http.request(path_or_url) != OK:
-			http.queue_free()
+	_apply_profile_logo_texture(_load_local_texture(path_or_url))
 
-func _on_profile_logo_downloaded(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray, http: HTTPRequest) -> void:
+func _on_profile_logo_texture_ready(texture: Texture2D) -> void:
+	_apply_profile_logo_texture(texture)
+
+func _apply_profile_logo_texture(texture: Texture2D) -> void:
+	if texture != null:
+		profile_logo_rect.texture = texture
+		return
+	profile_logo_rect.texture = _load_local_texture(DEFAULT_LOGO_PATH)
+
+func _load_local_texture(path: String) -> Texture2D:
+	if path.strip_edges().is_empty() or not ResourceLoader.exists(path):
+		return null
+	var resource: Resource = load(path)
+	if resource is Texture2D:
+		return resource
+	var image := Image.load_from_file(path)
+	if image != null:
+		return ImageTexture.create_from_image(image)
+	return null
+
+func _request_remote_texture(url: String, callback: Callable) -> void:
+	var normalized_url := _normalize_remote_image_url(url)
+	var http := HTTPRequest.new()
+	add_child(http)
+	http.request_completed.connect(_on_remote_texture_downloaded.bind(http, normalized_url, callback))
+	if http.request(normalized_url) != OK:
+		http.queue_free()
+		callback.call(null)
+
+func _on_remote_texture_downloaded(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray, http: HTTPRequest, url: String, callback: Callable) -> void:
 	http.queue_free()
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
+		callback.call(null)
 		return
+	var texture := _texture_from_http_body(url, headers, body)
+	callback.call(texture)
+
+func _texture_from_http_body(url: String, headers: PackedStringArray, body: PackedByteArray) -> Texture2D:
+	var mime_type := _extract_content_type(headers).to_lower()
+	if mime_type.contains("gif") or url.to_lower().ends_with(".gif"):
+		return null
 	var image := Image.new()
-	var err: int = image.load_png_from_buffer(body)
+	var err := image.load_png_from_buffer(body)
 	if err != OK:
 		err = image.load_jpg_from_buffer(body)
 	if err != OK:
-		return
-	profile_logo_rect.texture = ImageTexture.create_from_image(image)
+		err = image.load_webp_from_buffer(body)
+	if err != OK:
+		return null
+	return ImageTexture.create_from_image(image)
+
+func _extract_content_type(headers: PackedStringArray) -> String:
+	for header in headers:
+		var normalized := str(header).to_lower()
+		if normalized.begins_with("content-type:"):
+			return str(header).split(":", true, 1)[1].strip_edges()
+	return ""
+
+func _normalize_remote_image_url(url: String) -> String:
+	var normalized := url.strip_edges()
+	if normalized.to_lower().ends_with(".gif") and normalized.contains("i.imgur.com/"):
+		return normalized.substr(0, normalized.length() - 4) + ".png"
+	return normalized
+
+func _is_remote_path(path_or_url: String) -> bool:
+	return path_or_url.begins_with("http://") or path_or_url.begins_with("https://")
 
 func _load_notifications() -> void:
 	var auth: Node = _get_auth_service()
@@ -168,29 +218,13 @@ func _load_notification_image(image_url: String) -> void:
 	notification_image_rect.texture = null
 	if image_url.strip_edges().is_empty():
 		return
-	var loaded_image: Image = Image.load_from_file(image_url)
-	if loaded_image != null:
-		notification_image_rect.texture = ImageTexture.create_from_image(loaded_image)
+	if _is_remote_path(image_url):
+		_request_remote_texture(image_url, _on_notification_texture_ready)
 		return
-	if image_url.begins_with("http://") or image_url.begins_with("https://"):
-		var http := HTTPRequest.new()
-		add_child(http)
-		http.request_completed.connect(_on_notification_image_downloaded.bind(http))
-		var req_err: int = http.request(image_url)
-		if req_err != OK:
-			http.queue_free()
+	notification_image_rect.texture = _load_local_texture(image_url)
 
-func _on_notification_image_downloaded(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray, http: HTTPRequest) -> void:
-	http.queue_free()
-	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
-		return
-	var image := Image.new()
-	var err: int = image.load_png_from_buffer(body)
-	if err != OK:
-		err = image.load_jpg_from_buffer(body)
-	if err != OK:
-		return
-	notification_image_rect.texture = ImageTexture.create_from_image(image)
+func _on_notification_texture_ready(texture: Texture2D) -> void:
+	notification_image_rect.texture = texture
 
 func _on_notification_close_pressed() -> void:
 	if active_notification.is_empty():

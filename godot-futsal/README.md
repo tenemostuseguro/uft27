@@ -3,7 +3,7 @@
 Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y sistema de partidos en evolución.
 
 ## Versionado y changelog
-- Versión actual: **0.0.20-prealpha**
+- Versión actual: **0.0.21-prealpha**
 - Archivo oficial de cambios: `CHANGELOG.md`
 
 ## Novedades importantes
@@ -70,9 +70,18 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 
 
 
+## Arranque, intro y loading screen
+- El juego ahora arranca con una intro reproducida desde `res://assets/intro.mp4`.
+- La intro se puede saltar con un toque, click o confirmación de teclado/gamepad.
+- Después se muestra una pantalla de carga usando `res://assets/loading.png` con barra de progreso visible.
+- La carpeta `godot-futsal/assets/` queda versionada con `.gitkeep` para que siempre exista en el repo.
+- Resolución recomendada para ambos recursos: **16:9**.
+  - Mínimo recomendado: **1280x720**.
+  - Ideal para mejor nitidez: **1920x1080**.
+
 ## Perfil visual (logos de evento/equipo)
 - Cada perfil usa un logo/avatar que puede ser de **evento**, **equipo** o personalizado por URL.
-- Formatos esperados: `.png` y `.gif` (según recurso disponible en cliente).
+- Formatos esperados: `.png`, `.jpg`, `.jpeg` o `.webp`. Si la URL remota termina en `.gif`, el cliente intentará una variante estática compatible y, si no existe, caerá al logo por defecto.
 - Todos los perfiles tienen por defecto el mismo logo base: `UFT Default` (`res://assets/default_profile_logo.png`).
 - El logo del perfil se muestra también en `MainMenu2D` (panel derecho).
 - SQL y RPC incluidos en `supabase/schema.sql`:
@@ -118,6 +127,7 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 ## Importación manual del logo por defecto
 - Nombre esperado del archivo: `default_profile_logo.png`.
 - Ruta donde debes ponerlo: `godot-futsal/assets/default_profile_logo.png` (en Godot: `res://assets/default_profile_logo.png`).
+- La misma carpeta también se usa para `intro.mp4` y `loading.png`.
 - No se incluye ninguna imagen en el repo para evitar bloqueo por binarios.
 
 

@@ -3,7 +3,7 @@ config_version=5
 
 [application]
 config/name="UFT 27 (Ultimate Futsal Team)"
-run/main_scene="res://scenes/LoginMenu2D.tscn"
+run/main_scene="res://scenes/BootFlow.tscn"
 config/features=PackedStringArray("4.2")
 
 [display]

@@ -12,6 +12,10 @@ func _ready() -> void:
 	$Center/Card/VBox/OfflineButton.pressed.connect(_on_offline_pressed)
 
 	var auth = _get_auth_service()
+	if auth != null and auth.is_authenticated():
+		status_label.text = "Sesión restaurada. Entrando al menú..."
+		call_deferred("_go_to_main_menu")
+		return
 	if auth != null:
 		status_label.text = "Servidor listo. Usá usuario y contraseña."
 	else:
@@ -26,7 +30,7 @@ func _on_login_pressed() -> void:
 	var result: Dictionary = await auth.login(username_input.text, password_input.text)
 	if result.get("ok", false):
 		status_label.text = "Sesión iniciada ✅"
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+		_go_to_main_menu()
 	else:
 		status_label.text = "Error login: %s" % str(result.get("error", "desconocido"))
 
@@ -46,6 +50,9 @@ func _on_offline_pressed() -> void:
 	var auth = _get_auth_service()
 	if auth != null:
 		auth.logout()
+	_go_to_main_menu()
+
+func _go_to_main_menu() -> void:
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 func _get_auth_service():

@@ -1,0 +1,15 @@
+# Force textual handling for project/source files to avoid false binary detection
+*.gd text eol=lf
+*.tscn text eol=lf
+*.godot text eol=lf
+*.md text eol=lf
+*.sql text eol=lf
+*.php text eol=lf
+*.sh text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.txt text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf

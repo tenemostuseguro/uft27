@@ -161,20 +161,57 @@ func _on_remote_texture_downloaded(result: int, response_code: int, headers: Pac
 	_request_remote_texture_candidate(candidates, index + 1, callback)
 
 func _texture_from_http_body(url: String, headers: PackedStringArray, body: PackedByteArray) -> Texture2D:
-	var mime_type := _extract_content_type(headers).to_lower()
+	var kind := _detect_remote_image_kind(url, headers, body)
+	if kind == "gif":
+		return null
 	var image := Image.new()
-	var err := image.load_png_from_buffer(body)
-	if err != OK:
-		err = image.load_jpg_from_buffer(body)
-	if err != OK:
-		err = image.load_webp_from_buffer(body)
-	if err != OK and (mime_type.contains("gif") or url.to_lower().contains(".gif")):
-		var gif_result: Variant = image.call("load_gif_from_buffer", body)
-		if gif_result is int and int(gif_result) == OK:
-			err = OK
+	var err := ERR_PARSE_ERROR
+	match kind:
+		"png":
+			err = image.load_png_from_buffer(body)
+		"jpg":
+			err = image.load_jpg_from_buffer(body)
+		"webp":
+			err = image.load_webp_from_buffer(body)
+		_:
+			err = image.load_png_from_buffer(body)
+			if err != OK:
+				err = image.load_jpg_from_buffer(body)
+			if err != OK:
+				err = image.load_webp_from_buffer(body)
 	if err != OK:
 		return null
 	return ImageTexture.create_from_image(image)
+
+func _detect_remote_image_kind(url: String, headers: PackedStringArray, body: PackedByteArray) -> String:
+	var mime_type := _extract_content_type(headers).to_lower()
+	if mime_type.contains("png"):
+		return "png"
+	if mime_type.contains("jpeg") or mime_type.contains("jpg"):
+		return "jpg"
+	if mime_type.contains("webp"):
+		return "webp"
+	if mime_type.contains("gif"):
+		return "gif"
+	var lower_url := url.to_lower()
+	if lower_url.contains(".png"):
+		return "png"
+	if lower_url.contains(".jpeg") or lower_url.contains(".jpg"):
+		return "jpg"
+	if lower_url.contains(".webp"):
+		return "webp"
+	if lower_url.contains(".gif"):
+		return "gif"
+	if body.size() >= 12:
+		if body[0] == 0x89 and body[1] == 0x50 and body[2] == 0x4E and body[3] == 0x47:
+			return "png"
+		if body[0] == 0xFF and body[1] == 0xD8:
+			return "jpg"
+		if body[0] == 0x47 and body[1] == 0x49 and body[2] == 0x46:
+			return "gif"
+		if body[0] == 0x52 and body[1] == 0x49 and body[2] == 0x46 and body[3] == 0x46 and body[8] == 0x57 and body[9] == 0x45 and body[10] == 0x42 and body[11] == 0x50:
+			return "webp"
+	return "unknown"
 
 func _extract_content_type(headers: PackedStringArray) -> String:
 	for header in headers:

@@ -2,6 +2,11 @@
 
 > Proyecto en **prealpha**. Cada cambio funcional importante incrementa versión.
 
+## 0.0.23-prealpha
+- Se evitó el intento inválido de `load_gif_from_buffer` en `MainMenu2D` y se añadió detección de formato remoto (MIME/firma) para no parsear GIF como PNG/JPG/WEBP.
+- Para URLs `.gif` de logo de perfil, ahora se prueban variantes estáticas (`.png/.webp/.jpg/.jpeg`) sin generar warnings de parseo por formato incorrecto.
+- Se incrementó versión a `0.0.23-prealpha`.
+
 ## 0.0.22-prealpha
 - Se corrigió la carga de foto de perfil remota cuando `resolved_image_url` apunta a `.gif`: ahora se intenta decodificar GIF y, si no es posible, se prueban variantes estáticas (`.png/.webp/.jpg/.jpeg`) antes del fallback.
 - Se incrementó versión a `0.0.22-prealpha`.

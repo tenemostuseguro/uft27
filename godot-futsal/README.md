@@ -3,7 +3,7 @@
 Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y sistema de partidos en evolución.
 
 ## Versionado y changelog
-- Versión actual: **0.0.23-prealpha**
+- Versión actual: **0.0.24-prealpha**
 - Archivo oficial de cambios: `CHANGELOG.md`
 
 ## Novedades importantes

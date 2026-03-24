@@ -2,6 +2,11 @@
 
 > Proyecto en **prealpha**. Cada cambio funcional importante incrementa versión.
 
+## 0.0.24-prealpha
+- Se corrigió `ProfileMenu2D` para cargar imágenes locales vía `load()`/`ResourceLoader` (evitando el warning de export por `Image.load_from_file` sobre `res://...`).
+- La vista previa del perfil ahora soporta URL remota con fallback de variantes estáticas para `.gif` (`.png/.webp/.jpg/.jpeg`) antes de limpiar preview.
+- Se incrementó versión a `0.0.24-prealpha`.
+
 ## 0.0.23-prealpha
 - Se evitó el intento inválido de `load_gif_from_buffer` en `MainMenu2D` y se añadió detección de formato remoto (MIME/firma) para no parsear GIF como PNG/JPG/WEBP.
 - Para URLs `.gif` de logo de perfil, ahora se prueban variantes estáticas (`.png/.webp/.jpg/.jpeg`) sin generar warnings de parseo por formato incorrecto.

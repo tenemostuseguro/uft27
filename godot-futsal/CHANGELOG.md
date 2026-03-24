@@ -2,6 +2,10 @@
 
 > Proyecto en **prealpha**. Cada cambio funcional importante incrementa versión.
 
+## 0.0.22-prealpha
+- Se corrigió la carga de foto de perfil remota cuando `resolved_image_url` apunta a `.gif`: ahora se intenta decodificar GIF y, si no es posible, se prueban variantes estáticas (`.png/.webp/.jpg/.jpeg`) antes del fallback.
+- Se incrementó versión a `0.0.22-prealpha`.
+
 ## 0.0.21-prealpha
 - Se añadió flujo de arranque con intro (`res://assets/intro.mp4`) saltable y pantalla de carga con barra usando `res://assets/loading.png`.
 - `AuthService` ahora persiste la sesión en `user://auth_session.cfg` para restaurar usuario automáticamente al reabrir el juego.

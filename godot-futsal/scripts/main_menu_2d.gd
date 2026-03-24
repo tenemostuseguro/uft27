@@ -136,32 +136,42 @@ func _load_local_texture(path: String) -> Texture2D:
 	return null
 
 func _request_remote_texture(url: String, callback: Callable) -> void:
-	var normalized_url := _normalize_remote_image_url(url)
-	var http := HTTPRequest.new()
-	add_child(http)
-	http.request_completed.connect(_on_remote_texture_downloaded.bind(http, normalized_url, callback))
-	if http.request(normalized_url) != OK:
-		http.queue_free()
-		callback.call(null)
+	var candidates := _build_remote_image_candidates(url)
+	_request_remote_texture_candidate(candidates, 0, callback)
 
-func _on_remote_texture_downloaded(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray, http: HTTPRequest, url: String, callback: Callable) -> void:
-	http.queue_free()
-	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
+func _request_remote_texture_candidate(candidates: Array[String], index: int, callback: Callable) -> void:
+	if index >= candidates.size():
 		callback.call(null)
 		return
-	var texture := _texture_from_http_body(url, headers, body)
-	callback.call(texture)
+	var target_url := candidates[index]
+	var http := HTTPRequest.new()
+	add_child(http)
+	http.request_completed.connect(_on_remote_texture_downloaded.bind(http, candidates, index, callback))
+	if http.request(target_url) != OK:
+		http.queue_free()
+		_request_remote_texture_candidate(candidates, index + 1, callback)
+
+func _on_remote_texture_downloaded(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray, http: HTTPRequest, candidates: Array[String], index: int, callback: Callable) -> void:
+	http.queue_free()
+	if result == HTTPRequest.RESULT_SUCCESS and response_code >= 200 and response_code < 300:
+		var texture := _texture_from_http_body(candidates[index], headers, body)
+		if texture != null:
+			callback.call(texture)
+			return
+	_request_remote_texture_candidate(candidates, index + 1, callback)
 
 func _texture_from_http_body(url: String, headers: PackedStringArray, body: PackedByteArray) -> Texture2D:
 	var mime_type := _extract_content_type(headers).to_lower()
-	if mime_type.contains("gif") or url.to_lower().ends_with(".gif"):
-		return null
 	var image := Image.new()
 	var err := image.load_png_from_buffer(body)
 	if err != OK:
 		err = image.load_jpg_from_buffer(body)
 	if err != OK:
 		err = image.load_webp_from_buffer(body)
+	if err != OK and (mime_type.contains("gif") or url.to_lower().contains(".gif")):
+		var gif_result: Variant = image.call("load_gif_from_buffer", body)
+		if gif_result is int and int(gif_result) == OK:
+			err = OK
 	if err != OK:
 		return null
 	return ImageTexture.create_from_image(image)
@@ -173,11 +183,22 @@ func _extract_content_type(headers: PackedStringArray) -> String:
 			return str(header).split(":", true, 1)[1].strip_edges()
 	return ""
 
-func _normalize_remote_image_url(url: String) -> String:
+func _build_remote_image_candidates(url: String) -> Array[String]:
 	var normalized := url.strip_edges()
-	if normalized.to_lower().ends_with(".gif") and normalized.contains("i.imgur.com/"):
-		return normalized.substr(0, normalized.length() - 4) + ".png"
-	return normalized
+	var candidates: Array[String] = []
+	if normalized.is_empty():
+		return candidates
+	candidates.append(normalized)
+	var lower := normalized.to_lower()
+	var gif_pos := lower.find(".gif")
+	if gif_pos != -1:
+		var prefix := normalized.substr(0, gif_pos)
+		var suffix := normalized.substr(gif_pos + 4)
+		for ext in [".png", ".webp", ".jpg", ".jpeg"]:
+			var alt := "%s%s%s" % [prefix, ext, suffix]
+			if not candidates.has(alt):
+				candidates.append(alt)
+	return candidates
 
 func _is_remote_path(path_or_url: String) -> bool:
 	return path_or_url.begins_with("http://") or path_or_url.begins_with("https://")

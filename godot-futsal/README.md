@@ -3,7 +3,7 @@
 Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y sistema de partidos en evolución.
 
 ## Versionado y changelog
-- Versión actual: **0.0.21-prealpha**
+- Versión actual: **0.0.22-prealpha**
 - Archivo oficial de cambios: `CHANGELOG.md`
 
 ## Novedades importantes
@@ -81,7 +81,7 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 
 ## Perfil visual (logos de evento/equipo)
 - Cada perfil usa un logo/avatar que puede ser de **evento**, **equipo** o personalizado por URL.
-- Formatos esperados: `.png`, `.jpg`, `.jpeg` o `.webp`. Si la URL remota termina en `.gif`, el cliente intentará una variante estática compatible y, si no existe, caerá al logo por defecto.
+- Formatos esperados: `.png`, `.jpg`, `.jpeg`, `.webp` y `.gif` remoto. Para `.gif`, el cliente intenta decodificarlo; si falla, prueba variantes estáticas (`.png/.webp/.jpg/.jpeg`) antes de caer al logo por defecto.
 - Todos los perfiles tienen por defecto el mismo logo base: `UFT Default` (`res://assets/default_profile_logo.png`).
 - El logo del perfil se muestra también en `MainMenu2D` (panel derecho).
 - SQL y RPC incluidos en `supabase/schema.sql`:

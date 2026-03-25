@@ -278,3 +278,114 @@ grant execute on function public.mark_player_notification_read(uuid, uuid) to an
 grant execute on function public.list_profile_logos() to anon, authenticated;
 grant execute on function public.get_player_profile_logo(uuid) to anon, authenticated;
 grant execute on function public.set_player_profile_logo(uuid, uuid, text) to anon, authenticated;
+
+-- ============================
+-- Ultimate Team (UFT) config + estado persistente
+-- ============================
+
+create table if not exists public.uft_config (
+  key text primary key,
+  payload jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.uft_club_snapshots (
+  player_id uuid primary key references public.player_accounts(id) on delete cascade,
+  snapshot jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+insert into public.uft_config(key, payload) values
+  ('base_players', '[]'::jsonb),
+  ('cards', '[]'::jsonb),
+  ('packs', '[]'::jsonb),
+  ('market', '[]'::jsonb),
+  ('events', '[]'::jsonb),
+  ('season', '{}'::jsonb)
+on conflict (key) do nothing;
+
+create or replace function public.list_uft_configs()
+returns table(key text, payload jsonb, updated_at timestamptz)
+language sql
+security definer
+set search_path = public
+as $$
+  select c.key, c.payload, c.updated_at
+  from public.uft_config c
+  order by c.key asc;
+$$;
+
+create or replace function public.save_uft_config(
+  p_key text,
+  p_payload jsonb
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_key is null or trim(p_key) = '' then
+    return false;
+  end if;
+
+  insert into public.uft_config(key, payload, updated_at)
+  values (trim(p_key), coalesce(p_payload, '{}'::jsonb), now())
+  on conflict (key) do update set
+    payload = excluded.payload,
+    updated_at = now();
+
+  return true;
+end;
+$$;
+
+create or replace function public.get_uft_snapshot(
+  p_player_id uuid
+)
+returns table(snapshot jsonb)
+language sql
+security definer
+set search_path = public
+as $$
+  select coalesce(s.snapshot, '{}'::jsonb) as snapshot
+  from public.uft_club_snapshots s
+  where s.player_id = p_player_id
+  union all
+  select '{}'::jsonb
+  where not exists (
+    select 1 from public.uft_club_snapshots x where x.player_id = p_player_id
+  )
+  limit 1;
+$$;
+
+create or replace function public.save_uft_snapshot(
+  p_player_id uuid,
+  p_snapshot jsonb
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_player_id is null then
+    return false;
+  end if;
+
+  insert into public.uft_club_snapshots(player_id, snapshot, updated_at)
+  values (p_player_id, coalesce(p_snapshot, '{}'::jsonb), now())
+  on conflict (player_id) do update set
+    snapshot = excluded.snapshot,
+    updated_at = now();
+
+  return true;
+end;
+$$;
+
+revoke all on public.uft_config from anon, authenticated;
+revoke all on public.uft_club_snapshots from anon, authenticated;
+
+grant execute on function public.list_uft_configs() to anon, authenticated;
+grant execute on function public.save_uft_config(text, jsonb) to anon, authenticated;
+grant execute on function public.get_uft_snapshot(uuid) to anon, authenticated;
+grant execute on function public.save_uft_snapshot(uuid, jsonb) to anon, authenticated;

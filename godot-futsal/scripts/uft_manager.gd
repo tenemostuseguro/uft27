@@ -34,8 +34,8 @@ var state: Dictionary = {
 
 func _ready() -> void:
 	godot_major = int(Engine.get_version_info().get("major", 4))
-	_load_static_data()
-	_load_state()
+	await _load_static_data()
+	await _load_state()
 	_ensure_starter_cards()
 	_save_state()
 
@@ -43,14 +43,51 @@ func is_godot4() -> bool:
 	return godot_major >= 4
 
 func _load_static_data() -> void:
-	base_players = _array_to_dict(_load_json_resource("res://uft_data/base_players.json"), "player_id")
-	cards = _array_to_dict(_load_json_resource("res://uft_data/cards.json"), "card_id")
-	packs = _array_to_dict(_load_json_resource("res://uft_data/packs.json"), "pack_id")
-	events = _load_json_resource("res://uft_data/events.json")
-	market_listings = _load_json_resource("res://uft_data/market.json")
-	season_config = _load_json_object("res://uft_data/season.json")
+	var auth := get_node_or_null("/root/AuthService")
+	if auth != null and auth.is_authenticated():
+		var remote := await auth.list_uft_configs()
+		if remote.get("ok", false):
+			var rows: Variant = remote.get("json", [])
+			if rows is Array and rows.size() > 0:
+				for row in rows:
+					var k := str(row.get("key", ""))
+					var payload: Variant = row.get("payload", null)
+					if k == "base_players" and payload is Array:
+						base_players = _array_to_dict(payload, "player_id")
+					elif k == "cards" and payload is Array:
+						cards = _array_to_dict(payload, "card_id")
+					elif k == "packs" and payload is Array:
+						packs = _array_to_dict(payload, "pack_id")
+					elif k == "events" and payload is Array:
+						events = payload
+					elif k == "market" and payload is Array:
+						market_listings = payload
+					elif k == "season" and payload is Dictionary:
+						season_config = payload
+	if base_players.is_empty():
+		base_players = _array_to_dict(_load_json_resource("res://uft_data/base_players.json"), "player_id")
+	if cards.is_empty():
+		cards = _array_to_dict(_load_json_resource("res://uft_data/cards.json"), "card_id")
+	if packs.is_empty():
+		packs = _array_to_dict(_load_json_resource("res://uft_data/packs.json"), "pack_id")
+	if events.is_empty():
+		events = _load_json_resource("res://uft_data/events.json")
+	if market_listings.is_empty():
+		market_listings = _load_json_resource("res://uft_data/market.json")
+	if season_config.is_empty():
+		season_config = _load_json_object("res://uft_data/season.json")
 
 func _load_state() -> void:
+	var auth := get_node_or_null("/root/AuthService")
+	if auth != null and auth.is_authenticated():
+		var remote := await auth.get_uft_snapshot()
+		if remote.get("ok", false):
+			var snapshot: Variant = remote.get("snapshot", {})
+			if snapshot is Dictionary:
+				for key in state.keys():
+					if snapshot.has(key):
+						state[key] = snapshot[key]
+				return
 	if not FileAccess.file_exists(STATE_PATH):
 		return
 	var file := FileAccess.open(STATE_PATH, FileAccess.READ)
@@ -63,6 +100,10 @@ func _load_state() -> void:
 				state[key] = parsed[key]
 
 func _save_state() -> void:
+	var auth := get_node_or_null("/root/AuthService")
+	if auth != null and auth.is_authenticated():
+		auth.save_uft_snapshot(state)
+		return
 	var file := FileAccess.open(STATE_PATH, FileAccess.WRITE)
 	if file == null:
 		return

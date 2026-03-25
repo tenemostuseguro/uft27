@@ -2,6 +2,11 @@
 
 > Proyecto en **prealpha**. Cada cambio funcional importante incrementa versión.
 
+## 0.1.1-prealpha
+- Se amplió `supabase/schema.sql` con soporte UFT completo de configuración y snapshot persistente por jugador: `uft_config`, `uft_club_snapshots`, `list_uft_configs`, `save_uft_config`, `get_uft_snapshot`, `save_uft_snapshot`.
+- `UFTManager` ahora prioriza Supabase para cargar configuración UFT y estado del club autenticado (snapshot), manteniendo fallback local solo de contingencia.
+- `admin.php` ahora guarda/lee configuración UFT desde Supabase en lugar de editar archivos locales del repo.
+
 ## 0.1.0-prealpha
 - Se implementó el modo **UFT / Ultimate Futsal Team** integrado al juego con menú propio (`UFTMenu2D`) y autoload `UFTManager`.
 - Se añadieron club persistente, economía (`coins/points/xp`), colección de cartas, validación central de quinteto titular sin duplicados por `player_id`, sobres, mercado local, eventos por fecha y pase de batalla por temporada.

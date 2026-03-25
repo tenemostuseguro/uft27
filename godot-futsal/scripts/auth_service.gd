@@ -161,6 +161,46 @@ func set_profile_logo(logo_id: String, custom_image_url: String = "") -> Diction
 	}
 	return await _request_json(endpoint, HTTPClient.METHOD_POST, payload)
 
+
+func list_uft_configs() -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	var endpoint := "%s/rest/v1/rpc/list_uft_configs" % DEFAULT_SUPABASE_URL
+	return await _request_json(endpoint, HTTPClient.METHOD_POST, {})
+
+func save_uft_config(config_key: String, payload: Variant) -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	if config_key.strip_edges().is_empty():
+		return {"ok": false, "error": "config_key inválido"}
+	var endpoint := "%s/rest/v1/rpc/save_uft_config" % DEFAULT_SUPABASE_URL
+	var body := {"p_key": config_key.strip_edges(), "p_payload": payload}
+	return await _request_json(endpoint, HTTPClient.METHOD_POST, body)
+
+func get_uft_snapshot() -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	if not is_authenticated():
+		return {"ok": false, "error": "No hay sesión activa"}
+	var endpoint := "%s/rest/v1/rpc/get_uft_snapshot" % DEFAULT_SUPABASE_URL
+	var body := {"p_player_id": user_id}
+	var result := await _request_json(endpoint, HTTPClient.METHOD_POST, body)
+	if not result.get("ok", false):
+		return result
+	var rows: Variant = result.get("json", [])
+	if rows is Array and rows.size() > 0:
+		return {"ok": true, "snapshot": rows[0].get("snapshot", {})}
+	return {"ok": true, "snapshot": {}}
+
+func save_uft_snapshot(snapshot: Dictionary) -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	if not is_authenticated():
+		return {"ok": false, "error": "No hay sesión activa"}
+	var endpoint := "%s/rest/v1/rpc/save_uft_snapshot" % DEFAULT_SUPABASE_URL
+	var body := {"p_player_id": user_id, "p_snapshot": snapshot}
+	return await _request_json(endpoint, HTTPClient.METHOD_POST, body)
+
 func _validate_username(user_name: String) -> Dictionary:
 	var normalized_username := user_name.strip_edges().to_lower()
 	if normalized_username.length() < 3:

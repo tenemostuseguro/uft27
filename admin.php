@@ -144,23 +144,6 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
                 <button type="submit">Entrar</button>
             </form>
         </div>
-
-    <div class="panel">
-        <h2 style="margin-top:0;">Configuración UFT (modo Ultimate Team)</h2>
-        <p style="color:#94a3b8; margin-top:0;">Editá datos base del modo UFT: jugadores, cartas, sobres, mercado, eventos y temporada.</p>
-        <form method="post" style="display:grid; gap:10px; max-width:1000px;">
-            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
-            <input type="hidden" name="action" value="save_uft_config">
-            <select name="uft_config_name" onchange="document.getElementById('uft_json').value = this.options[this.selectedIndex].dataset.content;">
-                <?php foreach ($uftConfigNames as $cfgName): ?>
-                    <option value="<?php echo h($cfgName); ?>" data-content="<?php echo h((string) ($uftConfigs[$cfgName] ?? '')); ?>"><?php echo h($cfgName); ?></option>
-                <?php endforeach; ?>
-            </select>
-            <textarea id="uft_json" name="uft_config_json" rows="16" placeholder="JSON válido"><?php echo h((string) ($uftConfigs['base_players'] ?? '')); ?></textarea>
-            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar configuración UFT</button>
-        </form>
-    </div>
-
 </body>
     </html>
     <?php
@@ -257,12 +240,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
             $configName = trim((string) ($_POST['uft_config_name'] ?? ''));
             $configJson = (string) ($_POST['uft_config_json'] ?? '');
             $allowed = ['base_players', 'cards', 'packs', 'season', 'events', 'market'];
+            $decoded = json_decode($configJson, true);
             if (!in_array($configName, $allowed, true)) {
                 $errors[] = 'Configuración UFT inválida.';
-            } elseif (!save_uft_json($configName, $configJson)) {
-                $errors[] = 'No se pudo guardar JSON UFT (verificá formato válido).';
+            } elseif ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
+                $errors[] = 'JSON UFT inválido.';
             } else {
-                $success = 'Configuración UFT guardada: ' . $configName;
+                $rpcUrl = $supabaseUrl . '/rest/v1/rpc/save_uft_config';
+                $payload = ['p_key' => $configName, 'p_payload' => $decoded];
+                $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
+                if ($result['ok']) {
+                    $success = 'Configuración UFT guardada en Supabase: ' . $configName;
+                } else {
+                    $errors[] = 'No se pudo guardar configuración UFT en Supabase: ' . $result['error'];
+                }
             }
         }
 
@@ -296,7 +287,7 @@ $profileLogos = [];
 $uftConfigNames = ['base_players', 'cards', 'packs', 'season', 'events', 'market'];
 $uftConfigs = [];
 foreach ($uftConfigNames as $cfgName) {
-    $uftConfigs[$cfgName] = load_uft_json($cfgName);
+    $uftConfigs[$cfgName] = '';
 }
 if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
     $url = $supabaseUrl . '/rest/v1/player_accounts?select=id,username,created_at,updated_at&order=created_at.desc';
@@ -315,12 +306,26 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
         $errors[] = 'No se pudo cargar lista de notificaciones: ' . $notificationsResult['error'];
     }
 
+
     $logosUrl = $supabaseUrl . '/rest/v1/profile_logos?select=id,name,image_url,source_type,is_default,active,created_at&order=created_at.desc';
     $logosResult = api_request('GET', $logosUrl, $serviceRoleKey);
     if ($logosResult['ok'] && is_array($logosResult['data'])) {
         $profileLogos = $logosResult['data'];
     } elseif (!$logosResult['ok']) {
         $errors[] = 'No se pudo cargar lista de logos de perfil: ' . $logosResult['error'];
+    }
+
+    $uftCfgUrl = $supabaseUrl . '/rest/v1/rpc/list_uft_configs';
+    $uftCfgResult = api_request('POST', $uftCfgUrl, $serviceRoleKey, []);
+    if ($uftCfgResult['ok'] && is_array($uftCfgResult['data'])) {
+        foreach ($uftCfgResult['data'] as $row) {
+            $k = (string) ($row['key'] ?? '');
+            if ($k !== '' && in_array($k, $uftConfigNames, true)) {
+                $uftConfigs[$k] = json_encode($row['payload'] ?? null, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+        }
+    } elseif (!$uftCfgResult['ok']) {
+        $errors[] = 'No se pudo cargar configuración UFT desde Supabase: ' . $uftCfgResult['error'];
     }
 }
 ?>
@@ -505,7 +510,7 @@ textarea {width:100%; box-sizing:border-box;}
 
     <div class="panel">
         <h2 style="margin-top:0;">Configuración UFT (modo Ultimate Team)</h2>
-        <p style="color:#94a3b8; margin-top:0;">Editá datos base del modo UFT: jugadores, cartas, sobres, mercado, eventos y temporada.</p>
+        <p style="color:#94a3b8; margin-top:0;">Editá datos base del modo UFT guardados en Supabase: jugadores, cartas, sobres, mercado, eventos y temporada.</p>
         <form method="post" style="display:grid; gap:10px; max-width:1000px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
             <input type="hidden" name="action" value="save_uft_config">

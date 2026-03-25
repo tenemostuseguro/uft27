@@ -3,7 +3,7 @@
 Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y sistema de partidos en evolución.
 
 ## Versionado y changelog
-- Versión actual: **0.1.0-prealpha**
+- Versión actual: **0.1.1-prealpha**
 - Archivo oficial de cambios: `CHANGELOG.md`
 
 ## Novedades importantes
@@ -96,7 +96,8 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
   - pase de batalla por temporada
   - eventos activos por fecha
   - caché local de imágenes remotas en `user://cache/images/...`
-- El panel web `admin.php` añade edición de configuración UFT para esos JSON.
+- El panel web `admin.php` edita configuración UFT directamente en Supabase (RPC `save_uft_config` / `list_uft_configs`).
+- El estado del club UFT se guarda en Supabase por jugador mediante snapshot (`get_uft_snapshot` / `save_uft_snapshot`).
 
 ## Perfil visual (logos de evento/equipo)
 - Cada perfil usa un logo/avatar que puede ser de **evento**, **equipo** o personalizado por URL.

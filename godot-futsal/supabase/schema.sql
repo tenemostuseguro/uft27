@@ -389,3 +389,327 @@ grant execute on function public.list_uft_configs() to anon, authenticated;
 grant execute on function public.save_uft_config(text, jsonb) to anon, authenticated;
 grant execute on function public.get_uft_snapshot(uuid) to anon, authenticated;
 grant execute on function public.save_uft_snapshot(uuid, jsonb) to anon, authenticated;
+
+-- ============================
+-- Ultimate Team (UFT) catálogos administrables
+-- ============================
+
+create table if not exists public.uft_players (
+  player_id text primary key,
+  name text not null,
+  main_position text not null,
+  secondary_positions jsonb not null default '[]'::jsonb,
+  dominant_foot text,
+  nationality text,
+  club text,
+  photo_face_url text not null default '',
+  metadata jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.uft_cards_catalog (
+  card_id text primary key,
+  player_id text not null references public.uft_players(player_id) on delete cascade,
+  card_type text not null,
+  rarity text not null,
+  ovr integer not null default 1,
+  card_frame_url text not null default '',
+  face_url text not null default '',
+  transferable boolean not null default true,
+  locked boolean not null default false,
+  field_substats jsonb not null default '{}'::jsonb,
+  gk_substats jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.uft_events_catalog (
+  event_id text primary key,
+  name text not null,
+  description text not null default '',
+  start_unix bigint not null,
+  end_unix bigint not null,
+  active boolean not null default true,
+  access_cost_coins integer not null default 0,
+  rules jsonb not null default '{}'::jsonb,
+  rewards jsonb not null default '[]'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.uft_packs_catalog (
+  pack_id text primary key,
+  name text not null,
+  cost_coins integer not null default 0,
+  cost_points integer not null default 0,
+  cards_count integer not null default 1,
+  duplicate_policy text not null default 'allow',
+  pool jsonb not null default '[]'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.uft_market_catalog (
+  listing_id text primary key,
+  card_id text not null references public.uft_cards_catalog(card_id) on delete cascade,
+  price integer not null default 100,
+  seller text not null default 'npc_market',
+  active boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.uft_seasons_catalog (
+  season_id text primary key,
+  name text not null,
+  start_unix bigint not null,
+  end_unix bigint not null,
+  levels jsonb not null default '[]'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.upsert_uft_player(
+  p_player_id text,
+  p_name text,
+  p_main_position text,
+  p_secondary_positions jsonb default '[]'::jsonb,
+  p_dominant_foot text default null,
+  p_nationality text default null,
+  p_club text default null,
+  p_photo_face_url text default '',
+  p_metadata jsonb default '{}'::jsonb
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_player_id is null or trim(p_player_id) = '' then return false; end if;
+  insert into public.uft_players(player_id, name, main_position, secondary_positions, dominant_foot, nationality, club, photo_face_url, metadata, updated_at)
+  values (trim(p_player_id), coalesce(p_name, 'Unknown'), coalesce(p_main_position, 'P'), coalesce(p_secondary_positions, '[]'::jsonb), p_dominant_foot, p_nationality, p_club, coalesce(p_photo_face_url, ''), coalesce(p_metadata, '{}'::jsonb), now())
+  on conflict (player_id) do update set
+    name = excluded.name,
+    main_position = excluded.main_position,
+    secondary_positions = excluded.secondary_positions,
+    dominant_foot = excluded.dominant_foot,
+    nationality = excluded.nationality,
+    club = excluded.club,
+    photo_face_url = excluded.photo_face_url,
+    metadata = excluded.metadata,
+    updated_at = now();
+  return true;
+end;
+$$;
+
+create or replace function public.upsert_uft_card(
+  p_card_id text,
+  p_player_id text,
+  p_card_type text,
+  p_rarity text,
+  p_ovr integer,
+  p_card_frame_url text,
+  p_face_url text,
+  p_transferable boolean default true,
+  p_locked boolean default false,
+  p_field_substats jsonb default '{}'::jsonb,
+  p_gk_substats jsonb default '{}'::jsonb
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_card_id is null or trim(p_card_id) = '' or p_player_id is null or trim(p_player_id) = '' then return false; end if;
+  insert into public.uft_cards_catalog(card_id, player_id, card_type, rarity, ovr, card_frame_url, face_url, transferable, locked, field_substats, gk_substats, updated_at)
+  values (trim(p_card_id), trim(p_player_id), coalesce(p_card_type, 'Base'), coalesce(p_rarity, 'Common'), greatest(coalesce(p_ovr, 1),1), coalesce(p_card_frame_url, ''), coalesce(p_face_url, ''), coalesce(p_transferable, true), coalesce(p_locked, false), coalesce(p_field_substats, '{}'::jsonb), coalesce(p_gk_substats, '{}'::jsonb), now())
+  on conflict (card_id) do update set
+    player_id = excluded.player_id,
+    card_type = excluded.card_type,
+    rarity = excluded.rarity,
+    ovr = excluded.ovr,
+    card_frame_url = excluded.card_frame_url,
+    face_url = excluded.face_url,
+    transferable = excluded.transferable,
+    locked = excluded.locked,
+    field_substats = excluded.field_substats,
+    gk_substats = excluded.gk_substats,
+    updated_at = now();
+  return true;
+end;
+$$;
+
+create or replace function public.upsert_uft_event(
+  p_event_id text,
+  p_name text,
+  p_description text,
+  p_start_unix bigint,
+  p_end_unix bigint,
+  p_active boolean default true,
+  p_access_cost_coins integer default 0,
+  p_rules jsonb default '{}'::jsonb,
+  p_rewards jsonb default '[]'::jsonb
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_event_id is null or trim(p_event_id) = '' then return false; end if;
+  insert into public.uft_events_catalog(event_id, name, description, start_unix, end_unix, active, access_cost_coins, rules, rewards, updated_at)
+  values (trim(p_event_id), coalesce(p_name, 'Evento'), coalesce(p_description, ''), coalesce(p_start_unix, 0), coalesce(p_end_unix, 0), coalesce(p_active, true), greatest(coalesce(p_access_cost_coins,0),0), coalesce(p_rules, '{}'::jsonb), coalesce(p_rewards, '[]'::jsonb), now())
+  on conflict (event_id) do update set
+    name = excluded.name,
+    description = excluded.description,
+    start_unix = excluded.start_unix,
+    end_unix = excluded.end_unix,
+    active = excluded.active,
+    access_cost_coins = excluded.access_cost_coins,
+    rules = excluded.rules,
+    rewards = excluded.rewards,
+    updated_at = now();
+  return true;
+end;
+$$;
+
+create or replace function public.upsert_uft_pack(
+  p_pack_id text,
+  p_name text,
+  p_cost_coins integer default 0,
+  p_cost_points integer default 0,
+  p_cards_count integer default 1,
+  p_duplicate_policy text default 'allow',
+  p_pool jsonb default '[]'::jsonb
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_pack_id is null or trim(p_pack_id) = '' then return false; end if;
+  insert into public.uft_packs_catalog(pack_id, name, cost_coins, cost_points, cards_count, duplicate_policy, pool, updated_at)
+  values (trim(p_pack_id), coalesce(p_name, 'Sobre'), greatest(coalesce(p_cost_coins, 0), 0), greatest(coalesce(p_cost_points, 0), 0), greatest(coalesce(p_cards_count, 1), 1), coalesce(p_duplicate_policy, 'allow'), coalesce(p_pool, '[]'::jsonb), now())
+  on conflict (pack_id) do update set
+    name = excluded.name,
+    cost_coins = excluded.cost_coins,
+    cost_points = excluded.cost_points,
+    cards_count = excluded.cards_count,
+    duplicate_policy = excluded.duplicate_policy,
+    pool = excluded.pool,
+    updated_at = now();
+  return true;
+end;
+$$;
+
+create or replace function public.upsert_uft_market_listing(
+  p_listing_id text,
+  p_card_id text,
+  p_price integer default 100,
+  p_seller text default 'npc_market',
+  p_active boolean default true
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_listing_id is null or trim(p_listing_id) = '' or p_card_id is null or trim(p_card_id) = '' then return false; end if;
+  insert into public.uft_market_catalog(listing_id, card_id, price, seller, active, updated_at)
+  values (trim(p_listing_id), trim(p_card_id), greatest(coalesce(p_price, 0), 0), coalesce(nullif(trim(p_seller), ''), 'npc_market'), coalesce(p_active, true), now())
+  on conflict (listing_id) do update set
+    card_id = excluded.card_id,
+    price = excluded.price,
+    seller = excluded.seller,
+    active = excluded.active,
+    updated_at = now();
+  return true;
+end;
+$$;
+
+create or replace function public.upsert_uft_season(
+  p_season_id text,
+  p_name text,
+  p_start_unix bigint,
+  p_end_unix bigint,
+  p_levels jsonb default '[]'::jsonb
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_season_id is null or trim(p_season_id) = '' then return false; end if;
+  insert into public.uft_seasons_catalog(season_id, name, start_unix, end_unix, levels, updated_at)
+  values (trim(p_season_id), coalesce(p_name, 'Temporada'), coalesce(p_start_unix, 0), coalesce(p_end_unix, 0), coalesce(p_levels, '[]'::jsonb), now())
+  on conflict (season_id) do update set
+    name = excluded.name,
+    start_unix = excluded.start_unix,
+    end_unix = excluded.end_unix,
+    levels = excluded.levels,
+    updated_at = now();
+  return true;
+end;
+$$;
+
+create or replace function public.list_uft_players()
+returns setof public.uft_players
+language sql
+security definer
+set search_path = public
+as $$ select * from public.uft_players order by updated_at desc; $$;
+
+create or replace function public.list_uft_cards()
+returns setof public.uft_cards_catalog
+language sql
+security definer
+set search_path = public
+as $$ select * from public.uft_cards_catalog order by updated_at desc; $$;
+
+create or replace function public.list_uft_events()
+returns setof public.uft_events_catalog
+language sql
+security definer
+set search_path = public
+as $$ select * from public.uft_events_catalog order by updated_at desc; $$;
+
+create or replace function public.list_uft_packs()
+returns setof public.uft_packs_catalog
+language sql
+security definer
+set search_path = public
+as $$ select * from public.uft_packs_catalog order by updated_at desc; $$;
+
+create or replace function public.list_uft_market_listings()
+returns setof public.uft_market_catalog
+language sql
+security definer
+set search_path = public
+as $$ select * from public.uft_market_catalog order by updated_at desc; $$;
+
+create or replace function public.list_uft_seasons()
+returns setof public.uft_seasons_catalog
+language sql
+security definer
+set search_path = public
+as $$ select * from public.uft_seasons_catalog order by updated_at desc; $$;
+
+revoke all on public.uft_players from anon, authenticated;
+revoke all on public.uft_cards_catalog from anon, authenticated;
+revoke all on public.uft_events_catalog from anon, authenticated;
+revoke all on public.uft_packs_catalog from anon, authenticated;
+revoke all on public.uft_market_catalog from anon, authenticated;
+revoke all on public.uft_seasons_catalog from anon, authenticated;
+
+grant execute on function public.upsert_uft_player(text, text, text, jsonb, text, text, text, text, jsonb) to anon, authenticated;
+grant execute on function public.upsert_uft_card(text, text, text, text, integer, text, text, boolean, boolean, jsonb, jsonb) to anon, authenticated;
+grant execute on function public.upsert_uft_event(text, text, text, bigint, bigint, boolean, integer, jsonb, jsonb) to anon, authenticated;
+grant execute on function public.upsert_uft_pack(text, text, integer, integer, integer, text, jsonb) to anon, authenticated;
+grant execute on function public.upsert_uft_market_listing(text, text, integer, text, boolean) to anon, authenticated;
+grant execute on function public.upsert_uft_season(text, text, bigint, bigint, jsonb) to anon, authenticated;
+grant execute on function public.list_uft_players() to anon, authenticated;
+grant execute on function public.list_uft_cards() to anon, authenticated;
+grant execute on function public.list_uft_events() to anon, authenticated;
+grant execute on function public.list_uft_packs() to anon, authenticated;
+grant execute on function public.list_uft_market_listings() to anon, authenticated;
+grant execute on function public.list_uft_seasons() to anon, authenticated;

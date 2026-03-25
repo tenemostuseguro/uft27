@@ -144,7 +144,7 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
                 <button type="submit">Entrar</button>
             </form>
         </div>
-</body>
+    </body>
     </html>
     <?php
     exit;
@@ -257,6 +257,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
             }
         }
 
+        if ($action === 'upsert_uft_player') {
+            $payload = [
+                'p_player_id' => trim((string) ($_POST['p_player_id'] ?? '')),
+                'p_name' => trim((string) ($_POST['p_name'] ?? '')),
+                'p_main_position' => trim((string) ($_POST['p_main_position'] ?? 'P')),
+                'p_secondary_positions' => json_decode((string) ($_POST['p_secondary_positions'] ?? '[]'), true),
+                'p_dominant_foot' => trim((string) ($_POST['p_dominant_foot'] ?? '')),
+                'p_nationality' => trim((string) ($_POST['p_nationality'] ?? '')),
+                'p_club' => trim((string) ($_POST['p_club'] ?? '')),
+                'p_photo_face_url' => trim((string) ($_POST['p_photo_face_url'] ?? '')),
+                'p_metadata' => json_decode((string) ($_POST['p_metadata'] ?? '{}'), true),
+            ];
+            $rpcUrl = $supabaseUrl . '/rest/v1/rpc/upsert_uft_player';
+            $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
+            if ($result['ok']) {
+                $success = 'Jugador UFT guardado en Supabase.';
+            } else {
+                $errors[] = 'No se pudo guardar jugador UFT: ' . $result['error'];
+            }
+        }
+
+        if ($action === 'upsert_uft_card') {
+            $payload = [
+                'p_card_id' => trim((string) ($_POST['p_card_id'] ?? '')),
+                'p_player_id' => trim((string) ($_POST['p_card_player_id'] ?? '')),
+                'p_card_type' => trim((string) ($_POST['p_card_type'] ?? 'Base')),
+                'p_rarity' => trim((string) ($_POST['p_rarity'] ?? 'Common')),
+                'p_ovr' => (int) ($_POST['p_ovr'] ?? 1),
+                'p_card_frame_url' => trim((string) ($_POST['p_card_frame_url'] ?? '')),
+                'p_face_url' => trim((string) ($_POST['p_face_url'] ?? '')),
+                'p_transferable' => isset($_POST['p_transferable']),
+                'p_locked' => isset($_POST['p_locked']),
+                'p_field_substats' => json_decode((string) ($_POST['p_field_substats'] ?? '{}'), true),
+                'p_gk_substats' => json_decode((string) ($_POST['p_gk_substats'] ?? '{}'), true),
+            ];
+            $rpcUrl = $supabaseUrl . '/rest/v1/rpc/upsert_uft_card';
+            $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
+            if ($result['ok']) {
+                $success = 'Carta UFT guardada en Supabase.';
+            } else {
+                $errors[] = 'No se pudo guardar carta UFT: ' . $result['error'];
+            }
+        }
+
+        if ($action === 'upsert_uft_event') {
+            $payload = [
+                'p_event_id' => trim((string) ($_POST['p_event_id'] ?? '')),
+                'p_name' => trim((string) ($_POST['p_event_name'] ?? '')),
+                'p_description' => trim((string) ($_POST['p_event_description'] ?? '')),
+                'p_start_unix' => (int) ($_POST['p_start_unix'] ?? 0),
+                'p_end_unix' => (int) ($_POST['p_end_unix'] ?? 0),
+                'p_active' => isset($_POST['p_active']),
+                'p_access_cost_coins' => (int) ($_POST['p_access_cost_coins'] ?? 0),
+                'p_rules' => json_decode((string) ($_POST['p_rules'] ?? '{}'), true),
+                'p_rewards' => json_decode((string) ($_POST['p_rewards'] ?? '[]'), true),
+            ];
+            $rpcUrl = $supabaseUrl . '/rest/v1/rpc/upsert_uft_event';
+            $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
+            if ($result['ok']) {
+                $success = 'Evento UFT guardado en Supabase.';
+            } else {
+                $errors[] = 'No se pudo guardar evento UFT: ' . $result['error'];
+            }
+        }
+
+        if ($action === 'upsert_uft_pack') {
+            $payload = [
+                'p_pack_id' => trim((string) ($_POST['p_pack_id'] ?? '')),
+                'p_name' => trim((string) ($_POST['p_pack_name'] ?? '')),
+                'p_cost_coins' => (int) ($_POST['p_cost_coins'] ?? 0),
+                'p_cost_points' => (int) ($_POST['p_cost_points'] ?? 0),
+                'p_cards_count' => (int) ($_POST['p_cards_count'] ?? 1),
+                'p_duplicate_policy' => trim((string) ($_POST['p_duplicate_policy'] ?? 'allow')),
+                'p_pool' => json_decode((string) ($_POST['p_pool'] ?? '[]'), true),
+            ];
+            $rpcUrl = $supabaseUrl . '/rest/v1/rpc/upsert_uft_pack';
+            $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
+            if ($result['ok']) {
+                $success = 'Sobre UFT guardado en Supabase.';
+            } else {
+                $errors[] = 'No se pudo guardar sobre UFT: ' . $result['error'];
+            }
+        }
+
+        if ($action === 'upsert_uft_market_listing') {
+            $payload = [
+                'p_listing_id' => trim((string) ($_POST['p_listing_id'] ?? '')),
+                'p_card_id' => trim((string) ($_POST['p_listing_card_id'] ?? '')),
+                'p_price' => (int) ($_POST['p_price'] ?? 100),
+                'p_seller' => trim((string) ($_POST['p_seller'] ?? 'npc_market')),
+                'p_active' => isset($_POST['p_listing_active']),
+            ];
+            $rpcUrl = $supabaseUrl . '/rest/v1/rpc/upsert_uft_market_listing';
+            $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
+            if ($result['ok']) {
+                $success = 'Publicación de mercado UFT guardada en Supabase.';
+            } else {
+                $errors[] = 'No se pudo guardar publicación de mercado UFT: ' . $result['error'];
+            }
+        }
+
+        if ($action === 'upsert_uft_season') {
+            $payload = [
+                'p_season_id' => trim((string) ($_POST['p_season_id'] ?? '')),
+                'p_name' => trim((string) ($_POST['p_season_name'] ?? '')),
+                'p_start_unix' => (int) ($_POST['p_season_start_unix'] ?? 0),
+                'p_end_unix' => (int) ($_POST['p_season_end_unix'] ?? 0),
+                'p_levels' => json_decode((string) ($_POST['p_levels'] ?? '[]'), true),
+            ];
+            $rpcUrl = $supabaseUrl . '/rest/v1/rpc/upsert_uft_season';
+            $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
+            if ($result['ok']) {
+                $success = 'Temporada UFT guardada en Supabase.';
+            } else {
+                $errors[] = 'No se pudo guardar temporada UFT: ' . $result['error'];
+            }
+        }
+
         if ($action === 'assign_user_logo') {
             $targetUserId = trim((string) ($_POST['target_user_id'] ?? ''));
             $targetLogoId = trim((string) ($_POST['target_logo_id'] ?? ''));
@@ -284,6 +402,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
 $users = [];
 $notifications = [];
 $profileLogos = [];
+$uftPlayers = [];
+$uftCards = [];
+$uftEvents = [];
+$uftPacks = [];
+$uftMarketListings = [];
+$uftSeasons = [];
 $uftConfigNames = ['base_players', 'cards', 'packs', 'season', 'events', 'market'];
 $uftConfigs = [];
 foreach ($uftConfigNames as $cfgName) {
@@ -327,6 +451,37 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
     } elseif (!$uftCfgResult['ok']) {
         $errors[] = 'No se pudo cargar configuración UFT desde Supabase: ' . $uftCfgResult['error'];
     }
+
+    $uftPlayersResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_players', $serviceRoleKey, []);
+    if ($uftPlayersResult['ok'] && is_array($uftPlayersResult['data'])) {
+        $uftPlayers = $uftPlayersResult['data'];
+    }
+
+    $uftCardsResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_cards', $serviceRoleKey, []);
+    if ($uftCardsResult['ok'] && is_array($uftCardsResult['data'])) {
+        $uftCards = $uftCardsResult['data'];
+    }
+
+    $uftEventsResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_events', $serviceRoleKey, []);
+    if ($uftEventsResult['ok'] && is_array($uftEventsResult['data'])) {
+        $uftEvents = $uftEventsResult['data'];
+    }
+
+    $uftPacksResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_packs', $serviceRoleKey, []);
+    if ($uftPacksResult['ok'] && is_array($uftPacksResult['data'])) {
+        $uftPacks = $uftPacksResult['data'];
+    }
+
+    $uftMarketResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_market_listings', $serviceRoleKey, []);
+    if ($uftMarketResult['ok'] && is_array($uftMarketResult['data'])) {
+        $uftMarketListings = $uftMarketResult['data'];
+    }
+
+    $uftSeasonsResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_seasons', $serviceRoleKey, []);
+    if ($uftSeasonsResult['ok'] && is_array($uftSeasonsResult['data'])) {
+        $uftSeasons = $uftSeasonsResult['data'];
+    }
+
 }
 ?>
 <!doctype html>
@@ -524,5 +679,135 @@ textarea {width:100%; box-sizing:border-box;}
         </form>
     </div>
 
+
+    <div class="panel">
+        <h2 style="margin-top:0;">Jugadores UFT (Supabase)</h2>
+        <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
+            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="action" value="upsert_uft_player">
+            <input type="text" name="p_player_id" placeholder="player_id único" required>
+            <input type="text" name="p_name" placeholder="Nombre" required>
+            <input type="text" name="p_main_position" placeholder="POS (POR/C/AI/AD/P)" required>
+            <input type="text" name="p_secondary_positions" placeholder='["AI","AD"]'>
+            <input type="text" name="p_photo_face_url" placeholder="URL foto cara">
+            <input type="text" name="p_dominant_foot" placeholder="Pie dominante">
+            <input type="text" name="p_nationality" placeholder="Nacionalidad">
+            <input type="text" name="p_club" placeholder="Club">
+            <textarea name="p_metadata" rows="3" placeholder="{}"></textarea>
+            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar jugador UFT</button>
+        </form>
+        <table><thead><tr><th>player_id</th><th>Nombre</th><th>Pos</th><th>Club</th></tr></thead><tbody>
+            <?php foreach ($uftPlayers as $p): ?>
+                <tr><td><code><?php echo h((string)($p['player_id'] ?? '')); ?></code></td><td><?php echo h((string)($p['name'] ?? '')); ?></td><td><?php echo h((string)($p['main_position'] ?? '')); ?></td><td><?php echo h((string)($p['club'] ?? '')); ?></td></tr>
+            <?php endforeach; ?>
+        </tbody></table>
+    </div>
+
+    <div class="panel">
+        <h2 style="margin-top:0;">Cartas UFT (Supabase)</h2>
+        <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
+            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="action" value="upsert_uft_card">
+            <input type="text" name="p_card_id" placeholder="card_id único" required>
+            <input type="text" name="p_card_player_id" placeholder="player_id" required>
+            <input type="text" name="p_card_type" placeholder="Tipo carta" required>
+            <input type="text" name="p_rarity" placeholder="Rareza" required>
+            <input type="number" name="p_ovr" min="1" max="120" value="75" required>
+            <input type="text" name="p_card_frame_url" placeholder="URL frame carta">
+            <input type="text" name="p_face_url" placeholder="URL foto cara">
+            <label><input type="checkbox" name="p_transferable" checked> Transferible</label>
+            <label><input type="checkbox" name="p_locked"> Bloqueada</label>
+            <textarea name="p_field_substats" rows="3" placeholder="{}"></textarea>
+            <textarea name="p_gk_substats" rows="3" placeholder="{}"></textarea>
+            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar carta UFT</button>
+        </form>
+        <table><thead><tr><th>card_id</th><th>player_id</th><th>Tipo</th><th>OVR</th></tr></thead><tbody>
+            <?php foreach ($uftCards as $c): ?>
+                <tr><td><code><?php echo h((string)($c['card_id'] ?? '')); ?></code></td><td><code><?php echo h((string)($c['player_id'] ?? '')); ?></code></td><td><?php echo h((string)($c['card_type'] ?? '')); ?></td><td><?php echo h((string)($c['ovr'] ?? '')); ?></td></tr>
+            <?php endforeach; ?>
+        </tbody></table>
+    </div>
+
+    <div class="panel">
+        <h2 style="margin-top:0;">Eventos UFT (Supabase)</h2>
+        <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
+            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="action" value="upsert_uft_event">
+            <input type="text" name="p_event_id" placeholder="event_id" required>
+            <input type="text" name="p_event_name" placeholder="Nombre evento" required>
+            <textarea name="p_event_description" rows="3" placeholder="Descripción"></textarea>
+            <input type="number" name="p_start_unix" placeholder="start_unix" required>
+            <input type="number" name="p_end_unix" placeholder="end_unix" required>
+            <input type="number" name="p_access_cost_coins" placeholder="Coste coins" value="0">
+            <label><input type="checkbox" name="p_active" checked> Activo</label>
+            <textarea name="p_rules" rows="3" placeholder="{}"></textarea>
+            <textarea name="p_rewards" rows="3" placeholder="[]"></textarea>
+            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar evento UFT</button>
+        </form>
+        <table><thead><tr><th>event_id</th><th>Nombre</th><th>Inicio</th><th>Fin</th><th>Activo</th></tr></thead><tbody>
+            <?php foreach ($uftEvents as $e): ?>
+                <tr><td><code><?php echo h((string)($e['event_id'] ?? '')); ?></code></td><td><?php echo h((string)($e['name'] ?? '')); ?></td><td><?php echo h((string)($e['start_unix'] ?? '')); ?></td><td><?php echo h((string)($e['end_unix'] ?? '')); ?></td><td><?php echo ((bool)($e['active'] ?? false)) ? 'Sí' : 'No'; ?></td></tr>
+            <?php endforeach; ?>
+        </tbody></table>
+    </div>
+
+    <div class="panel">
+        <h2 style="margin-top:0;">Sobres UFT (Supabase)</h2>
+        <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
+            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="action" value="upsert_uft_pack">
+            <input type="text" name="p_pack_id" placeholder="pack_id" required>
+            <input type="text" name="p_pack_name" placeholder="Nombre sobre" required>
+            <input type="number" name="p_cost_coins" placeholder="Coste coins" value="0">
+            <input type="number" name="p_cost_points" placeholder="Coste points" value="0">
+            <input type="number" name="p_cards_count" placeholder="Cantidad de cartas" value="1" min="1" required>
+            <input type="text" name="p_duplicate_policy" placeholder="Política duplicados (allow/no_dupes)" value="allow">
+            <textarea name="p_pool" rows="3" placeholder="[]"></textarea>
+            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar sobre UFT</button>
+        </form>
+        <table><thead><tr><th>pack_id</th><th>Nombre</th><th>Coins</th><th>Points</th><th>Cards</th></tr></thead><tbody>
+            <?php foreach ($uftPacks as $p): ?>
+                <tr><td><code><?php echo h((string)($p['pack_id'] ?? '')); ?></code></td><td><?php echo h((string)($p['name'] ?? '')); ?></td><td><?php echo h((string)($p['cost_coins'] ?? '')); ?></td><td><?php echo h((string)($p['cost_points'] ?? '')); ?></td><td><?php echo h((string)($p['cards_count'] ?? '')); ?></td></tr>
+            <?php endforeach; ?>
+        </tbody></table>
+    </div>
+
+    <div class="panel">
+        <h2 style="margin-top:0;">Mercado UFT (Supabase)</h2>
+        <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
+            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="action" value="upsert_uft_market_listing">
+            <input type="text" name="p_listing_id" placeholder="listing_id" required>
+            <input type="text" name="p_listing_card_id" placeholder="card_id" required>
+            <input type="number" name="p_price" placeholder="Precio" value="100" min="0" required>
+            <input type="text" name="p_seller" placeholder="Seller" value="npc_market">
+            <label><input type="checkbox" name="p_listing_active" checked> Activo</label>
+            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar publicación</button>
+        </form>
+        <table><thead><tr><th>listing_id</th><th>card_id</th><th>Precio</th><th>Seller</th><th>Activo</th></tr></thead><tbody>
+            <?php foreach ($uftMarketListings as $m): ?>
+                <tr><td><code><?php echo h((string)($m['listing_id'] ?? '')); ?></code></td><td><code><?php echo h((string)($m['card_id'] ?? '')); ?></code></td><td><?php echo h((string)($m['price'] ?? '')); ?></td><td><?php echo h((string)($m['seller'] ?? '')); ?></td><td><?php echo ((bool)($m['active'] ?? false)) ? 'Sí' : 'No'; ?></td></tr>
+            <?php endforeach; ?>
+        </tbody></table>
+    </div>
+
+    <div class="panel">
+        <h2 style="margin-top:0;">Temporadas UFT (Supabase)</h2>
+        <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
+            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="action" value="upsert_uft_season">
+            <input type="text" name="p_season_id" placeholder="season_id" required>
+            <input type="text" name="p_season_name" placeholder="Nombre temporada" required>
+            <input type="number" name="p_season_start_unix" placeholder="start_unix" required>
+            <input type="number" name="p_season_end_unix" placeholder="end_unix" required>
+            <textarea name="p_levels" rows="4" placeholder="[]"></textarea>
+            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar temporada UFT</button>
+        </form>
+        <table><thead><tr><th>season_id</th><th>Nombre</th><th>Inicio</th><th>Fin</th></tr></thead><tbody>
+            <?php foreach ($uftSeasons as $s): ?>
+                <tr><td><code><?php echo h((string)($s['season_id'] ?? '')); ?></code></td><td><?php echo h((string)($s['name'] ?? '')); ?></td><td><?php echo h((string)($s['start_unix'] ?? '')); ?></td><td><?php echo h((string)($s['end_unix'] ?? '')); ?></td></tr>
+            <?php endforeach; ?>
+        </tbody></table>
+    </div>
 </body>
 </html>

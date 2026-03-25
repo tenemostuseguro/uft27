@@ -3,7 +3,7 @@
 Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compañeros/rivales y sistema de partidos en evolución.
 
 ## Versionado y changelog
-- Versión actual: **0.0.24-prealpha**
+- Versión actual: **0.1.0-prealpha**
 - Archivo oficial de cambios: `CHANGELOG.md`
 
 ## Novedades importantes
@@ -78,6 +78,25 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 - Resolución recomendada para ambos recursos: **16:9**.
   - Mínimo recomendado: **1280x720**.
   - Ideal para mejor nitidez: **1920x1080**.
+
+## Modo UFT (Ultimate Futsal Team)
+- Nuevo menú **UFT MODE** integrado en `MainMenu2D`.
+- Club persistente con economía: **UFT Coins**, **UFT Points** y **XP**.
+- Sistema jugador base + cartas (múltiples cartas por `player_id`) con validación central de quinteto titular:
+  - titular obligatorio `POR, C, AI, AD, P`
+  - **prohibido repetir `player_id` en titulares**
+- Modos UFT jugables sobre el motor actual:
+  - **Squad Battle vs IA**
+  - **Fut Champions** con división y puntos
+- Contenido UFT configurable por JSON en `godot-futsal/uft_data/`:
+  - `base_players.json`, `cards.json`, `packs.json`, `market.json`, `events.json`, `season.json`
+- Sistemas funcionales:
+  - sobres
+  - mercado local
+  - pase de batalla por temporada
+  - eventos activos por fecha
+  - caché local de imágenes remotas en `user://cache/images/...`
+- El panel web `admin.php` añade edición de configuración UFT para esos JSON.
 
 ## Perfil visual (logos de evento/equipo)
 - Cada perfil usa un logo/avatar que puede ser de **evento**, **equipo** o personalizado por URL.

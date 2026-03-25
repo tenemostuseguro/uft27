@@ -234,6 +234,19 @@ func _finish_match() -> void:
 	for b in bots:
 		b.velocity = Vector3.ZERO
 	event_label.text = "Final: %d - %d" % [home_score, away_score]
+	_apply_uft_rewards()
+
+func _apply_uft_rewards() -> void:
+	if MatchConfig.uft_mode.strip_edges().is_empty():
+		return
+	var uft := get_node_or_null("/root/UFTManager")
+	if uft == null:
+		return
+	var won := home_score > away_score
+	var draw := home_score == away_score
+	var rewards: Dictionary = uft.resolve_mode_result(MatchConfig.uft_mode, won, draw)
+	status_label.text = "UFT: +%d Coins | +%d XP" % [int(rewards.get("coins", 0)), int(rewards.get("xp", 0))]
+	MatchConfig.uft_mode = ""
 
 func can_play() -> bool:
 	return not match_finished and time_left > 0.0

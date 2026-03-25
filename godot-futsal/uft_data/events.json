@@ -1,0 +1,3 @@
+[
+  {"event_id":"ev_launch","name":"Evento Lanzamiento","description":"Gana 2 partidos Squad Battle.","start_unix":1709251200,"end_unix":1893456000,"active":true,"access_cost_coins":0,"rules":{"mode":"squad_battle","wins_required":2},"rewards":[{"type":"coins","amount":3000},{"type":"xp","amount":200}]}
+]

@@ -5,7 +5,7 @@ const POSITIONS: Array[String] = ["GK", "Cierre", "Ala Izq", "Ala Der", "Pivot"]
 const GAME_NAME := "UFT 27"
 const GAME_SUBTITLE := "Ultimate Futsal Team"
 const GAME_STAGE := "prealpha"
-const GAME_VERSION := "0.0.24-prealpha"
+const GAME_VERSION := "0.1.0-prealpha"
 
 var team_name := "Mi Equipo"
 var primary_color := Color(0.2, 0.5, 1.0, 1.0)
@@ -31,6 +31,7 @@ const MODE_JOIN := "join"
 
 var start_mode := MODE_VS_AI
 var join_ip := "127.0.0.1"
+var uft_mode := ""
 
 func set_match_start(mode: String, ip: String = "127.0.0.1") -> void:
 	start_mode = mode

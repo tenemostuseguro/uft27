@@ -14,6 +14,31 @@ function hash_password(string $password): string {
     return hash('sha256', $password);
 }
 
+function uft_data_path(string $name): string {
+    return __DIR__ . '/godot-futsal/uft_data/' . $name . '.json';
+}
+
+function load_uft_json(string $name): string {
+    $path = uft_data_path($name);
+    if (!file_exists($path)) {
+        return '';
+    }
+    $content = file_get_contents($path);
+    return $content === false ? '' : $content;
+}
+
+function save_uft_json(string $name, string $content): bool {
+    $decoded = json_decode($content, true);
+    if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
+        return false;
+    }
+    $pretty = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if ($pretty === false) {
+        return false;
+    }
+    return file_put_contents(uft_data_path($name), $pretty . PHP_EOL) !== false;
+}
+
 function api_request(string $method, string $url, string $serviceRoleKey, ?array $body = null): array {
     $ch = curl_init($url);
     $headers = [
@@ -99,7 +124,7 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             body {font-family: Arial, sans-serif; background:#0f172a; color:#e2e8f0; display:flex; justify-content:center; align-items:center; min-height:100vh; margin:0;}
-            .card {background:#111827; width:100%; max-width:420px; border-radius:12px; padding:24px; box-shadow:0 12px 30px rgba(0,0,0,.35);} 
+            .card {background:#111827; width:100%; max-width:420px; border-radius:12px; padding:24px; box-shadow:0 12px 30px rgba(0,0,0,.35);}
             input, button {width:100%; padding:12px; border-radius:8px; border:1px solid #334155; margin-top:10px; box-sizing:border-box;}
             input {background:#0b1220; color:#e2e8f0;}
             button {background:#2563eb; color:#fff; border:none; cursor:pointer;}
@@ -119,7 +144,24 @@ if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
                 <button type="submit">Entrar</button>
             </form>
         </div>
-    </body>
+
+    <div class="panel">
+        <h2 style="margin-top:0;">Configuración UFT (modo Ultimate Team)</h2>
+        <p style="color:#94a3b8; margin-top:0;">Editá datos base del modo UFT: jugadores, cartas, sobres, mercado, eventos y temporada.</p>
+        <form method="post" style="display:grid; gap:10px; max-width:1000px;">
+            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="action" value="save_uft_config">
+            <select name="uft_config_name" onchange="document.getElementById('uft_json').value = this.options[this.selectedIndex].dataset.content;">
+                <?php foreach ($uftConfigNames as $cfgName): ?>
+                    <option value="<?php echo h($cfgName); ?>" data-content="<?php echo h((string) ($uftConfigs[$cfgName] ?? '')); ?>"><?php echo h($cfgName); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <textarea id="uft_json" name="uft_config_json" rows="16" placeholder="JSON válido"><?php echo h((string) ($uftConfigs['base_players'] ?? '')); ?></textarea>
+            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar configuración UFT</button>
+        </form>
+    </div>
+
+</body>
     </html>
     <?php
     exit;
@@ -211,6 +253,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
             }
         }
 
+        if ($action === 'save_uft_config') {
+            $configName = trim((string) ($_POST['uft_config_name'] ?? ''));
+            $configJson = (string) ($_POST['uft_config_json'] ?? '');
+            $allowed = ['base_players', 'cards', 'packs', 'season', 'events', 'market'];
+            if (!in_array($configName, $allowed, true)) {
+                $errors[] = 'Configuración UFT inválida.';
+            } elseif (!save_uft_json($configName, $configJson)) {
+                $errors[] = 'No se pudo guardar JSON UFT (verificá formato válido).';
+            } else {
+                $success = 'Configuración UFT guardada: ' . $configName;
+            }
+        }
+
         if ($action === 'assign_user_logo') {
             $targetUserId = trim((string) ($_POST['target_user_id'] ?? ''));
             $targetLogoId = trim((string) ($_POST['target_logo_id'] ?? ''));
@@ -238,6 +293,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
 $users = [];
 $notifications = [];
 $profileLogos = [];
+$uftConfigNames = ['base_players', 'cards', 'packs', 'season', 'events', 'market'];
+$uftConfigs = [];
+foreach ($uftConfigNames as $cfgName) {
+    $uftConfigs[$cfgName] = load_uft_json($cfgName);
+}
 if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
     $url = $supabaseUrl . '/rest/v1/player_accounts?select=id,username,created_at,updated_at&order=created_at.desc';
     $result = api_request('GET', $url, $serviceRoleKey);
@@ -442,5 +502,22 @@ textarea {width:100%; box-sizing:border-box;}
             </tbody>
         </table>
     </div>
+
+    <div class="panel">
+        <h2 style="margin-top:0;">Configuración UFT (modo Ultimate Team)</h2>
+        <p style="color:#94a3b8; margin-top:0;">Editá datos base del modo UFT: jugadores, cartas, sobres, mercado, eventos y temporada.</p>
+        <form method="post" style="display:grid; gap:10px; max-width:1000px;">
+            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="action" value="save_uft_config">
+            <select name="uft_config_name" onchange="document.getElementById('uft_json').value = this.options[this.selectedIndex].dataset.content;">
+                <?php foreach ($uftConfigNames as $cfgName): ?>
+                    <option value="<?php echo h($cfgName); ?>" data-content="<?php echo h((string) ($uftConfigs[$cfgName] ?? '')); ?>"><?php echo h($cfgName); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <textarea id="uft_json" name="uft_config_json" rows="16" placeholder="JSON válido"><?php echo h((string) ($uftConfigs['base_players'] ?? '')); ?></textarea>
+            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar configuración UFT</button>
+        </form>
+    </div>
+
 </body>
 </html>

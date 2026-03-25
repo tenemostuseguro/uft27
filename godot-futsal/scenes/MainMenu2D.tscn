@@ -73,6 +73,10 @@ text = "MY TEAM\n(plantilla)"
 layout_mode = 2
 text = "PERFIL\n(foto + escudo)"
 
+[node name="UFTButton" type="Button" parent="MainRow/LeftNav"]
+layout_mode = 2
+text = "UFT MODE"
+
 [node name="QuickMatchButton" type="Button" parent="MainRow/LeftNav"]
 layout_mode = 2
 text = "PARTIDO RÁPIDO"

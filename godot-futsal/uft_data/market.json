@@ -1,0 +1,5 @@
+[
+  {"listing_id":"m_1","card_id":"c_prieto_totw","price":4200,"seller":"npc_market"},
+  {"listing_id":"m_2","card_id":"c_herrera_base","price":1800,"seller":"npc_market"},
+  {"listing_id":"m_3","card_id":"c_duarte_event","price":12000,"seller":"npc_market"}
+]

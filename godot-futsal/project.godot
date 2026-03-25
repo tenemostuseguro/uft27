@@ -40,3 +40,4 @@ shoot={
 [autoload]
 MatchConfig="*res://scripts/match_config.gd"
 AuthService="*res://scripts/auth_service.gd"
+UFTManager="*res://scripts/uft_manager.gd"

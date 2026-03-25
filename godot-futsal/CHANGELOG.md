@@ -2,6 +2,12 @@
 
 > Proyecto en **prealpha**. Cada cambio funcional importante incrementa versión.
 
+## 0.1.0-prealpha
+- Se implementó el modo **UFT / Ultimate Futsal Team** integrado al juego con menú propio (`UFTMenu2D`) y autoload `UFTManager`.
+- Se añadieron club persistente, economía (`coins/points/xp`), colección de cartas, validación central de quinteto titular sin duplicados por `player_id`, sobres, mercado local, eventos por fecha y pase de batalla por temporada.
+- Se añadieron datos configurables en `godot-futsal/uft_data/*.json` y edición desde panel web `admin.php` (sección “Configuración UFT”).
+- `GameManager3D` ahora entrega recompensas UFT al finalizar partidas en modos UFT (Squad Battle/Champions).
+
 ## 0.0.24-prealpha
 - Se corrigió `ProfileMenu2D` para cargar imágenes locales vía `load()`/`ResourceLoader` (evitando el warning de export por `Image.load_from_file` sobre `res://...`).
 - La vista previa del perfil ahora soporta URL remota con fallback de variantes estáticas para `.gif` (`.png/.webp/.jpg/.jpeg`) antes de limpiar preview.

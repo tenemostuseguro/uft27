@@ -285,10 +285,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
                 'p_card_type' => trim((string) ($_POST['p_card_type'] ?? 'Base')),
                 'p_rarity' => trim((string) ($_POST['p_rarity'] ?? 'Common')),
                 'p_ovr' => (int) ($_POST['p_ovr'] ?? 1),
+                'p_main_stats' => json_decode((string) ($_POST['p_main_stats'] ?? '{}'), true),
+                'p_evolution_level' => (int) ($_POST['p_evolution_level'] ?? 1),
                 'p_card_frame_url' => trim((string) ($_POST['p_card_frame_url'] ?? '')),
                 'p_face_url' => trim((string) ($_POST['p_face_url'] ?? '')),
+                'p_owned' => isset($_POST['p_owned']),
                 'p_transferable' => isset($_POST['p_transferable']),
                 'p_locked' => isset($_POST['p_locked']),
+                'p_suggested_price' => (int) ($_POST['p_suggested_price'] ?? 0),
                 'p_field_substats' => json_decode((string) ($_POST['p_field_substats'] ?? '{}'), true),
                 'p_gk_substats' => json_decode((string) ($_POST['p_gk_substats'] ?? '{}'), true),
             ];
@@ -298,6 +302,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
                 $success = 'Carta UFT guardada en Supabase.';
             } else {
                 $errors[] = 'No se pudo guardar carta UFT: ' . $result['error'];
+            }
+        }
+
+        if ($action === 'upsert_uft_card_type') {
+            $payload = [
+                'p_card_type' => trim((string) ($_POST['p_card_type_id'] ?? '')),
+                'p_display_name' => trim((string) ($_POST['p_card_type_display_name'] ?? '')),
+                'p_rarity_default' => trim((string) ($_POST['p_card_type_rarity_default'] ?? 'Common')),
+                'p_style' => json_decode((string) ($_POST['p_card_type_style'] ?? '{}'), true),
+                'p_active' => isset($_POST['p_card_type_active']),
+            ];
+            $rpcUrl = $supabaseUrl . '/rest/v1/rpc/upsert_uft_card_type';
+            $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
+            if ($result['ok']) {
+                $success = 'Tipo de carta UFT guardado en Supabase.';
+            } else {
+                $errors[] = 'No se pudo guardar tipo de carta UFT: ' . $result['error'];
             }
         }
 
@@ -404,6 +425,7 @@ $notifications = [];
 $profileLogos = [];
 $uftPlayers = [];
 $uftCards = [];
+$uftCardTypes = [];
 $uftEvents = [];
 $uftPacks = [];
 $uftMarketListings = [];
@@ -460,6 +482,11 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
     $uftCardsResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_cards', $serviceRoleKey, []);
     if ($uftCardsResult['ok'] && is_array($uftCardsResult['data'])) {
         $uftCards = $uftCardsResult['data'];
+    }
+
+    $uftCardTypesResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_card_types', $serviceRoleKey, []);
+    if ($uftCardTypesResult['ok'] && is_array($uftCardTypesResult['data'])) {
+        $uftCardTypes = $uftCardTypesResult['data'];
     }
 
     $uftEventsResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_events', $serviceRoleKey, []);
@@ -704,6 +731,25 @@ textarea {width:100%; box-sizing:border-box;}
     </div>
 
     <div class="panel">
+        <h2 style="margin-top:0;">Tipos de carta UFT (Supabase)</h2>
+        <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
+            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="action" value="upsert_uft_card_type">
+            <input type="text" name="p_card_type_id" placeholder="card_type (ej: Base, Evento, TOTW)" required>
+            <input type="text" name="p_card_type_display_name" placeholder="Nombre visible" required>
+            <input type="text" name="p_card_type_rarity_default" placeholder="Rareza por defecto" value="Common">
+            <label><input type="checkbox" name="p_card_type_active" checked> Activo</label>
+            <textarea name="p_card_type_style" rows="3" placeholder='{"frame_color":"gold"}'></textarea>
+            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar tipo de carta</button>
+        </form>
+        <table><thead><tr><th>card_type</th><th>Nombre</th><th>Rareza default</th><th>Activo</th></tr></thead><tbody>
+            <?php foreach ($uftCardTypes as $t): ?>
+                <tr><td><code><?php echo h((string)($t['card_type'] ?? '')); ?></code></td><td><?php echo h((string)($t['display_name'] ?? '')); ?></td><td><?php echo h((string)($t['rarity_default'] ?? '')); ?></td><td><?php echo ((bool)($t['active'] ?? false)) ? 'Sí' : 'No'; ?></td></tr>
+            <?php endforeach; ?>
+        </tbody></table>
+    </div>
+
+    <div class="panel">
         <h2 style="margin-top:0;">Cartas UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
@@ -713,17 +759,31 @@ textarea {width:100%; box-sizing:border-box;}
             <input type="text" name="p_card_type" placeholder="Tipo carta" required>
             <input type="text" name="p_rarity" placeholder="Rareza" required>
             <input type="number" name="p_ovr" min="1" max="120" value="75" required>
+            <input type="number" name="p_evolution_level" min="1" value="1" required>
+            <input type="number" name="p_suggested_price" min="0" value="0">
             <input type="text" name="p_card_frame_url" placeholder="URL frame carta">
             <input type="text" name="p_face_url" placeholder="URL foto cara">
+            <label><input type="checkbox" name="p_owned" checked> Poseída</label>
             <label><input type="checkbox" name="p_transferable" checked> Transferible</label>
             <label><input type="checkbox" name="p_locked"> Bloqueada</label>
+            <textarea name="p_main_stats" rows="3" placeholder='{"pace":80,"dribbling":78,"passing":75,"shooting":82,"defense":60,"physical":74}'></textarea>
             <textarea name="p_field_substats" rows="3" placeholder="{}"></textarea>
             <textarea name="p_gk_substats" rows="3" placeholder="{}"></textarea>
             <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar carta UFT</button>
         </form>
-        <table><thead><tr><th>card_id</th><th>player_id</th><th>Tipo</th><th>OVR</th></tr></thead><tbody>
+        <table><thead><tr><th>card_id</th><th>player_id</th><th>Tipo</th><th>Rareza</th><th>Evo</th><th>OVR</th><th>Poseída</th><th>Transferible</th><th>Precio</th></tr></thead><tbody>
             <?php foreach ($uftCards as $c): ?>
-                <tr><td><code><?php echo h((string)($c['card_id'] ?? '')); ?></code></td><td><code><?php echo h((string)($c['player_id'] ?? '')); ?></code></td><td><?php echo h((string)($c['card_type'] ?? '')); ?></td><td><?php echo h((string)($c['ovr'] ?? '')); ?></td></tr>
+                <tr>
+                    <td><code><?php echo h((string)($c['card_id'] ?? '')); ?></code></td>
+                    <td><code><?php echo h((string)($c['player_id'] ?? '')); ?></code></td>
+                    <td><?php echo h((string)($c['card_type'] ?? '')); ?></td>
+                    <td><?php echo h((string)($c['rarity'] ?? '')); ?></td>
+                    <td><?php echo h((string)($c['evolution_level'] ?? '1')); ?></td>
+                    <td><?php echo h((string)($c['ovr'] ?? '')); ?></td>
+                    <td><?php echo ((bool)($c['owned'] ?? false)) ? 'Sí' : 'No'; ?></td>
+                    <td><?php echo ((bool)($c['transferable'] ?? false)) ? 'Sí' : 'No'; ?></td>
+                    <td><?php echo h((string)($c['suggested_price'] ?? '0')); ?></td>
+                </tr>
             <?php endforeach; ?>
         </tbody></table>
     </div>

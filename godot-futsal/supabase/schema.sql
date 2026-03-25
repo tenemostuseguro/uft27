@@ -406,21 +406,49 @@ create table if not exists public.uft_players (
   metadata jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
+alter table public.uft_players add column if not exists metadata jsonb not null default '{}'::jsonb;
 
 create table if not exists public.uft_cards_catalog (
   card_id text primary key,
   player_id text not null references public.uft_players(player_id) on delete cascade,
   card_type text not null,
   rarity text not null,
+  evolution_level integer not null default 1,
   ovr integer not null default 1,
+  main_stats jsonb not null default '{}'::jsonb,
   card_frame_url text not null default '',
   face_url text not null default '',
+  owned boolean not null default true,
   transferable boolean not null default true,
   locked boolean not null default false,
+  suggested_price integer not null default 0,
   field_substats jsonb not null default '{}'::jsonb,
   gk_substats jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
+alter table public.uft_cards_catalog add column if not exists evolution_level integer not null default 1;
+alter table public.uft_cards_catalog add column if not exists main_stats jsonb not null default '{}'::jsonb;
+alter table public.uft_cards_catalog add column if not exists owned boolean not null default true;
+alter table public.uft_cards_catalog add column if not exists suggested_price integer not null default 0;
+
+create table if not exists public.uft_card_types_catalog (
+  card_type text primary key,
+  display_name text not null,
+  rarity_default text not null default 'Common',
+  style jsonb not null default '{}'::jsonb,
+  active boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+
+insert into public.uft_card_types_catalog(card_type, display_name, rarity_default, style, active)
+values
+  ('Base', 'Base', 'Common', '{}'::jsonb, true),
+  ('Especial', 'Especial', 'Rare', '{}'::jsonb, true),
+  ('Evento', 'Evento', 'Epic', '{}'::jsonb, true),
+  ('TOTW', 'Team of the Week', 'Epic', '{}'::jsonb, true),
+  ('Icono', 'Icono', 'Legendary', '{}'::jsonb, true),
+  ('Evolucion', 'Evolución', 'Rare', '{}'::jsonb, true)
+on conflict (card_type) do nothing;
 
 create table if not exists public.uft_events_catalog (
   event_id text primary key,
@@ -509,7 +537,11 @@ create or replace function public.upsert_uft_card(
   p_transferable boolean default true,
   p_locked boolean default false,
   p_field_substats jsonb default '{}'::jsonb,
-  p_gk_substats jsonb default '{}'::jsonb
+  p_gk_substats jsonb default '{}'::jsonb,
+  p_main_stats jsonb default '{}'::jsonb,
+  p_evolution_level integer default 1,
+  p_owned boolean default true,
+  p_suggested_price integer default 0
 )
 returns boolean
 language plpgsql
@@ -518,19 +550,49 @@ set search_path = public
 as $$
 begin
   if p_card_id is null or trim(p_card_id) = '' or p_player_id is null or trim(p_player_id) = '' then return false; end if;
-  insert into public.uft_cards_catalog(card_id, player_id, card_type, rarity, ovr, card_frame_url, face_url, transferable, locked, field_substats, gk_substats, updated_at)
-  values (trim(p_card_id), trim(p_player_id), coalesce(p_card_type, 'Base'), coalesce(p_rarity, 'Common'), greatest(coalesce(p_ovr, 1),1), coalesce(p_card_frame_url, ''), coalesce(p_face_url, ''), coalesce(p_transferable, true), coalesce(p_locked, false), coalesce(p_field_substats, '{}'::jsonb), coalesce(p_gk_substats, '{}'::jsonb), now())
+  insert into public.uft_cards_catalog(card_id, player_id, card_type, rarity, evolution_level, ovr, main_stats, card_frame_url, face_url, owned, transferable, locked, suggested_price, field_substats, gk_substats, updated_at)
+  values (trim(p_card_id), trim(p_player_id), coalesce(p_card_type, 'Base'), coalesce(p_rarity, 'Common'), greatest(coalesce(p_evolution_level, 1), 1), greatest(coalesce(p_ovr, 1),1), coalesce(p_main_stats, '{}'::jsonb), coalesce(p_card_frame_url, ''), coalesce(p_face_url, ''), coalesce(p_owned, true), coalesce(p_transferable, true), coalesce(p_locked, false), greatest(coalesce(p_suggested_price, 0), 0), coalesce(p_field_substats, '{}'::jsonb), coalesce(p_gk_substats, '{}'::jsonb), now())
   on conflict (card_id) do update set
     player_id = excluded.player_id,
     card_type = excluded.card_type,
     rarity = excluded.rarity,
+    evolution_level = excluded.evolution_level,
     ovr = excluded.ovr,
+    main_stats = excluded.main_stats,
     card_frame_url = excluded.card_frame_url,
     face_url = excluded.face_url,
+    owned = excluded.owned,
     transferable = excluded.transferable,
     locked = excluded.locked,
+    suggested_price = excluded.suggested_price,
     field_substats = excluded.field_substats,
     gk_substats = excluded.gk_substats,
+    updated_at = now();
+  return true;
+end;
+$$;
+
+create or replace function public.upsert_uft_card_type(
+  p_card_type text,
+  p_display_name text,
+  p_rarity_default text default 'Common',
+  p_style jsonb default '{}'::jsonb,
+  p_active boolean default true
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_card_type is null or trim(p_card_type) = '' then return false; end if;
+  insert into public.uft_card_types_catalog(card_type, display_name, rarity_default, style, active, updated_at)
+  values (trim(p_card_type), coalesce(nullif(trim(p_display_name), ''), trim(p_card_type)), coalesce(nullif(trim(p_rarity_default), ''), 'Common'), coalesce(p_style, '{}'::jsonb), coalesce(p_active, true), now())
+  on conflict (card_type) do update set
+    display_name = excluded.display_name,
+    rarity_default = excluded.rarity_default,
+    style = excluded.style,
+    active = excluded.active,
     updated_at = now();
   return true;
 end;
@@ -673,6 +735,13 @@ security definer
 set search_path = public
 as $$ select * from public.uft_events_catalog order by updated_at desc; $$;
 
+create or replace function public.list_uft_card_types()
+returns setof public.uft_card_types_catalog
+language sql
+security definer
+set search_path = public
+as $$ select * from public.uft_card_types_catalog order by updated_at desc; $$;
+
 create or replace function public.list_uft_packs()
 returns setof public.uft_packs_catalog
 language sql
@@ -700,15 +769,18 @@ revoke all on public.uft_events_catalog from anon, authenticated;
 revoke all on public.uft_packs_catalog from anon, authenticated;
 revoke all on public.uft_market_catalog from anon, authenticated;
 revoke all on public.uft_seasons_catalog from anon, authenticated;
+revoke all on public.uft_card_types_catalog from anon, authenticated;
 
 grant execute on function public.upsert_uft_player(text, text, text, jsonb, text, text, text, text, jsonb) to anon, authenticated;
-grant execute on function public.upsert_uft_card(text, text, text, text, integer, text, text, boolean, boolean, jsonb, jsonb) to anon, authenticated;
+grant execute on function public.upsert_uft_card(text, text, text, text, integer, text, text, boolean, boolean, jsonb, jsonb, jsonb, integer, boolean, integer) to anon, authenticated;
+grant execute on function public.upsert_uft_card_type(text, text, text, jsonb, boolean) to anon, authenticated;
 grant execute on function public.upsert_uft_event(text, text, text, bigint, bigint, boolean, integer, jsonb, jsonb) to anon, authenticated;
 grant execute on function public.upsert_uft_pack(text, text, integer, integer, integer, text, jsonb) to anon, authenticated;
 grant execute on function public.upsert_uft_market_listing(text, text, integer, text, boolean) to anon, authenticated;
 grant execute on function public.upsert_uft_season(text, text, bigint, bigint, jsonb) to anon, authenticated;
 grant execute on function public.list_uft_players() to anon, authenticated;
 grant execute on function public.list_uft_cards() to anon, authenticated;
+grant execute on function public.list_uft_card_types() to anon, authenticated;
 grant execute on function public.list_uft_events() to anon, authenticated;
 grant execute on function public.list_uft_packs() to anon, authenticated;
 grant execute on function public.list_uft_market_listings() to anon, authenticated;

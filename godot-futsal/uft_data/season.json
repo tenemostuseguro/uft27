@@ -1,0 +1,11 @@
+{
+  "season_id": "s1",
+  "name": "Temporada 1",
+  "start_unix": 1709251200,
+  "end_unix": 1893456000,
+  "levels": [
+    {"level":1,"xp_required":100,"free_reward":{"type":"coins","amount":500},"premium_reward":{"type":"points","amount":50}},
+    {"level":2,"xp_required":250,"free_reward":{"type":"card","card_id":"c_prieto_totw"},"premium_reward":{"type":"coins","amount":1500}},
+    {"level":3,"xp_required":450,"free_reward":{"type":"coins","amount":2000},"premium_reward":{"type":"card","card_id":"c_duarte_event"}}
+  ]
+}

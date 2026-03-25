@@ -1,0 +1,4 @@
+[
+  {"pack_id":"bronze_pack","name":"Sobre Bronce","cost_coins":500,"cost_points":0,"cards_count":1,"pool":["c_molina_base","c_herrera_base","c_prieto_totw"],"duplicate_policy":"allow"},
+  {"pack_id":"event_pack","name":"Sobre Evento","cost_coins":0,"cost_points":100,"cards_count":1,"pool":["c_duarte_event","c_salvat_icon","c_prieto_totw"],"duplicate_policy":"coins"}
+]

@@ -1,0 +1,7 @@
+[
+  {"player_id":"p_molina","name":"Andrés Molina","main_position":"POR","secondary_positions":["C"],"dominant_foot":"R","nationality":"AR","club":"UFT Club","photo_face_url":"https://i.imgur.com/2yaf2wb.png"},
+  {"player_id":"p_herrera","name":"Marco Herrera","main_position":"C","secondary_positions":["POR"],"dominant_foot":"R","nationality":"AR","club":"UFT Club","photo_face_url":"https://i.imgur.com/2yaf2wb.png"},
+  {"player_id":"p_duarte","name":"Iván Duarte","main_position":"AI","secondary_positions":["AD"],"dominant_foot":"L","nationality":"AR","club":"UFT Club","photo_face_url":"https://i.imgur.com/2yaf2wb.png"},
+  {"player_id":"p_prieto","name":"Tomás Prieto","main_position":"AD","secondary_positions":["AI"],"dominant_foot":"R","nationality":"AR","club":"UFT Club","photo_face_url":"https://i.imgur.com/2yaf2wb.png"},
+  {"player_id":"p_salvat","name":"Matías Salvat","main_position":"P","secondary_positions":["AD"],"dominant_foot":"R","nationality":"AR","club":"UFT Club","photo_face_url":"https://i.imgur.com/2yaf2wb.png"}
+]

@@ -1,6 +1,5 @@
 extends Node
 
-const STATE_PATH := "user://uft_state.json"
 const CACHE_ROOT := "user://cache/images"
 const STARTER_POSITIONS: Array[String] = ["POR", "C", "AI", "AD", "P"]
 
@@ -44,83 +43,69 @@ func is_godot4() -> bool:
 
 func _load_static_data() -> void:
 	var auth := get_node_or_null("/root/AuthService")
-	if auth != null and auth.is_authenticated():
-		var remote: Dictionary = await auth.list_uft_configs()
-		if remote.get("ok", false):
-			var rows: Variant = remote.get("json", [])
-			if rows is Array and rows.size() > 0:
-				for row in rows:
-						var k := str(row.get("key", ""))
-						var payload: Variant = row.get("payload", null)
-						if k == "base_players" and payload is Array:
-							base_players = _array_to_dict(_as_dict_array(payload), "player_id")
-						elif k == "cards" and payload is Array:
-							cards = _array_to_dict(_as_dict_array(payload), "card_id")
-						elif k == "packs" and payload is Array:
-							packs = _array_to_dict(_as_dict_array(payload), "pack_id")
-						elif k == "events" and payload is Array:
-							events = _as_dict_array(payload)
-						elif k == "market" and payload is Array:
-							market_listings = _as_dict_array(payload)
-						elif k == "season" and payload is Dictionary:
-							season_config = payload
-	if base_players.is_empty():
-		base_players = _array_to_dict(_as_dict_array(_load_json_resource("res://uft_data/base_players.json")), "player_id")
-	if cards.is_empty():
-		cards = _array_to_dict(_as_dict_array(_load_json_resource("res://uft_data/cards.json")), "card_id")
-	if packs.is_empty():
-		packs = _array_to_dict(_as_dict_array(_load_json_resource("res://uft_data/packs.json")), "pack_id")
-	if events.is_empty():
-		events = _as_dict_array(_load_json_resource("res://uft_data/events.json"))
-	if market_listings.is_empty():
-		market_listings = _as_dict_array(_load_json_resource("res://uft_data/market.json"))
-	if season_config.is_empty():
-		season_config = _load_json_object("res://uft_data/season.json")
+	if auth == null:
+		push_warning("UFTManager: AuthService no disponible, no se pueden cargar catálogos desde Supabase.")
+		return
+	var remote: Dictionary = await auth.list_uft_configs()
+	if remote.get("ok", false):
+		var rows: Variant = remote.get("json", [])
+		if rows is Array and rows.size() > 0:
+			for row in rows:
+				var k := str(row.get("key", ""))
+				var payload: Variant = row.get("payload", null)
+				if k == "base_players" and payload is Array:
+					base_players = _array_to_dict(_as_dict_array(payload), "player_id")
+				elif k == "cards" and payload is Array:
+					cards = _array_to_dict(_as_dict_array(payload), "card_id")
+				elif k == "packs" and payload is Array:
+					packs = _array_to_dict(_as_dict_array(payload), "pack_id")
+				elif k == "events" and payload is Array:
+					events = _as_dict_array(payload)
+				elif k == "market" and payload is Array:
+					market_listings = _as_dict_array(payload)
+				elif k == "season" and payload is Dictionary:
+					season_config = payload
+	if base_players.is_empty() and cards.is_empty():
+		push_warning("UFTManager: Supabase no devolvió catálogos UFT (base_players/cards).")
 
 func _load_state() -> void:
 	var auth := get_node_or_null("/root/AuthService")
-	if auth != null and auth.is_authenticated():
-		var remote: Dictionary = await auth.get_uft_snapshot()
-		if remote.get("ok", false):
-			var snapshot: Variant = remote.get("snapshot", {})
-			if snapshot is Dictionary:
-				for key in state.keys():
-					if snapshot.has(key):
-						state[key] = snapshot[key]
-				return
-	if not FileAccess.file_exists(STATE_PATH):
+	if auth == null or not auth.is_authenticated():
+		push_warning("UFTManager: sesión no autenticada, no se puede cargar snapshot UFT desde Supabase.")
 		return
-	var file := FileAccess.open(STATE_PATH, FileAccess.READ)
-	if file == null:
-		return
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if parsed is Dictionary:
-		for key in state.keys():
-			if parsed.has(key):
-				state[key] = parsed[key]
+	var remote: Dictionary = await auth.get_uft_snapshot()
+	if remote.get("ok", false):
+		var snapshot: Variant = remote.get("snapshot", {})
+		if snapshot is Dictionary:
+			for key in state.keys():
+				if snapshot.has(key):
+					state[key] = snapshot[key]
+	else:
+		push_warning("UFTManager: error cargando snapshot UFT desde Supabase: %s" % str(remote.get("error", "desconocido")))
 
 func _save_state() -> void:
 	var auth := get_node_or_null("/root/AuthService")
-	if auth != null and auth.is_authenticated():
-		auth.save_uft_snapshot(state)
+	if auth == null or not auth.is_authenticated():
+		push_warning("UFTManager: sesión no autenticada, no se puede guardar snapshot UFT en Supabase.")
 		return
-	var file := FileAccess.open(STATE_PATH, FileAccess.WRITE)
-	if file == null:
-		return
-	file.store_string(JSON.stringify(state))
+	auth.save_uft_snapshot(state)
 
 func _ensure_starter_cards() -> void:
 	if state["collection"].size() > 0:
 		return
-	for id in ["c_molina_base", "c_herrera_base", "c_duarte_event", "c_prieto_totw", "c_salvat_icon"]:
-		state["collection"].append(id)
-	state["lineup"] = {
-		"POR": "c_molina_base",
-		"C": "c_herrera_base",
-		"AI": "c_duarte_event",
-		"AD": "c_prieto_totw",
-		"P": "c_salvat_icon"
-	}
+	var by_pos: Dictionary = {"POR": "", "C": "", "AI": "", "AD": "", "P": ""}
+	for card_id in cards.keys():
+		var card: Dictionary = cards[card_id]
+		var player: Dictionary = base_players.get(str(card.get("player_id", "")), {})
+		var pos := str(player.get("main_position", ""))
+		if by_pos.has(pos) and str(by_pos[pos]).is_empty():
+			by_pos[pos] = str(card_id)
+	for pos in STARTER_POSITIONS:
+		var selected := str(by_pos.get(pos, ""))
+		if selected.is_empty():
+			continue
+		state["collection"].append(selected)
+		state["lineup"][pos] = selected
 
 func get_summary() -> Dictionary:
 	return {
@@ -409,24 +394,6 @@ func _guess_extension(url: String) -> String:
 
 func _ensure_dir(path: String) -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path))
-
-func _load_json_resource(path: String) -> Array:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		return []
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if parsed is Array:
-		return parsed
-	return []
-
-func _load_json_object(path: String) -> Dictionary:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		return {}
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if parsed is Dictionary:
-		return parsed
-	return {}
 
 func _array_to_dict(source: Array, key_name: String) -> Dictionary:
 	var out := {}

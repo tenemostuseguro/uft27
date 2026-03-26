@@ -5,16 +5,28 @@ const GAME_SCENE := "res://scenes/Main3D.tscn"
 
 @onready var summary_label: Label = $Margin/VBox/Summary
 @onready var status_label: Label = $Margin/VBox/Status
-@onready var collection_list: ItemList = $Margin/VBox/Collection
-@onready var market_list: ItemList = $Margin/VBox/Market
+@onready var collection_list: ItemList = $Margin/VBox/Row/Collection
+@onready var market_list: ItemList = $Margin/VBox/Row/Market
 
 func _ready() -> void:
-	$Margin/VBox/Buttons/SquadBattle.pressed.connect(_on_squad_battle_pressed)
-	$Margin/VBox/Buttons/Champions.pressed.connect(_on_champions_pressed)
-	$Margin/VBox/Buttons/OpenBronze.pressed.connect(_on_open_bronze)
-	$Margin/VBox/Buttons/OpenEvent.pressed.connect(_on_open_event)
-	$Margin/VBox/Buttons/ClaimPass.pressed.connect(_on_claim_pass)
-	$Margin/VBox/Buttons/Back.pressed.connect(func() -> void: get_tree().change_scene_to_file(MAIN_MENU_SCENE))
+	var squad_btn := get_node_or_null("Margin/VBox/Buttons/SquadBattle")
+	var champs_btn := get_node_or_null("Margin/VBox/Buttons/Champions")
+	var bronze_btn := get_node_or_null("Margin/VBox/Buttons/OpenBronze")
+	var event_btn := get_node_or_null("Margin/VBox/Buttons/OpenEvent")
+	var claim_btn := get_node_or_null("Margin/VBox/Buttons/ClaimPass")
+	var back_btn := get_node_or_null("Margin/VBox/Buttons2/Back")
+	if squad_btn != null:
+		squad_btn.pressed.connect(_on_squad_battle_pressed)
+	if champs_btn != null:
+		champs_btn.pressed.connect(_on_champions_pressed)
+	if bronze_btn != null:
+		bronze_btn.pressed.connect(_on_open_bronze)
+	if event_btn != null:
+		event_btn.pressed.connect(_on_open_event)
+	if claim_btn != null:
+		claim_btn.pressed.connect(_on_claim_pass)
+	if back_btn != null:
+		back_btn.pressed.connect(func() -> void: get_tree().change_scene_to_file(MAIN_MENU_SCENE))
 	_refresh()
 
 func _refresh() -> void:
@@ -54,15 +66,24 @@ func _on_champions_pressed() -> void:
 
 func _on_open_bronze() -> void:
 	var result: Dictionary = get_node("/root/UFTManager").open_pack("bronze_pack")
-	status_label.text = "Sobre Bronce: %s" % ("OK" if result.get("ok", false) else str(result.get("error", "error")))
+	var status := "OK"
+	if not result.get("ok", false):
+		status = str(result.get("error", "error"))
+	status_label.text = "Sobre Bronce: %s" % status
 	_refresh()
 
 func _on_open_event() -> void:
 	var result: Dictionary = get_node("/root/UFTManager").open_pack("event_pack")
-	status_label.text = "Sobre Evento: %s" % ("OK" if result.get("ok", false) else str(result.get("error", "error")))
+	var status := "OK"
+	if not result.get("ok", false):
+		status = str(result.get("error", "error"))
+	status_label.text = "Sobre Evento: %s" % status
 	_refresh()
 
 func _on_claim_pass() -> void:
 	var result: Dictionary = get_node("/root/UFTManager").claim_battle_pass(1, false)
-	status_label.text = "Pase: %s" % ("Reclamado" if result.get("ok", false) else str(result.get("error", "error")))
+	var status := "Reclamado"
+	if not result.get("ok", false):
+		status = str(result.get("error", "error"))
+	status_label.text = "Pase: %s" % status
 	_refresh()

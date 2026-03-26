@@ -45,7 +45,7 @@ func is_godot4() -> bool:
 func _load_static_data() -> void:
 	var auth := get_node_or_null("/root/AuthService")
 	if auth != null and auth.is_authenticated():
-		var remote := await auth.list_uft_configs()
+		var remote: Dictionary = await auth.list_uft_configs()
 		if remote.get("ok", false):
 			var rows: Variant = remote.get("json", [])
 			if rows is Array and rows.size() > 0:
@@ -80,7 +80,7 @@ func _load_static_data() -> void:
 func _load_state() -> void:
 	var auth := get_node_or_null("/root/AuthService")
 	if auth != null and auth.is_authenticated():
-		var remote := await auth.get_uft_snapshot()
+		var remote: Dictionary = await auth.get_uft_snapshot()
 		if remote.get("ok", false):
 			var snapshot: Variant = remote.get("snapshot", {})
 			if snapshot is Dictionary:

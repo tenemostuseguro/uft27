@@ -50,30 +50,30 @@ func _load_static_data() -> void:
 			var rows: Variant = remote.get("json", [])
 			if rows is Array and rows.size() > 0:
 				for row in rows:
-					var k := str(row.get("key", ""))
-					var payload: Variant = row.get("payload", null)
-					if k == "base_players" and payload is Array:
-						base_players = _array_to_dict(payload, "player_id")
-					elif k == "cards" and payload is Array:
-						cards = _array_to_dict(payload, "card_id")
-					elif k == "packs" and payload is Array:
-						packs = _array_to_dict(payload, "pack_id")
-					elif k == "events" and payload is Array:
-						events = payload
-					elif k == "market" and payload is Array:
-						market_listings = payload
-					elif k == "season" and payload is Dictionary:
-						season_config = payload
+						var k := str(row.get("key", ""))
+						var payload: Variant = row.get("payload", null)
+						if k == "base_players" and payload is Array:
+							base_players = _array_to_dict(_as_dict_array(payload), "player_id")
+						elif k == "cards" and payload is Array:
+							cards = _array_to_dict(_as_dict_array(payload), "card_id")
+						elif k == "packs" and payload is Array:
+							packs = _array_to_dict(_as_dict_array(payload), "pack_id")
+						elif k == "events" and payload is Array:
+							events = _as_dict_array(payload)
+						elif k == "market" and payload is Array:
+							market_listings = _as_dict_array(payload)
+						elif k == "season" and payload is Dictionary:
+							season_config = payload
 	if base_players.is_empty():
-		base_players = _array_to_dict(_load_json_resource("res://uft_data/base_players.json"), "player_id")
+		base_players = _array_to_dict(_as_dict_array(_load_json_resource("res://uft_data/base_players.json")), "player_id")
 	if cards.is_empty():
-		cards = _array_to_dict(_load_json_resource("res://uft_data/cards.json"), "card_id")
+		cards = _array_to_dict(_as_dict_array(_load_json_resource("res://uft_data/cards.json")), "card_id")
 	if packs.is_empty():
-		packs = _array_to_dict(_load_json_resource("res://uft_data/packs.json"), "pack_id")
+		packs = _array_to_dict(_as_dict_array(_load_json_resource("res://uft_data/packs.json")), "pack_id")
 	if events.is_empty():
-		events = _load_json_resource("res://uft_data/events.json")
+		events = _as_dict_array(_load_json_resource("res://uft_data/events.json"))
 	if market_listings.is_empty():
-		market_listings = _load_json_resource("res://uft_data/market.json")
+		market_listings = _as_dict_array(_load_json_resource("res://uft_data/market.json"))
 	if season_config.is_empty():
 		season_config = _load_json_object("res://uft_data/season.json")
 
@@ -410,7 +410,7 @@ func _guess_extension(url: String) -> String:
 func _ensure_dir(path: String) -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path))
 
-func _load_json_resource(path: String) -> Array[Dictionary]:
+func _load_json_resource(path: String) -> Array:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		return []
@@ -428,10 +428,19 @@ func _load_json_object(path: String) -> Dictionary:
 		return parsed
 	return {}
 
-func _array_to_dict(source: Array[Dictionary], key_name: String) -> Dictionary:
+func _array_to_dict(source: Array, key_name: String) -> Dictionary:
 	var out := {}
 	for row in source:
-		out[str(row.get(key_name, ""))] = row
+		if row is Dictionary:
+			out[str(row.get(key_name, ""))] = row
+	return out
+
+func _as_dict_array(source: Variant) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if source is Array:
+		for item in source:
+			if item is Dictionary:
+				out.append(item)
 	return out
 
 func _avg(values: Array) -> float:

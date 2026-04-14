@@ -14,31 +14,6 @@ function hash_password(string $password): string {
     return hash('sha256', $password);
 }
 
-function uft_data_path(string $name): string {
-    return __DIR__ . '/godot-futsal/uft_data/' . $name . '.json';
-}
-
-function load_uft_json(string $name): string {
-    $path = uft_data_path($name);
-    if (!file_exists($path)) {
-        return '';
-    }
-    $content = file_get_contents($path);
-    return $content === false ? '' : $content;
-}
-
-function save_uft_json(string $name, string $content): bool {
-    $decoded = json_decode($content, true);
-    if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
-        return false;
-    }
-    $pretty = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($pretty === false) {
-        return false;
-    }
-    return file_put_contents(uft_data_path($name), $pretty . PHP_EOL) !== false;
-}
-
 function api_request(string $method, string $url, string $serviceRoleKey, ?array $body = null): array {
     $ch = curl_init($url);
     $headers = [
@@ -236,27 +211,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
             }
         }
 
-        if ($action === 'save_uft_config') {
-            $configName = trim((string) ($_POST['uft_config_name'] ?? ''));
-            $configJson = (string) ($_POST['uft_config_json'] ?? '');
-            $allowed = ['base_players', 'cards', 'packs', 'season', 'events', 'market'];
-            $decoded = json_decode($configJson, true);
-            if (!in_array($configName, $allowed, true)) {
-                $errors[] = 'Configuración UFT inválida.';
-            } elseif ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
-                $errors[] = 'JSON UFT inválido.';
-            } else {
-                $rpcUrl = $supabaseUrl . '/rest/v1/rpc/save_uft_config';
-                $payload = ['p_key' => $configName, 'p_payload' => $decoded];
-                $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
-                if ($result['ok']) {
-                    $success = 'Configuración UFT guardada en Supabase: ' . $configName;
-                } else {
-                    $errors[] = 'No se pudo guardar configuración UFT en Supabase: ' . $result['error'];
-                }
-            }
-        }
-
         if ($action === 'upsert_uft_player') {
             $payload = [
                 'p_player_id' => trim((string) ($_POST['p_player_id'] ?? '')),
@@ -430,11 +384,6 @@ $uftEvents = [];
 $uftPacks = [];
 $uftMarketListings = [];
 $uftSeasons = [];
-$uftConfigNames = ['base_players', 'cards', 'packs', 'season', 'events', 'market'];
-$uftConfigs = [];
-foreach ($uftConfigNames as $cfgName) {
-    $uftConfigs[$cfgName] = '';
-}
 if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
     $url = $supabaseUrl . '/rest/v1/player_accounts?select=id,username,created_at,updated_at&order=created_at.desc';
     $result = api_request('GET', $url, $serviceRoleKey);
@@ -459,19 +408,6 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
         $profileLogos = $logosResult['data'];
     } elseif (!$logosResult['ok']) {
         $errors[] = 'No se pudo cargar lista de logos de perfil: ' . $logosResult['error'];
-    }
-
-    $uftCfgUrl = $supabaseUrl . '/rest/v1/rpc/list_uft_configs';
-    $uftCfgResult = api_request('POST', $uftCfgUrl, $serviceRoleKey, []);
-    if ($uftCfgResult['ok'] && is_array($uftCfgResult['data'])) {
-        foreach ($uftCfgResult['data'] as $row) {
-            $k = (string) ($row['key'] ?? '');
-            if ($k !== '' && in_array($k, $uftConfigNames, true)) {
-                $uftConfigs[$k] = json_encode($row['payload'] ?? null, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            }
-        }
-    } elseif (!$uftCfgResult['ok']) {
-        $errors[] = 'No se pudo cargar configuración UFT desde Supabase: ' . $uftCfgResult['error'];
     }
 
     $uftPlayersResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_players', $serviceRoleKey, []);
@@ -518,34 +454,87 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
     <title>Admin UFT27</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body {font-family: Arial, sans-serif; background:#020617; color:#e2e8f0; margin:0; padding:24px;}
-        .top {display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
-        .panel {background:#0f172a; border:1px solid #1e293b; border-radius:12px; padding:16px; margin-top:16px;}
-        table {width:100%; border-collapse: collapse; margin-top:12px;}
+        :root {
+            --bg: #020617;
+            --bg-soft: #0b1220;
+            --panel: #0f172a;
+            --panel-2: #111827;
+            --line: #1e293b;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --blue: #2563eb;
+            --green: #16a34a;
+            --red: #dc2626;
+        }
+        body {font-family: Inter, Arial, sans-serif; background:var(--bg); color:var(--text); margin:0; padding:20px;}
+        .top {display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px;}
+        .top h1 {margin:0;}
+        .top p {margin:8px 0 0 0; color:var(--muted);}
+        .quick-nav {display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+        .quick-nav a {text-decoration:none; color:var(--text); font-size:13px; background:var(--bg-soft); border:1px solid #334155; border-radius:999px; padding:6px 10px;}
+        .stats {display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); margin-top:16px;}
+        .stat {background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px;}
+        .stat .label {font-size:12px; color:var(--muted);}
+        .stat .value {font-size:24px; font-weight:700; margin-top:6px;}
+        .panel {background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:16px;}
+        .panel h2 {margin:0 0 8px 0;}
+        table {width:100%; border-collapse: collapse; margin-top:12px; font-size:14px;}
         th, td {padding:10px; border-bottom:1px solid #1e293b; text-align:left; vertical-align:top;}
-        th {background:#111827;}
+        th {background:var(--panel-2);}
         .error {background:#7f1d1d; border:1px solid #ef4444; padding:10px; border-radius:8px; margin-top:10px;}
         .success {background:#14532d; border:1px solid #22c55e; padding:10px; border-radius:8px; margin-top:10px;}
-        input[type="password"], input[type="text"], textarea, select {padding:8px; border-radius:8px; border:1px solid #334155; background:#0b1220; color:#e2e8f0;}
-input[type="password"] {width:180px;}
-textarea {width:100%; box-sizing:border-box;}
+        input[type="password"], input[type="text"], input[type="number"], textarea, select {padding:8px; border-radius:8px; border:1px solid #334155; background:var(--bg-soft); color:var(--text);}
+        input[type="password"] {width:180px;}
+        textarea {width:100%; box-sizing:border-box;}
         .btn {padding:8px 12px; border-radius:8px; border:none; cursor:pointer; color:#fff;}
-        .btn-primary {background:#2563eb;}
-        .btn-danger {background:#dc2626;}
+        .btn-primary {background:var(--blue);}
+        .btn-danger {background:var(--red);}
         .btn-secondary {background:#475569;}
         form.inline {display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap;}
-        code {background:#111827; padding:2px 6px; border-radius:6px;}
+        code {background:var(--panel-2); padding:2px 6px; border-radius:6px;}
+        .panel-grid {display:grid; gap:16px;}
+        @media (min-width: 980px) { .panel-grid {grid-template-columns:1fr 1fr;} }
     </style>
 </head>
 <body>
     <div class="top">
         <div>
             <h1 style="margin:0;">UFT 27 - Panel Admin</h1>
-            <p style="margin:6px 0 0 0; color:#94a3b8;">Moderación de cuentas <code>player_accounts</code> en Supabase.</p>
+            <p>Administración centralizada del servidor y contenido UFT directamente desde Supabase.</p>
+            <div class="quick-nav">
+                <a href="#usuarios">Usuarios</a>
+                <a href="#logos">Logos</a>
+                <a href="#notificaciones">Notificaciones</a>
+                <a href="#jugadores-uft">Jugadores UFT</a>
+                <a href="#cartas-uft">Cartas UFT</a>
+                <a href="#eventos-uft">Eventos UFT</a>
+                <a href="#sobres-uft">Sobres UFT</a>
+                <a href="#mercado-uft">Mercado UFT</a>
+                <a href="#temporadas-uft">Temporadas UFT</a>
+            </div>
         </div>
         <form method="post" class="inline">
             <button class="btn btn-secondary" name="logout" value="1" type="submit">Cerrar sesión</button>
         </form>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="label">Usuarios registrados</div>
+            <div class="value"><?php echo count($users); ?></div>
+        </div>
+        <div class="stat">
+            <div class="label">Notificaciones activas</div>
+            <div class="value"><?php echo count(array_filter($notifications, fn($n) => (bool) ($n['active'] ?? false))); ?></div>
+        </div>
+        <div class="stat">
+            <div class="label">Cartas UFT</div>
+            <div class="value"><?php echo count($uftCards); ?></div>
+        </div>
+        <div class="stat">
+            <div class="label">Eventos UFT</div>
+            <div class="value"><?php echo count($uftEvents); ?></div>
+        </div>
     </div>
 
     <?php foreach ($errors as $error): ?>
@@ -555,7 +544,7 @@ textarea {width:100%; box-sizing:border-box;}
         <div class="success"><?php echo h($success); ?></div>
     <?php endif; ?>
 
-    <div class="panel">
+    <div class="panel" id="usuarios">
         <strong>Total usuarios:</strong> <?php echo count($users); ?>
         <table>
             <thead>
@@ -599,7 +588,7 @@ textarea {width:100%; box-sizing:border-box;}
     </div>
 
 
-    <div class="panel">
+    <div class="panel" id="logos">
         <h2 style="margin-top:0;">Logos de perfil (eventos/equipos)</h2>
         <p style="color:#94a3b8; margin-top:0;">Crea logos desbloqueables (evento/equipo) y asígnalos a usuarios.</p>
         <form method="post" style="display:grid; gap:10px; max-width:900px; margin-bottom:14px;">
@@ -650,7 +639,7 @@ textarea {width:100%; box-sizing:border-box;}
         </table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="notificaciones">
         <h2 style="margin-top:0;">Notificaciones in-game</h2>
         <p style="color:#94a3b8; margin-top:0;">Creá eventos con imagen (URL pública o ruta accesible) para mostrarlos en el juego.</p>
         <form method="post" style="display:grid; gap:10px; max-width:900px;">
@@ -690,24 +679,7 @@ textarea {width:100%; box-sizing:border-box;}
         </table>
     </div>
 
-    <div class="panel">
-        <h2 style="margin-top:0;">Configuración UFT (modo Ultimate Team)</h2>
-        <p style="color:#94a3b8; margin-top:0;">Editá datos base del modo UFT guardados en Supabase: jugadores, cartas, sobres, mercado, eventos y temporada.</p>
-        <form method="post" style="display:grid; gap:10px; max-width:1000px;">
-            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
-            <input type="hidden" name="action" value="save_uft_config">
-            <select name="uft_config_name" onchange="document.getElementById('uft_json').value = this.options[this.selectedIndex].dataset.content;">
-                <?php foreach ($uftConfigNames as $cfgName): ?>
-                    <option value="<?php echo h($cfgName); ?>" data-content="<?php echo h((string) ($uftConfigs[$cfgName] ?? '')); ?>"><?php echo h($cfgName); ?></option>
-                <?php endforeach; ?>
-            </select>
-            <textarea id="uft_json" name="uft_config_json" rows="16" placeholder="JSON válido"><?php echo h((string) ($uftConfigs['base_players'] ?? '')); ?></textarea>
-            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar configuración UFT</button>
-        </form>
-    </div>
-
-
-    <div class="panel">
+    <div class="panel" id="jugadores-uft">
         <h2 style="margin-top:0;">Jugadores UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
@@ -730,7 +702,7 @@ textarea {width:100%; box-sizing:border-box;}
         </tbody></table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="tipos-carta-uft">
         <h2 style="margin-top:0;">Tipos de carta UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
@@ -749,7 +721,7 @@ textarea {width:100%; box-sizing:border-box;}
         </tbody></table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="cartas-uft">
         <h2 style="margin-top:0;">Cartas UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
@@ -788,7 +760,7 @@ textarea {width:100%; box-sizing:border-box;}
         </tbody></table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="eventos-uft">
         <h2 style="margin-top:0;">Eventos UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
@@ -811,7 +783,7 @@ textarea {width:100%; box-sizing:border-box;}
         </tbody></table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="sobres-uft">
         <h2 style="margin-top:0;">Sobres UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
@@ -832,7 +804,7 @@ textarea {width:100%; box-sizing:border-box;}
         </tbody></table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="mercado-uft">
         <h2 style="margin-top:0;">Mercado UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
@@ -851,7 +823,7 @@ textarea {width:100%; box-sizing:border-box;}
         </tbody></table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="temporadas-uft">
         <h2 style="margin-top:0;">Temporadas UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">

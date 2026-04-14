@@ -88,15 +88,14 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 - Modos UFT jugables sobre el motor actual:
   - **Squad Battle vs IA**
   - **Fut Champions** con división y puntos
-- Contenido UFT configurable por JSON en `godot-futsal/uft_data/`:
-  - `base_players.json`, `cards.json`, `packs.json`, `market.json`, `events.json`, `season.json`
+- Contenido UFT obtenido desde catálogos en Supabase (`uft_players`, `uft_cards_catalog`, `uft_packs_catalog`, `uft_market_catalog`, `uft_events_catalog`, `uft_seasons_catalog`).
 - Sistemas funcionales:
   - sobres
   - mercado local
   - pase de batalla por temporada
   - eventos activos por fecha
   - caché local de imágenes remotas en `user://cache/images/...`
-- El panel web `admin.php` edita configuración UFT directamente en Supabase (RPC `save_uft_config` / `list_uft_configs`).
+- El panel web `admin.php` administra UFT con formularios y listados por entidad, sin editor JSON manual.
 - El estado del club UFT se guarda en Supabase por jugador mediante snapshot (`get_uft_snapshot` / `save_uft_snapshot`).
 
 ## Perfil visual (logos de evento/equipo)

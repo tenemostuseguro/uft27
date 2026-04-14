@@ -7,6 +7,11 @@
 - `UFTManager` ahora prioriza Supabase para cargar configuración UFT y estado del club autenticado (snapshot), manteniendo fallback local solo de contingencia.
 - `admin.php` ahora guarda/lee configuración UFT desde Supabase en lugar de editar archivos locales del repo.
 
+## 0.1.2-prealpha
+- `UFTManager` ahora carga catálogos UFT directamente desde tablas normalizadas de Supabase (`list_uft_players`, `list_uft_cards`, `list_uft_packs`, `list_uft_events`, `list_uft_market_listings`, `list_uft_seasons`) y deja de depender de blobs JSON de configuración para el modo.
+- `AuthService` incorpora helpers dedicados para leer catálogos UFT vía RPC.
+- `admin.php` fue rediseñado con navegación rápida, métricas y secciones más claras, eliminando el editor de configuración JSON para UFT.
+
 ## 0.1.0-prealpha
 - Se implementó el modo **UFT / Ultimate Futsal Team** integrado al juego con menú propio (`UFTMenu2D`) y autoload `UFTManager`.
 - Se añadieron club persistente, economía (`coins/points/xp`), colección de cartas, validación central de quinteto titular sin duplicados por `player_id`, sobres, mercado local, eventos por fecha y pase de batalla por temporada.

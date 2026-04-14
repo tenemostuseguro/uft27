@@ -162,20 +162,23 @@ func set_profile_logo(logo_id: String, custom_image_url: String = "") -> Diction
 	return await _request_json(endpoint, HTTPClient.METHOD_POST, payload)
 
 
-func list_uft_configs() -> Dictionary:
-	if not is_configured():
-		return {"ok": false, "error": "Configuración interna de auth incompleta"}
-	var endpoint := "%s/rest/v1/rpc/list_uft_configs" % DEFAULT_SUPABASE_URL
-	return await _request_json(endpoint, HTTPClient.METHOD_POST, {})
+func list_uft_players() -> Dictionary:
+	return await _list_uft_catalog("list_uft_players")
 
-func save_uft_config(config_key: String, payload: Variant) -> Dictionary:
-	if not is_configured():
-		return {"ok": false, "error": "Configuración interna de auth incompleta"}
-	if config_key.strip_edges().is_empty():
-		return {"ok": false, "error": "config_key inválido"}
-	var endpoint := "%s/rest/v1/rpc/save_uft_config" % DEFAULT_SUPABASE_URL
-	var body := {"p_key": config_key.strip_edges(), "p_payload": payload}
-	return await _request_json(endpoint, HTTPClient.METHOD_POST, body)
+func list_uft_cards() -> Dictionary:
+	return await _list_uft_catalog("list_uft_cards")
+
+func list_uft_events() -> Dictionary:
+	return await _list_uft_catalog("list_uft_events")
+
+func list_uft_packs() -> Dictionary:
+	return await _list_uft_catalog("list_uft_packs")
+
+func list_uft_market_listings() -> Dictionary:
+	return await _list_uft_catalog("list_uft_market_listings")
+
+func list_uft_seasons() -> Dictionary:
+	return await _list_uft_catalog("list_uft_seasons")
 
 func get_uft_snapshot() -> Dictionary:
 	if not is_configured():
@@ -200,6 +203,14 @@ func save_uft_snapshot(snapshot: Dictionary) -> Dictionary:
 	var endpoint := "%s/rest/v1/rpc/save_uft_snapshot" % DEFAULT_SUPABASE_URL
 	var body := {"p_player_id": user_id, "p_snapshot": snapshot}
 	return await _request_json(endpoint, HTTPClient.METHOD_POST, body)
+
+func _list_uft_catalog(function_name: String) -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	if function_name.strip_edges().is_empty():
+		return {"ok": false, "error": "Función RPC inválida"}
+	var endpoint := "%s/rest/v1/rpc/%s" % [DEFAULT_SUPABASE_URL, function_name.strip_edges()]
+	return await _request_json(endpoint, HTTPClient.METHOD_POST, {})
 
 func _validate_username(user_name: String) -> Dictionary:
 	var normalized_username := user_name.strip_edges().to_lower()

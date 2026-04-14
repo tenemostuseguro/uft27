@@ -46,27 +46,46 @@ func _load_static_data() -> void:
 	if auth == null:
 		push_warning("UFTManager: AuthService no disponible, no se pueden cargar catálogos desde Supabase.")
 		return
-	var remote: Dictionary = await auth.list_uft_configs()
-	if remote.get("ok", false):
-		var rows: Variant = remote.get("json", [])
-		if rows is Array and rows.size() > 0:
-			for row in rows:
-				var k := str(row.get("key", ""))
-				var payload: Variant = row.get("payload", null)
-				if k == "base_players" and payload is Array:
-					base_players = _array_to_dict(_as_dict_array(payload), "player_id")
-				elif k == "cards" and payload is Array:
-					cards = _array_to_dict(_as_dict_array(payload), "card_id")
-				elif k == "packs" and payload is Array:
-					packs = _array_to_dict(_as_dict_array(payload), "pack_id")
-				elif k == "events" and payload is Array:
-					events = _as_dict_array(payload)
-				elif k == "market" and payload is Array:
-					market_listings = _as_dict_array(payload)
-				elif k == "season" and payload is Dictionary:
-					season_config = payload
-	if base_players.is_empty() and cards.is_empty():
-		push_warning("UFTManager: Supabase no devolvió catálogos UFT (base_players/cards).")
+	var players_result: Dictionary = await auth.list_uft_players()
+	if players_result.get("ok", false):
+		base_players = _array_to_dict(_as_dict_array(players_result.get("json", [])), "player_id")
+	else:
+		push_warning("UFTManager: error cargando uft_players: %s" % str(players_result.get("error", "desconocido")))
+
+	var cards_result: Dictionary = await auth.list_uft_cards()
+	if cards_result.get("ok", false):
+		cards = _array_to_dict(_as_dict_array(cards_result.get("json", [])), "card_id")
+	else:
+		push_warning("UFTManager: error cargando uft_cards_catalog: %s" % str(cards_result.get("error", "desconocido")))
+
+	var packs_result: Dictionary = await auth.list_uft_packs()
+	if packs_result.get("ok", false):
+		packs = _array_to_dict(_as_dict_array(packs_result.get("json", [])), "pack_id")
+	else:
+		push_warning("UFTManager: error cargando uft_packs_catalog: %s" % str(packs_result.get("error", "desconocido")))
+
+	var events_result: Dictionary = await auth.list_uft_events()
+	if events_result.get("ok", false):
+		events = _as_dict_array(events_result.get("json", []))
+	else:
+		push_warning("UFTManager: error cargando uft_events_catalog: %s" % str(events_result.get("error", "desconocido")))
+
+	var market_result: Dictionary = await auth.list_uft_market_listings()
+	if market_result.get("ok", false):
+		market_listings = _as_dict_array(market_result.get("json", []))
+	else:
+		push_warning("UFTManager: error cargando uft_market_catalog: %s" % str(market_result.get("error", "desconocido")))
+
+	var seasons_result: Dictionary = await auth.list_uft_seasons()
+	if seasons_result.get("ok", false):
+		var seasons_rows := _as_dict_array(seasons_result.get("json", []))
+		if seasons_rows.size() > 0:
+			season_config = seasons_rows[0]
+	else:
+		push_warning("UFTManager: error cargando uft_seasons_catalog: %s" % str(seasons_result.get("error", "desconocido")))
+
+	if base_players.is_empty() or cards.is_empty():
+		push_warning("UFTManager: catálogos UFT incompletos desde Supabase (players/cards).")
 
 func _load_state() -> void:
 	var auth := get_node_or_null("/root/AuthService")

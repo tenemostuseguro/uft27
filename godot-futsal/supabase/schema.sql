@@ -415,21 +415,41 @@ create table if not exists public.uft_cards_catalog (
   rarity text not null,
   evolution_level integer not null default 1,
   ovr integer not null default 1,
-  main_stats jsonb not null default '{}'::jsonb,
+  pace integer not null default 1,
+  dribbling integer not null default 1,
+  passing integer not null default 1,
+  shooting integer not null default 1,
+  defense integer not null default 1,
+  physical integer not null default 1,
+  gk_reflejos integer not null default 1,
+  gk_parada integer not null default 1,
+  gk_uno_vs_uno integer not null default 1,
+  gk_colocacion integer not null default 1,
+  gk_juego_pies integer not null default 1,
+  gk_fisico integer not null default 1,
   card_frame_url text not null default '',
   face_url text not null default '',
   owned boolean not null default true,
   transferable boolean not null default true,
   locked boolean not null default false,
   suggested_price integer not null default 0,
-  field_substats jsonb not null default '{}'::jsonb,
-  gk_substats jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
 alter table public.uft_cards_catalog add column if not exists evolution_level integer not null default 1;
-alter table public.uft_cards_catalog add column if not exists main_stats jsonb not null default '{}'::jsonb;
 alter table public.uft_cards_catalog add column if not exists owned boolean not null default true;
 alter table public.uft_cards_catalog add column if not exists suggested_price integer not null default 0;
+alter table public.uft_cards_catalog add column if not exists pace integer not null default 1;
+alter table public.uft_cards_catalog add column if not exists dribbling integer not null default 1;
+alter table public.uft_cards_catalog add column if not exists passing integer not null default 1;
+alter table public.uft_cards_catalog add column if not exists shooting integer not null default 1;
+alter table public.uft_cards_catalog add column if not exists defense integer not null default 1;
+alter table public.uft_cards_catalog add column if not exists physical integer not null default 1;
+alter table public.uft_cards_catalog add column if not exists gk_reflejos integer not null default 1;
+alter table public.uft_cards_catalog add column if not exists gk_parada integer not null default 1;
+alter table public.uft_cards_catalog add column if not exists gk_uno_vs_uno integer not null default 1;
+alter table public.uft_cards_catalog add column if not exists gk_colocacion integer not null default 1;
+alter table public.uft_cards_catalog add column if not exists gk_juego_pies integer not null default 1;
+alter table public.uft_cards_catalog add column if not exists gk_fisico integer not null default 1;
 
 create table if not exists public.uft_card_types_catalog (
   card_type text primary key,
@@ -532,13 +552,22 @@ create or replace function public.upsert_uft_card(
   p_card_type text,
   p_rarity text,
   p_ovr integer,
+  p_pace integer,
+  p_dribbling integer,
+  p_passing integer,
+  p_shooting integer,
+  p_defense integer,
+  p_physical integer,
+  p_gk_reflejos integer,
+  p_gk_parada integer,
+  p_gk_uno_vs_uno integer,
+  p_gk_colocacion integer,
+  p_gk_juego_pies integer,
+  p_gk_fisico integer,
   p_card_frame_url text,
   p_face_url text,
   p_transferable boolean default true,
   p_locked boolean default false,
-  p_field_substats jsonb default '{}'::jsonb,
-  p_gk_substats jsonb default '{}'::jsonb,
-  p_main_stats jsonb default '{}'::jsonb,
   p_evolution_level integer default 1,
   p_owned boolean default true,
   p_suggested_price integer default 0
@@ -550,23 +579,58 @@ set search_path = public
 as $$
 begin
   if p_card_id is null or trim(p_card_id) = '' or p_player_id is null or trim(p_player_id) = '' then return false; end if;
-  insert into public.uft_cards_catalog(card_id, player_id, card_type, rarity, evolution_level, ovr, main_stats, card_frame_url, face_url, owned, transferable, locked, suggested_price, field_substats, gk_substats, updated_at)
-  values (trim(p_card_id), trim(p_player_id), coalesce(p_card_type, 'Base'), coalesce(p_rarity, 'Common'), greatest(coalesce(p_evolution_level, 1), 1), greatest(coalesce(p_ovr, 1),1), coalesce(p_main_stats, '{}'::jsonb), coalesce(p_card_frame_url, ''), coalesce(p_face_url, ''), coalesce(p_owned, true), coalesce(p_transferable, true), coalesce(p_locked, false), greatest(coalesce(p_suggested_price, 0), 0), coalesce(p_field_substats, '{}'::jsonb), coalesce(p_gk_substats, '{}'::jsonb), now())
+  insert into public.uft_cards_catalog(card_id, player_id, card_type, rarity, evolution_level, ovr, pace, dribbling, passing, shooting, defense, physical, gk_reflejos, gk_parada, gk_uno_vs_uno, gk_colocacion, gk_juego_pies, gk_fisico, card_frame_url, face_url, owned, transferable, locked, suggested_price, updated_at)
+  values (
+    trim(p_card_id),
+    trim(p_player_id),
+    coalesce(p_card_type, 'Base'),
+    coalesce(p_rarity, 'Common'),
+    greatest(coalesce(p_evolution_level, 1), 1),
+    greatest(coalesce(p_ovr, 1),1),
+    greatest(coalesce(p_pace, 1), 1),
+    greatest(coalesce(p_dribbling, 1), 1),
+    greatest(coalesce(p_passing, 1), 1),
+    greatest(coalesce(p_shooting, 1), 1),
+    greatest(coalesce(p_defense, 1), 1),
+    greatest(coalesce(p_physical, 1), 1),
+    greatest(coalesce(p_gk_reflejos, 1), 1),
+    greatest(coalesce(p_gk_parada, 1), 1),
+    greatest(coalesce(p_gk_uno_vs_uno, 1), 1),
+    greatest(coalesce(p_gk_colocacion, 1), 1),
+    greatest(coalesce(p_gk_juego_pies, 1), 1),
+    greatest(coalesce(p_gk_fisico, 1), 1),
+    coalesce(p_card_frame_url, ''),
+    coalesce(p_face_url, ''),
+    coalesce(p_owned, true),
+    coalesce(p_transferable, true),
+    coalesce(p_locked, false),
+    greatest(coalesce(p_suggested_price, 0), 0),
+    now()
+  )
   on conflict (card_id) do update set
     player_id = excluded.player_id,
     card_type = excluded.card_type,
     rarity = excluded.rarity,
     evolution_level = excluded.evolution_level,
     ovr = excluded.ovr,
-    main_stats = excluded.main_stats,
+    pace = excluded.pace,
+    dribbling = excluded.dribbling,
+    passing = excluded.passing,
+    shooting = excluded.shooting,
+    defense = excluded.defense,
+    physical = excluded.physical,
+    gk_reflejos = excluded.gk_reflejos,
+    gk_parada = excluded.gk_parada,
+    gk_uno_vs_uno = excluded.gk_uno_vs_uno,
+    gk_colocacion = excluded.gk_colocacion,
+    gk_juego_pies = excluded.gk_juego_pies,
+    gk_fisico = excluded.gk_fisico,
     card_frame_url = excluded.card_frame_url,
     face_url = excluded.face_url,
     owned = excluded.owned,
     transferable = excluded.transferable,
     locked = excluded.locked,
     suggested_price = excluded.suggested_price,
-    field_substats = excluded.field_substats,
-    gk_substats = excluded.gk_substats,
     updated_at = now();
   return true;
 end;
@@ -772,7 +836,7 @@ revoke all on public.uft_seasons_catalog from anon, authenticated;
 revoke all on public.uft_card_types_catalog from anon, authenticated;
 
 grant execute on function public.upsert_uft_player(text, text, text, jsonb, text, text, text, text, jsonb) to anon, authenticated;
-grant execute on function public.upsert_uft_card(text, text, text, text, integer, text, text, boolean, boolean, jsonb, jsonb, jsonb, integer, boolean, integer) to anon, authenticated;
+grant execute on function public.upsert_uft_card(text, text, text, text, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, text, text, boolean, boolean, integer, boolean, integer) to anon, authenticated;
 grant execute on function public.upsert_uft_card_type(text, text, text, jsonb, boolean) to anon, authenticated;
 grant execute on function public.upsert_uft_event(text, text, text, bigint, bigint, boolean, integer, jsonb, jsonb) to anon, authenticated;
 grant execute on function public.upsert_uft_pack(text, text, integer, integer, integer, text, jsonb) to anon, authenticated;

@@ -12,6 +12,11 @@
 - `AuthService` incorpora helpers dedicados para leer catálogos UFT vía RPC.
 - `admin.php` fue rediseñado con navegación rápida, métricas y secciones más claras, eliminando el editor de configuración JSON para UFT.
 
+## 0.1.3-prealpha
+- Se implementó compra/venta de jugadores en el menú UFT: ahora se puede comprar una carta seleccionada del mercado y listar cartas propias para la venta.
+- Se migró el alta/edición de cartas UFT a stats escalares por carta (sin JSON de `main_stats/field_substats/gk_substats`), con soporte en `schema.sql`, `admin.php` y lógica de cálculo en `UFTManager`.
+- Se añadió `market_admin.php` como página dedicada para administrar el mercado del servidor (`uft_market_catalog`) de forma directa.
+
 ## 0.1.0-prealpha
 - Se implementó el modo **UFT / Ultimate Futsal Team** integrado al juego con menú propio (`UFTMenu2D`) y autoload `UFTManager`.
 - Se añadieron club persistente, economía (`coins/points/xp`), colección de cartas, validación central de quinteto titular sin duplicados por `player_id`, sobres, mercado local, eventos por fecha y pase de batalla por temporada.

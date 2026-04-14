@@ -159,23 +159,21 @@ func compute_main_stats(card: Dictionary) -> Dictionary:
 	var player: Dictionary = base_players.get(str(card.get("player_id", "")), {})
 	var is_gk := str(player.get("main_position", "")) == "POR"
 	if is_gk:
-		var s: Dictionary = card.get("gk_substats", {})
 		return {
-			"reflejos": _avg([s.get("reaction", 0), s.get("reflejos_cortos", 0), s.get("rebotes", 0)]),
-			"parada": _avg([s.get("paradas_cercanas", 0), s.get("blocaje", 0), s.get("desvio", 0), s.get("paradas_media", 0)]),
-			"uno_vs_uno": _avg([s.get("achique", 0), s.get("timing_salida", 0), s.get("cobertura_corporal", 0), s.get("lectura_atacante", 0)]),
-			"colocacion": _avg([s.get("posicionamiento", 0), s.get("lectura_jugada", 0), s.get("segundo_palo", 0), s.get("ajuste_lateral", 0)]),
-			"juego_pies": _avg([s.get("pase_corto", 0), s.get("control", 0), s.get("pase_largo", 0), s.get("decision", 0)]),
-			"fisico": _avg([s.get("explosividad", 0), s.get("agilidad", 0), s.get("resistencia", 0), s.get("elasticidad", 0)])
+			"reflejos": _card_stat(card, "gk_reflejos", "gk_substats", "reaction"),
+			"parada": _card_stat(card, "gk_parada", "gk_substats", "paradas_cercanas"),
+			"uno_vs_uno": _card_stat(card, "gk_uno_vs_uno", "gk_substats", "achique"),
+			"colocacion": _card_stat(card, "gk_colocacion", "gk_substats", "posicionamiento"),
+			"juego_pies": _card_stat(card, "gk_juego_pies", "gk_substats", "pase_corto"),
+			"fisico": _card_stat(card, "gk_fisico", "gk_substats", "explosividad")
 		}
-	var f: Dictionary = card.get("field_substats", {})
 	return {
-		"ritmo": _avg([f.get("aceleracion_corta", 0), f.get("velocidad_punta", 0), f.get("cambio_ritmo", 0), f.get("agilidad_lateral", 0), f.get("recuperacion_sprint", 0)]),
-		"regate": _avg([f.get("regate_corto", 0), f.get("conduccion_cerrada", 0), f.get("finta_tecnica", 0), f.get("giro_con_balon", 0), f.get("proteccion_balon", 0), f.get("salida_presion", 0)]),
-		"pase": _avg([f.get("pase_corto", 0), f.get("pase_primertoque", 0), f.get("pase_rapido", 0), f.get("vision", 0), f.get("pase_filtrado", 0), f.get("pase_presion", 0)]),
-		"tiro": _avg([f.get("definicion_corta", 0), f.get("potencia_tiro", 0), f.get("colocacion", 0), f.get("tiro_rapido", 0), f.get("puntera", 0), f.get("volea", 0), f.get("tiro_movimiento", 0)]),
-		"defensa": _avg([f.get("marcaje", 0), f.get("anticipacion", 0), f.get("robo", 0), f.get("intercepcion", 0), f.get("cobertura", 0), f.get("presion_def", 0), f.get("temporizacion", 0)]),
-		"fisico": _avg([f.get("resistencia", 0), f.get("explosividad", 0), f.get("equilibrio", 0), f.get("fuerza_choque", 0), f.get("resistencia_contacto", 0), f.get("recuperacion", 0)])
+		"ritmo": _card_stat(card, "pace", "main_stats", "pace"),
+		"regate": _card_stat(card, "dribbling", "main_stats", "dribbling"),
+		"pase": _card_stat(card, "passing", "main_stats", "passing"),
+		"tiro": _card_stat(card, "shooting", "main_stats", "shooting"),
+		"defensa": _card_stat(card, "defense", "main_stats", "defense"),
+		"fisico": _card_stat(card, "physical", "main_stats", "physical")
 	}
 
 func compute_card_ovr(card: Dictionary) -> int:
@@ -436,3 +434,11 @@ func _avg(values: Array) -> float:
 	for value in values:
 		total += float(value)
 	return clamp(total / float(values.size()), 1.0, 120.0)
+
+func _card_stat(card: Dictionary, flat_key: String, legacy_parent: String, legacy_key: String) -> float:
+	if card.has(flat_key):
+		return clamp(float(card.get(flat_key, 1)), 1.0, 120.0)
+	var legacy: Variant = card.get(legacy_parent, {})
+	if legacy is Dictionary:
+		return clamp(float(legacy.get(legacy_key, 1)), 1.0, 120.0)
+	return 1.0

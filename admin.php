@@ -239,7 +239,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
                 'p_card_type' => trim((string) ($_POST['p_card_type'] ?? 'Base')),
                 'p_rarity' => trim((string) ($_POST['p_rarity'] ?? 'Common')),
                 'p_ovr' => (int) ($_POST['p_ovr'] ?? 1),
-                'p_main_stats' => json_decode((string) ($_POST['p_main_stats'] ?? '{}'), true),
+                'p_pace' => (int) ($_POST['p_pace'] ?? 1),
+                'p_dribbling' => (int) ($_POST['p_dribbling'] ?? 1),
+                'p_passing' => (int) ($_POST['p_passing'] ?? 1),
+                'p_shooting' => (int) ($_POST['p_shooting'] ?? 1),
+                'p_defense' => (int) ($_POST['p_defense'] ?? 1),
+                'p_physical' => (int) ($_POST['p_physical'] ?? 1),
+                'p_gk_reflejos' => (int) ($_POST['p_gk_reflejos'] ?? 1),
+                'p_gk_parada' => (int) ($_POST['p_gk_parada'] ?? 1),
+                'p_gk_uno_vs_uno' => (int) ($_POST['p_gk_uno_vs_uno'] ?? 1),
+                'p_gk_colocacion' => (int) ($_POST['p_gk_colocacion'] ?? 1),
+                'p_gk_juego_pies' => (int) ($_POST['p_gk_juego_pies'] ?? 1),
+                'p_gk_fisico' => (int) ($_POST['p_gk_fisico'] ?? 1),
                 'p_evolution_level' => (int) ($_POST['p_evolution_level'] ?? 1),
                 'p_card_frame_url' => trim((string) ($_POST['p_card_frame_url'] ?? '')),
                 'p_face_url' => trim((string) ($_POST['p_face_url'] ?? '')),
@@ -247,8 +258,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
                 'p_transferable' => isset($_POST['p_transferable']),
                 'p_locked' => isset($_POST['p_locked']),
                 'p_suggested_price' => (int) ($_POST['p_suggested_price'] ?? 0),
-                'p_field_substats' => json_decode((string) ($_POST['p_field_substats'] ?? '{}'), true),
-                'p_gk_substats' => json_decode((string) ($_POST['p_gk_substats'] ?? '{}'), true),
             ];
             $rpcUrl = $supabaseUrl . '/rest/v1/rpc/upsert_uft_card';
             $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
@@ -511,6 +520,7 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
                 <a href="#sobres-uft">Sobres UFT</a>
                 <a href="#mercado-uft">Mercado UFT</a>
                 <a href="#temporadas-uft">Temporadas UFT</a>
+                <a href="market_admin.php">Página Mercado</a>
             </div>
         </div>
         <form method="post" class="inline">
@@ -735,12 +745,21 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
             <input type="number" name="p_suggested_price" min="0" value="0">
             <input type="text" name="p_card_frame_url" placeholder="URL frame carta">
             <input type="text" name="p_face_url" placeholder="URL foto cara">
+            <input type="number" name="p_pace" min="1" max="120" value="60" placeholder="Ritmo (pace)">
+            <input type="number" name="p_dribbling" min="1" max="120" value="60" placeholder="Regate (dribbling)">
+            <input type="number" name="p_passing" min="1" max="120" value="60" placeholder="Pase (passing)">
+            <input type="number" name="p_shooting" min="1" max="120" value="60" placeholder="Tiro (shooting)">
+            <input type="number" name="p_defense" min="1" max="120" value="60" placeholder="Defensa (defense)">
+            <input type="number" name="p_physical" min="1" max="120" value="60" placeholder="Físico (physical)">
+            <input type="number" name="p_gk_reflejos" min="1" max="120" value="60" placeholder="POR reflejos">
+            <input type="number" name="p_gk_parada" min="1" max="120" value="60" placeholder="POR parada">
+            <input type="number" name="p_gk_uno_vs_uno" min="1" max="120" value="60" placeholder="POR 1vs1">
+            <input type="number" name="p_gk_colocacion" min="1" max="120" value="60" placeholder="POR colocación">
+            <input type="number" name="p_gk_juego_pies" min="1" max="120" value="60" placeholder="POR juego pies">
+            <input type="number" name="p_gk_fisico" min="1" max="120" value="60" placeholder="POR físico">
             <label><input type="checkbox" name="p_owned" checked> Poseída</label>
             <label><input type="checkbox" name="p_transferable" checked> Transferible</label>
             <label><input type="checkbox" name="p_locked"> Bloqueada</label>
-            <textarea name="p_main_stats" rows="3" placeholder='{"pace":80,"dribbling":78,"passing":75,"shooting":82,"defense":60,"physical":74}'></textarea>
-            <textarea name="p_field_substats" rows="3" placeholder="{}"></textarea>
-            <textarea name="p_gk_substats" rows="3" placeholder="{}"></textarea>
             <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar carta UFT</button>
         </form>
         <table><thead><tr><th>card_id</th><th>player_id</th><th>Tipo</th><th>Rareza</th><th>Evo</th><th>OVR</th><th>Poseída</th><th>Transferible</th><th>Precio</th></tr></thead><tbody>

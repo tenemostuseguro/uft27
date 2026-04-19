@@ -6,12 +6,12 @@ const LEAGUE_LOGO_SIZE := Vector2i(576, 192)
 const CLUB_LOGO_SIZE := Vector2i(320, 320)
 const COUNTRY_LOGO_SIZE := Vector2i(120, 72)
 
-@onready var country_name_label: Label = $Margin/VBox/TopBar/CountryName
-@onready var country_logo_rect: TextureRect = $Margin/VBox/TopBar/CountryLogo
+@onready var country_name_label: Label = $Margin/VBox/TopBar/TopRow/CountryName
+@onready var country_logo_rect: TextureRect = $Margin/VBox/TopBar/TopRow/CountryLogo
 @onready var club_name_label: Label = $Margin/VBox/Card/ClubName
 @onready var club_logo_rect: TextureRect = $Margin/VBox/Card/ClubLogo
-@onready var league_name_label: Label = $Margin/VBox/BottomBar/LeagueName
-@onready var league_logo_rect: TextureRect = $Margin/VBox/BottomBar/LeagueLogo
+@onready var league_name_label: Label = $Margin/VBox/BottomBar/BottomVBox/LeagueName
+@onready var league_logo_rect: TextureRect = $Margin/VBox/BottomBar/BottomVBox/LeagueLogo
 @onready var status_label: Label = $Margin/VBox/Status
 
 var clubs: Array[Dictionary] = []
@@ -79,7 +79,10 @@ func _set_remote_or_default(target: TextureRect, url: String, forced_size: Vecto
 		target.texture = _load_local(url)
 		return
 	var texture := await _fetch_remote_texture(url, forced_size)
-	target.texture = texture if texture != null else _load_local(DEFAULT_LOGO_PATH)
+	if texture != null:
+		target.texture = texture
+	else:
+		target.texture = _load_local(DEFAULT_LOGO_PATH)
 
 func _fetch_remote_texture(url: String, forced_size: Vector2i) -> Texture2D:
 	var http := HTTPRequest.new()

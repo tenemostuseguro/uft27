@@ -436,6 +436,7 @@ as $$
   order by c.name asc, l.tier_level asc, l.name asc;
 $$;
 
+drop function if exists public.list_uft_clubs();
 create or replace function public.list_uft_clubs()
 returns table(id uuid, league_id uuid, league_name text, league_logo_url text, country_name text, country_logo_url text, name text, logo_url text, active boolean)
 language sql

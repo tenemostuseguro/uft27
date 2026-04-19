@@ -154,9 +154,12 @@ func set_profile_logo(logo_id: String, custom_image_url: String = "") -> Diction
 	if logo_id.strip_edges().is_empty() and custom_image_url.strip_edges().is_empty():
 		return {"ok": false, "error": "Logo inválido"}
 	var endpoint := "%s/rest/v1/rpc/set_player_profile_logo" % DEFAULT_SUPABASE_URL
+	var payload_logo_id: Variant = null
+	if not logo_id.strip_edges().is_empty():
+		payload_logo_id = logo_id.strip_edges()
 	var payload := {
 		"p_player_id": user_id,
-		"p_logo_id": null if logo_id.strip_edges().is_empty() else logo_id.strip_edges(),
+		"p_logo_id": payload_logo_id,
 		"p_custom_image_url": custom_image_url.strip_edges()
 	}
 	return await _request_json(endpoint, HTTPClient.METHOD_POST, payload)
@@ -271,7 +274,9 @@ func _request_json(url: String, method: int, payload: Dictionary) -> Dictionary:
 		parsed = JSON.parse_string(text)
 
 	if response_code < 200 or response_code >= 300:
-		var parsed_dict: Dictionary = parsed if parsed is Dictionary else {}
+		var parsed_dict: Dictionary = {}
+		if parsed is Dictionary:
+			parsed_dict = parsed
 		var msg := str(parsed_dict.get("message", parsed_dict.get("msg", parsed_dict.get("error", text))))
 		return {"ok": false, "error": msg}
 	if text.strip_edges().is_empty():

@@ -8,8 +8,8 @@ const COUNTRY_LOGO_SIZE := Vector2i(120, 72)
 
 @onready var country_name_label: Label = $Margin/VBox/TopBar/TopRow/CountryName
 @onready var country_logo_rect: TextureRect = $Margin/VBox/TopBar/TopRow/CountryLogo
-@onready var club_name_label: Label = $Margin/VBox/Card/ClubName
-@onready var club_logo_rect: TextureRect = $Margin/VBox/Card/ClubLogo
+@onready var club_name_label: Label = $Margin/VBox/Card/CardVBox/ClubName
+@onready var club_logo_rect: TextureRect = $Margin/VBox/Card/CardVBox/CenterRow/ClubLogo
 @onready var league_name_label: Label = $Margin/VBox/BottomBar/BottomVBox/LeagueName
 @onready var league_logo_rect: TextureRect = $Margin/VBox/BottomBar/BottomVBox/LeagueLogo
 @onready var status_label: Label = $Margin/VBox/Status

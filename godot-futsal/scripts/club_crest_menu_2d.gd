@@ -16,6 +16,7 @@ const COUNTRY_LOGO_SIZE := Vector2i(120, 72)
 
 var clubs: Array[Dictionary] = []
 var selected_index := 0
+var render_token := 0
 
 func _ready() -> void:
 	$Margin/VBox/Card/CardVBox/CenterRow/LeftArrow.pressed.connect(func() -> void: _move_selection(-1))
@@ -62,16 +63,26 @@ func _move_selection(delta: int) -> void:
 func _update_view() -> void:
 	if clubs.is_empty():
 		return
+	render_token += 1
+	var token := render_token
 	var club: Dictionary = clubs[selected_index]
 	country_name_label.text = str(club.get("country_name", ""))
 	club_name_label.text = str(club.get("name", ""))
 	league_name_label.text = str(club.get("league_name", ""))
-	await _set_remote_or_default(country_logo_rect, str(club.get("country_logo_url", "")), COUNTRY_LOGO_SIZE)
-	await _set_remote_or_default(club_logo_rect, str(club.get("logo_url", "")), CLUB_LOGO_SIZE)
-	await _set_remote_or_default(league_logo_rect, str(club.get("league_logo_url", "")), LEAGUE_LOGO_SIZE)
+	country_logo_rect.texture = null
+	club_logo_rect.texture = null
+	league_logo_rect.texture = null
+	var country_logo_url := _pick_first_url(club, ["country_logo_url", "country_logo", "country_flag_url"])
+	var club_logo_url := _pick_first_url(club, ["logo_url", "club_logo_url", "image_url"])
+	var league_logo_url := _pick_first_url(club, ["league_logo_url", "league_logo", "league_image_url"])
+	await _set_remote_or_default(country_logo_rect, country_logo_url, COUNTRY_LOGO_SIZE, token)
+	await _set_remote_or_default(club_logo_rect, club_logo_url, CLUB_LOGO_SIZE, token)
+	await _set_remote_or_default(league_logo_rect, league_logo_url, LEAGUE_LOGO_SIZE, token)
 	status_label.text = "Usa las flechas para elegir club"
 
-func _set_remote_or_default(target: TextureRect, url: String, forced_size: Vector2i) -> void:
+func _set_remote_or_default(target: TextureRect, url: String, forced_size: Vector2i, token: int) -> void:
+	if token != render_token:
+		return
 	if url.strip_edges().is_empty():
 		target.texture = _load_local(DEFAULT_LOGO_PATH)
 		return
@@ -79,10 +90,19 @@ func _set_remote_or_default(target: TextureRect, url: String, forced_size: Vecto
 		target.texture = _load_local(url)
 		return
 	var texture := await _fetch_remote_texture(url, forced_size)
+	if token != render_token:
+		return
 	if texture != null:
 		target.texture = texture
 	else:
 		target.texture = _load_local(DEFAULT_LOGO_PATH)
+
+func _pick_first_url(row: Dictionary, keys: Array[String]) -> String:
+	for key in keys:
+		var value := str(row.get(key, "")).strip_edges()
+		if not value.is_empty():
+			return value
+	return ""
 
 func _fetch_remote_texture(url: String, forced_size: Vector2i) -> Texture2D:
 	var http := HTTPRequest.new()

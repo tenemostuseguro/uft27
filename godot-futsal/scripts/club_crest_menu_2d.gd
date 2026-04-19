@@ -18,8 +18,8 @@ var clubs: Array[Dictionary] = []
 var selected_index := 0
 
 func _ready() -> void:
-	$Margin/VBox/Card/LeftArrow.pressed.connect(func() -> void: _move_selection(-1))
-	$Margin/VBox/Card/RightArrow.pressed.connect(func() -> void: _move_selection(1))
+	$Margin/VBox/Card/CardVBox/CenterRow/LeftArrow.pressed.connect(func() -> void: _move_selection(-1))
+	$Margin/VBox/Card/CardVBox/CenterRow/RightArrow.pressed.connect(func() -> void: _move_selection(1))
 	$Margin/VBox/Buttons/SaveButton.pressed.connect(_on_save_pressed)
 	$Margin/VBox/Buttons/BackButton.pressed.connect(func() -> void: get_tree().change_scene_to_file(PROFILE_MENU_SCENE))
 	_load_clubs()

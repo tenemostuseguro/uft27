@@ -180,6 +180,15 @@ func list_uft_market_listings() -> Dictionary:
 func list_uft_seasons() -> Dictionary:
 	return await _list_uft_catalog("list_uft_seasons")
 
+func list_uft_countries() -> Dictionary:
+	return await _list_uft_catalog("list_uft_countries")
+
+func list_uft_leagues() -> Dictionary:
+	return await _list_uft_catalog("list_uft_leagues")
+
+func list_uft_clubs() -> Dictionary:
+	return await _list_uft_catalog("list_uft_clubs")
+
 func get_uft_snapshot() -> Dictionary:
 	if not is_configured():
 		return {"ok": false, "error": "Configuración interna de auth incompleta"}

@@ -23,6 +23,11 @@
 - Se permite asignar club a un usuario para resolver su escudo de perfil desde `set_player_profile_logo` usando clubes activos.
 - Se actualiza SQL con tablas y RPC nuevos (`uft_countries`, `uft_leagues`, `uft_clubs`, `player_profile_club`, `upsert/list`).
 
+## 0.1.5-prealpha
+- Se crea una pantalla dedicada para elegir escudo de equipo (`ClubCrestMenu2D`) con navegación horizontal por flechas y diseño tipo tarjeta (país + logo arriba, club al centro, liga + logo abajo).
+- `ProfileMenu2D` deja de mostrar listas de escudos inline y ahora abre el selector dedicado conectado a Supabase.
+- `list_uft_clubs()` amplía payload para incluir logos de país y liga (`country_logo_url`, `league_logo_url`) usados por el nuevo layout.
+
 ## 0.1.0-prealpha
 - Se implementó el modo **UFT / Ultimate Futsal Team** integrado al juego con menú propio (`UFTMenu2D`) y autoload `UFTManager`.
 - Se añadieron club persistente, economía (`coins/points/xp`), colección de cartas, validación central de quinteto titular sin duplicados por `player_id`, sobres, mercado local, eventos por fecha y pase de batalla por temporada.

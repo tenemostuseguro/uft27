@@ -437,12 +437,12 @@ as $$
 $$;
 
 create or replace function public.list_uft_clubs()
-returns table(id uuid, league_id uuid, league_name text, country_name text, name text, logo_url text, active boolean)
+returns table(id uuid, league_id uuid, league_name text, league_logo_url text, country_name text, country_logo_url text, name text, logo_url text, active boolean)
 language sql
 security definer
 set search_path = public
 as $$
-  select cl.id, cl.league_id, l.name as league_name, c.name as country_name, cl.name, cl.logo_url, cl.active
+  select cl.id, cl.league_id, l.name as league_name, l.logo_url as league_logo_url, c.name as country_name, c.logo_url as country_logo_url, cl.name, cl.logo_url, cl.active
   from public.uft_clubs cl
   join public.uft_leagues l on l.id = cl.league_id
   join public.uft_countries c on c.id = l.country_id

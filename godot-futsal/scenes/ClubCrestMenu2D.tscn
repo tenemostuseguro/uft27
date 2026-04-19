@@ -23,10 +23,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -260.0
-offset_top = -360.0
-offset_right = 260.0
-offset_bottom = 360.0
+offset_left = -150.0
+offset_top = -250.0
+offset_right = 150.0
+offset_bottom = 250.0
 
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
@@ -34,7 +34,7 @@ theme_override_constants/separation = 0
 
 [node name="TopBar" type="PanelContainer" parent="Margin/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(520, 72)
+custom_minimum_size = Vector2(300, 48)
 
 [node name="TopRow" type="HBoxContainer" parent="Margin/VBox/TopBar"]
 layout_mode = 2
@@ -44,17 +44,17 @@ theme_override_constants/separation = 16
 [node name="CountryName" type="Label" parent="Margin/VBox/TopBar/TopRow"]
 layout_mode = 2
 text = "COUNTRY"
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 20
 
 [node name="CountryLogo" type="TextureRect" parent="Margin/VBox/TopBar/TopRow"]
-custom_minimum_size = Vector2(120, 72)
+custom_minimum_size = Vector2(64, 40)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
 [node name="Card" type="PanelContainer" parent="Margin/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(520, 470)
+custom_minimum_size = Vector2(300, 300)
 
 [node name="CardBg" type="ColorRect" parent="Margin/VBox/Card"]
 layout_mode = 1
@@ -67,51 +67,85 @@ color = Color(0.95, 0.93, 0.86, 1)
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 18.0
-offset_bottom = 56.0
+offset_top = 10.0
+offset_bottom = 38.0
 horizontal_alignment = 1
 text = "CLUB NAME"
 theme_override_colors/font_color = Color(0.06, 0.11, 0.22, 1)
-theme_override_font_sizes/font_size = 42
+theme_override_font_sizes/font_size = 18
 
 [node name="LeftArrow" type="Button" parent="Margin/VBox/Card"]
 layout_mode = 1
 anchors_preset = 0
-offset_left = 28.0
-offset_top = 190.0
-offset_right = 88.0
-offset_bottom = 250.0
+offset_left = 20.0
+offset_top = 120.0
+offset_right = 56.0
+offset_bottom = 156.0
 text = "◀"
-theme_override_font_sizes/font_size = 44
+theme_override_font_sizes/font_size = 28
 
 [node name="RightArrow" type="Button" parent="Margin/VBox/Card"]
 layout_mode = 1
 anchors_preset = 0
-offset_left = 432.0
-offset_top = 190.0
-offset_right = 492.0
-offset_bottom = 250.0
+offset_left = 244.0
+offset_top = 120.0
+offset_right = 280.0
+offset_bottom = 156.0
 text = "▶"
-theme_override_font_sizes/font_size = 44
+theme_override_font_sizes/font_size = 28
 
 [node name="ClubLogo" type="TextureRect" parent="Margin/VBox/Card"]
-custom_minimum_size = Vector2(320, 320)
+custom_minimum_size = Vector2(170, 170)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -160.0
-offset_top = -120.0
-offset_right = 160.0
-offset_bottom = 200.0
+offset_left = -85.0
+offset_top = -80.0
+offset_right = 85.0
+offset_bottom = 90.0
 expand_mode = 1
 stretch_mode = 5
 
+[node name="Stars" type="Label" parent="Margin/VBox/Card"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 228.0
+offset_bottom = 246.0
+horizontal_alignment = 1
+text = "★★★★★"
+theme_override_colors/font_color = Color(0.94, 0.72, 0.15, 1)
+
+[node name="StatsRow" type="HBoxContainer" parent="Margin/VBox/Card"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 250.0
+offset_bottom = 292.0
+alignment = 1
+theme_override_constants/separation = 18
+
+[node name="Att" type="Label" parent="Margin/VBox/Card/StatsRow"]
+layout_mode = 2
+text = "ATT\\n84"
+horizontal_alignment = 1
+
+[node name="Mid" type="Label" parent="Margin/VBox/Card/StatsRow"]
+layout_mode = 2
+text = "MID\\n85"
+horizontal_alignment = 1
+
+[node name="Def" type="Label" parent="Margin/VBox/Card/StatsRow"]
+layout_mode = 2
+text = "DEF\\n82"
+horizontal_alignment = 1
+
 [node name="BottomBar" type="PanelContainer" parent="Margin/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(520, 140)
+custom_minimum_size = Vector2(300, 84)
 
 [node name="BottomVBox" type="VBoxContainer" parent="Margin/VBox/BottomBar"]
 layout_mode = 2
@@ -121,7 +155,7 @@ theme_override_constants/separation = 6
 layout_mode = 2
 horizontal_alignment = 1
 text = "LEAGUE NAME"
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 18
 
 [node name="LeagueLogo" type="TextureRect" parent="Margin/VBox/BottomBar/BottomVBox"]
 custom_minimum_size = Vector2(576, 192)
@@ -133,6 +167,7 @@ stretch_mode = 5
 layout_mode = 2
 horizontal_alignment = 1
 text = "Selecciona tu escudo"
+visible = false
 
 [node name="Buttons" type="HBoxContainer" parent="Margin/VBox"]
 layout_mode = 2

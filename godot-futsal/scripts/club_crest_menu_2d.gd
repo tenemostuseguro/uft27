@@ -3,7 +3,7 @@ extends Control
 const PROFILE_MENU_SCENE := "res://scenes/ProfileMenu2D.tscn"
 const DEFAULT_LOGO_PATH := "res://assets/default_profile_logo.png"
 const LEAGUE_LOGO_SIZE := Vector2i(576, 192)
-const CLUB_LOGO_SIZE := Vector2i(320, 320)
+const CLUB_LOGO_SIZE := Vector2i.ZERO
 const COUNTRY_LOGO_SIZE := Vector2i(120, 72)
 
 @onready var country_name_label: Label = $Margin/VBox/TopBar/TopRow/CountryName
@@ -105,7 +105,8 @@ func _fetch_remote_texture(url: String, forced_size: Vector2i) -> Texture2D:
 		err = image.load_webp_from_buffer(body)
 	if err != OK:
 		return null
-	image.resize(forced_size.x, forced_size.y, Image.INTERPOLATE_LANCZOS)
+	if forced_size.x > 0 and forced_size.y > 0:
+		image.resize(forced_size.x, forced_size.y, Image.INTERPOLATE_LANCZOS)
 	return ImageTexture.create_from_image(image)
 
 func _load_local(path: String) -> Texture2D:

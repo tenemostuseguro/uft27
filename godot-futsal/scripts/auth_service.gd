@@ -266,13 +266,18 @@ func _request_json(url: String, method: int, payload: Dictionary) -> Dictionary:
 	var response_code: int = completed[1]
 	var raw: PackedByteArray = completed[3]
 	var text := raw.get_string_from_utf8()
-	var parsed: Variant = JSON.parse_string(text)
+	var parsed: Variant = null
+	if not text.strip_edges().is_empty():
+		parsed = JSON.parse_string(text)
 
 	if response_code < 200 or response_code >= 300:
 		var parsed_dict: Dictionary = parsed if parsed is Dictionary else {}
 		var msg := str(parsed_dict.get("message", parsed_dict.get("msg", parsed_dict.get("error", text))))
 		return {"ok": false, "error": msg}
-
+	if text.strip_edges().is_empty():
+		return {"ok": true, "json": {}}
+	if parsed == null:
+		return {"ok": false, "error": "Respuesta inválida de Supabase (no JSON): %s" % text.left(120)}
 	return {"ok": true, "json": parsed}
 
 func _save_session() -> void:

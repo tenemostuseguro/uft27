@@ -17,6 +17,12 @@
 - Se migró el alta/edición de cartas UFT a stats escalares por carta (sin JSON de `main_stats/field_substats/gk_substats`), con soporte en `schema.sql`, `admin.php` y lógica de cálculo en `UFTManager`.
 - Se añadió `market_admin.php` como página dedicada para administrar el mercado del servidor (`uft_market_catalog`) de forma directa.
 
+## 0.1.4-prealpha
+- `admin.php` mejora la UX de formularios con etiquetas explícitas de campo para evitar errores de edición.
+- Se añade administración de estructura futbolística en Supabase: países, ligas (con nivel) y clubes, todos con logo.
+- Se permite asignar club a un usuario para resolver su escudo de perfil desde `set_player_profile_logo` usando clubes activos.
+- Se actualiza SQL con tablas y RPC nuevos (`uft_countries`, `uft_leagues`, `uft_clubs`, `player_profile_club`, `upsert/list`).
+
 ## 0.1.0-prealpha
 - Se implementó el modo **UFT / Ultimate Futsal Team** integrado al juego con menú propio (`UFTMenu2D`) y autoload `UFTManager`.
 - Se añadieron club persistente, economía (`coins/points/xp`), colección de cartas, validación central de quinteto titular sin duplicados por `player_id`, sobres, mercado local, eventos por fecha y pase de batalla por temporada.

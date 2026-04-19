@@ -101,6 +101,7 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 
 ## Perfil visual (logos de evento/equipo)
 - Cada perfil usa un logo/avatar que puede ser de **evento**, **equipo** o personalizado por URL.
+- El escudo de equipo ahora puede gestionarse desde una jerarquía **País → Liga (nivel) → Club**, donde cada entidad tiene su logo y el perfil de usuario se asocia al club.
 - Formatos esperados: `.png`, `.jpg`, `.jpeg`, `.webp` y `.gif` remoto. Para `.gif`, el cliente no intenta parsearlo como PNG/JPG/WEBP (evitando errores de consola), y prueba variantes estáticas (`.png/.webp/.jpg/.jpeg`) antes de caer al logo por defecto.
 - Todos los perfiles tienen por defecto el mismo logo base: `UFT Default` (`res://assets/default_profile_logo.png`).
 - El logo del perfil se muestra también en `MainMenu2D` (panel derecho).
@@ -113,6 +114,7 @@ Prototipo prealpha de fútbol sala 3D con menús 2D, online por IP, IA de compa�
 - Edición web incluida en `admin.php`:
   - crear logos (evento/equipo/default)
   - asignar logo a usuario
+  - crear países, ligas y clubes (con logos) y asignar club al perfil
 
 ## Notificaciones in-game (Supabase)
 - Panel de notificación grande en **menú principal** (ocupando gran parte de la pantalla), con estilo de anuncio oficial.

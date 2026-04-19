@@ -181,6 +181,45 @@ create table if not exists public.player_profile_logo (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.uft_countries (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  iso_code text not null unique,
+  logo_url text not null default '',
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.uft_leagues (
+  id uuid primary key default gen_random_uuid(),
+  country_id uuid not null references public.uft_countries(id) on delete cascade,
+  name text not null,
+  tier_level integer not null default 1,
+  logo_url text not null default '',
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (country_id, name, tier_level)
+);
+
+create table if not exists public.uft_clubs (
+  id uuid primary key default gen_random_uuid(),
+  league_id uuid not null references public.uft_leagues(id) on delete cascade,
+  name text not null,
+  logo_url text not null default '',
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (league_id, name)
+);
+
+create table if not exists public.player_profile_club (
+  player_id uuid primary key references public.player_accounts(id) on delete cascade,
+  club_id uuid references public.uft_clubs(id) on delete set null,
+  updated_at timestamptz not null default now()
+);
+
 insert into public.profile_logos (code, name, image_url, source_type, is_default, active)
 values ('uft_default', 'UFT Default', 'res://assets/default_profile_logo.png', 'default', true, true)
 on conflict (code) do update set
@@ -196,10 +235,14 @@ language sql
 security definer
 set search_path = public
 as $$
+  select c.id, c.name, c.logo_url as image_url, 'club'::text as source_type, false as is_default
+  from public.uft_clubs c
+  where c.active = true
+  union all
   select l.id, l.name, l.image_url, l.source_type, l.is_default
   from public.profile_logos l
-  where l.active = true
-  order by l.is_default desc, l.source_type asc, l.name asc;
+  where l.active = true and l.is_default = true
+  order by is_default desc, source_type asc, name asc;
 $$;
 
 create or replace function public.get_player_profile_logo(p_player_id uuid)
@@ -222,11 +265,18 @@ as $$
     order by created_at asc
     limit 1
   ), selected_logo as (
+    select ppc.player_id, ppc.club_id as logo_id, ''::text as custom_image_url,
+           c.name, c.logo_url as image_url, 'club'::text as source_type
+    from public.player_profile_club ppc
+    left join public.uft_clubs c on c.id = ppc.club_id
+    where ppc.player_id = p_player_id
+    union all
     select ppl.player_id, ppl.logo_id, ppl.custom_image_url,
            pl.name, pl.image_url, pl.source_type
     from public.player_profile_logo ppl
     left join public.profile_logos pl on pl.id = ppl.logo_id
     where ppl.player_id = p_player_id
+    limit 1
   )
   select
     coalesce(sl.logo_id, dl.id) as logo_id,
@@ -254,6 +304,15 @@ begin
     return false;
   end if;
 
+  if exists (select 1 from public.uft_clubs c where c.id = p_logo_id and c.active = true) then
+    insert into public.player_profile_club(player_id, club_id, updated_at)
+    values (p_player_id, p_logo_id, now())
+    on conflict (player_id) do update set
+      club_id = excluded.club_id,
+      updated_at = now();
+    return true;
+  end if;
+
   insert into public.player_profile_logo(player_id, logo_id, custom_image_url, updated_at)
   values (p_player_id, p_logo_id, coalesce(trim(p_custom_image_url), ''), now())
   on conflict (player_id) do update set
@@ -264,12 +323,141 @@ begin
   return true;
 end;
 $$;
+
+create or replace function public.upsert_uft_country(
+  p_country_id uuid default null,
+  p_name text default '',
+  p_iso_code text default '',
+  p_logo_url text default '',
+  p_active boolean default true
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid := coalesce(p_country_id, gen_random_uuid());
+begin
+  insert into public.uft_countries(id, name, iso_code, logo_url, active, updated_at)
+  values (v_id, nullif(trim(p_name), ''), upper(nullif(trim(p_iso_code), '')), coalesce(trim(p_logo_url), ''), coalesce(p_active, true), now())
+  on conflict (id) do update set
+    name = excluded.name,
+    iso_code = excluded.iso_code,
+    logo_url = excluded.logo_url,
+    active = excluded.active,
+    updated_at = now();
+  return v_id;
+end;
+$$;
+
+create or replace function public.upsert_uft_league(
+  p_league_id uuid default null,
+  p_country_id uuid default null,
+  p_name text default '',
+  p_tier_level integer default 1,
+  p_logo_url text default '',
+  p_active boolean default true
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid := coalesce(p_league_id, gen_random_uuid());
+begin
+  if p_country_id is null then
+    return null;
+  end if;
+  insert into public.uft_leagues(id, country_id, name, tier_level, logo_url, active, updated_at)
+  values (v_id, p_country_id, nullif(trim(p_name), ''), greatest(coalesce(p_tier_level, 1), 1), coalesce(trim(p_logo_url), ''), coalesce(p_active, true), now())
+  on conflict (id) do update set
+    country_id = excluded.country_id,
+    name = excluded.name,
+    tier_level = excluded.tier_level,
+    logo_url = excluded.logo_url,
+    active = excluded.active,
+    updated_at = now();
+  return v_id;
+end;
+$$;
+
+create or replace function public.upsert_uft_club(
+  p_club_id uuid default null,
+  p_league_id uuid default null,
+  p_name text default '',
+  p_logo_url text default '',
+  p_active boolean default true
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid := coalesce(p_club_id, gen_random_uuid());
+begin
+  if p_league_id is null then
+    return null;
+  end if;
+  insert into public.uft_clubs(id, league_id, name, logo_url, active, updated_at)
+  values (v_id, p_league_id, nullif(trim(p_name), ''), coalesce(trim(p_logo_url), ''), coalesce(p_active, true), now())
+  on conflict (id) do update set
+    league_id = excluded.league_id,
+    name = excluded.name,
+    logo_url = excluded.logo_url,
+    active = excluded.active,
+    updated_at = now();
+  return v_id;
+end;
+$$;
+
+create or replace function public.list_uft_countries()
+returns table(id uuid, name text, iso_code text, logo_url text, active boolean)
+language sql
+security definer
+set search_path = public
+as $$
+  select c.id, c.name, c.iso_code, c.logo_url, c.active
+  from public.uft_countries c
+  order by c.name asc;
+$$;
+
+create or replace function public.list_uft_leagues()
+returns table(id uuid, country_id uuid, country_name text, name text, tier_level integer, logo_url text, active boolean)
+language sql
+security definer
+set search_path = public
+as $$
+  select l.id, l.country_id, c.name as country_name, l.name, l.tier_level, l.logo_url, l.active
+  from public.uft_leagues l
+  join public.uft_countries c on c.id = l.country_id
+  order by c.name asc, l.tier_level asc, l.name asc;
+$$;
+
+create or replace function public.list_uft_clubs()
+returns table(id uuid, league_id uuid, league_name text, country_name text, name text, logo_url text, active boolean)
+language sql
+security definer
+set search_path = public
+as $$
+  select cl.id, cl.league_id, l.name as league_name, c.name as country_name, cl.name, cl.logo_url, cl.active
+  from public.uft_clubs cl
+  join public.uft_leagues l on l.id = cl.league_id
+  join public.uft_countries c on c.id = l.country_id
+  order by c.name asc, l.tier_level asc, l.name asc, cl.name asc;
+$$;
 revoke all on public.player_accounts from anon, authenticated;
 revoke all on public.profiles from anon, authenticated;
 revoke all on public.notifications from anon, authenticated;
 revoke all on public.player_notification_reads from anon, authenticated;
 revoke all on public.profile_logos from anon, authenticated;
 revoke all on public.player_profile_logo from anon, authenticated;
+revoke all on public.uft_countries from anon, authenticated;
+revoke all on public.uft_leagues from anon, authenticated;
+revoke all on public.uft_clubs from anon, authenticated;
+revoke all on public.player_profile_club from anon, authenticated;
 
 grant execute on function public.register_player(text, text) to anon, authenticated;
 grant execute on function public.authenticate_player(text, text) to anon, authenticated;
@@ -278,6 +466,12 @@ grant execute on function public.mark_player_notification_read(uuid, uuid) to an
 grant execute on function public.list_profile_logos() to anon, authenticated;
 grant execute on function public.get_player_profile_logo(uuid) to anon, authenticated;
 grant execute on function public.set_player_profile_logo(uuid, uuid, text) to anon, authenticated;
+grant execute on function public.upsert_uft_country(uuid, text, text, text, boolean) to anon, authenticated;
+grant execute on function public.upsert_uft_league(uuid, uuid, text, integer, text, boolean) to anon, authenticated;
+grant execute on function public.upsert_uft_club(uuid, uuid, text, text, boolean) to anon, authenticated;
+grant execute on function public.list_uft_countries() to anon, authenticated;
+grant execute on function public.list_uft_leagues() to anon, authenticated;
+grant execute on function public.list_uft_clubs() to anon, authenticated;
 
 -- ============================
 -- Ultimate Team (UFT) config + estado persistente

@@ -41,6 +41,11 @@ layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 10
 
+[node name="CountryLeftArrow" type="Button" parent="Margin/VBox/TopBar/TopRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(28, 28)
+text = "◀"
+
 [node name="CountryName" type="Label" parent="Margin/VBox/TopBar/TopRow"]
 layout_mode = 2
 text = "PAÍS"
@@ -51,6 +56,11 @@ custom_minimum_size = Vector2(56, 34)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
+
+[node name="CountryRightArrow" type="Button" parent="Margin/VBox/TopBar/TopRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(28, 28)
+text = "▶"
 
 [node name="Card" type="PanelContainer" parent="Margin/VBox"]
 layout_mode = 2
@@ -107,11 +117,25 @@ custom_minimum_size = Vector2(340, 120)
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="LeagueName" type="Label" parent="Margin/VBox/BottomBar/BottomVBox"]
+[node name="LeagueRow" type="HBoxContainer" parent="Margin/VBox/BottomBar/BottomVBox"]
 layout_mode = 2
-horizontal_alignment = 1
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="LeagueLeftArrow" type="Button" parent="Margin/VBox/BottomBar/BottomVBox/LeagueRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(28, 28)
+text = "◀"
+
+[node name="LeagueName" type="Label" parent="Margin/VBox/BottomBar/BottomVBox/LeagueRow"]
+layout_mode = 2
 text = "LIGA"
 theme_override_font_sizes/font_size = 18
+
+[node name="LeagueRightArrow" type="Button" parent="Margin/VBox/BottomBar/BottomVBox/LeagueRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(28, 28)
+text = "▶"
 
 [node name="LeagueLogo" type="TextureRect" parent="Margin/VBox/BottomBar/BottomVBox"]
 custom_minimum_size = Vector2(300, 96)

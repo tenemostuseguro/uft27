@@ -8,6 +8,7 @@ const UFT_MARKET_SEARCH_SCENE := "res://scenes/UFTMarketSearchMenu2D.tscn"
 @onready var listings_grid: HBoxContainer = $Margin/VBox/Body/ListingsScroll/ListingsGrid
 
 var listing_cards: Array[Dictionary] = []
+var countdown_labels: Array[Dictionary] = []
 
 func _ready() -> void:
 	_connect_button("Margin/VBox/TopBar/TopRow/Back", _on_back_pressed)
@@ -16,7 +17,18 @@ func _ready() -> void:
 	_connect_button("Margin/VBox/TabBar/BrowseTab", _on_browse_tab)
 	_connect_button("Margin/VBox/TabBar/MyListingsTab", _on_my_listings_tab)
 	_connect_button("Margin/VBox/TabBar/MyBidsTab", _on_my_bids_tab)
+	set_process(true)
 	_refresh()
+
+func _process(_delta: float) -> void:
+	for item in countdown_labels:
+		var timer_label: Label = item.get("label", null) as Label
+		if timer_label == null:
+			continue
+		if not is_instance_valid(timer_label):
+			continue
+		var expiry: int = int(item.get("expires_at_unix", 0))
+		timer_label.text = _format_countdown(expiry)
 
 func _connect_button(path: String, callback: Callable) -> void:
 	var btn := get_node_or_null(path)
@@ -32,6 +44,7 @@ func _refresh(filters: Dictionary = {}) -> void:
 	var sum: Dictionary = uft.get_summary()
 	coins_label.text = "Coins %d" % int(sum.get("coins", 0))
 	listing_cards = uft.get_market_listings(filters)
+	countdown_labels.clear()
 	for child in listings_grid.get_children():
 		child.queue_free()
 
@@ -61,8 +74,10 @@ func _build_listing_tile(listing: Dictionary) -> Control:
 	var timer := Label.new()
 	timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	timer.add_theme_font_size_override("font_size", 32)
-	timer.text = _format_countdown(int(listing.get("expires_at_unix", 0)))
+	var expires_at_unix: int = int(listing.get("expires_at_unix", 0))
+	timer.text = _format_countdown(expires_at_unix)
 	vbox.add_child(timer)
+	countdown_labels.append({"label": timer, "expires_at_unix": expires_at_unix})
 
 	var footer := VBoxContainer.new()
 	footer.add_theme_constant_override("separation", 3)
@@ -110,6 +125,9 @@ func _build_listing_tile(listing: Dictionary) -> Control:
 func _load_card_texture(target: TextureRect, card: Dictionary) -> void:
 	var face_url := str(card.get("face_url", ""))
 	if face_url.is_empty():
+		var player: Dictionary = card.get("player", {})
+		face_url = str(player.get("photo_face_url", ""))
+	if face_url.is_empty():
 		return
 	var uft := get_node_or_null("/root/UFTManager")
 	if uft == null:
@@ -117,9 +135,15 @@ func _load_card_texture(target: TextureRect, card: Dictionary) -> void:
 	var cached: String = await uft.cache_remote_image(face_url, "market_cards")
 	if cached.is_empty():
 		return
-	var tex := load(cached)
-	if tex is Texture2D:
-		target.texture = tex
+	var image := Image.new()
+	var err: int = image.load(cached)
+	if err != OK:
+		var global_path: String = ProjectSettings.globalize_path(cached)
+		err = image.load(global_path)
+	if err != OK:
+		return
+	var tex: Texture2D = ImageTexture.create_from_image(image)
+	target.texture = tex
 
 func _format_countdown(expires_at_unix: int) -> String:
 	var remaining: int = max(0, expires_at_unix - int(Time.get_unix_time_from_system()))

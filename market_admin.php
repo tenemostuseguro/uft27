@@ -10,6 +10,14 @@ function h(string $value): string {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
+function format_countdown(int $expiresAtUnix): string {
+    $remaining = max(0, $expiresAtUnix - time());
+    $hours = intdiv($remaining, 3600);
+    $minutes = intdiv($remaining % 3600, 60);
+    $seconds = $remaining % 60;
+    return sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+}
+
 function api_request(string $method, string $url, string $serviceRoleKey, ?array $body = null): array {
     $ch = curl_init($url);
     $headers = [
@@ -68,7 +76,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token']) && hash
         $payload = [
             'p_listing_id' => trim((string) ($_POST['listing_id'] ?? '')),
             'p_card_id' => trim((string) ($_POST['card_id'] ?? '')),
-            'p_price' => (int) ($_POST['price'] ?? 100),
+            'p_price' => (int) ($_POST['start_price'] ?? 100),
+            'p_start_price' => (int) ($_POST['start_price'] ?? 100),
+            'p_current_bid' => (int) ($_POST['current_bid'] ?? 0),
+            'p_buy_now_price' => (int) ($_POST['buy_now_price'] ?? 1000),
+            'p_highest_bidder' => trim((string) ($_POST['highest_bidder'] ?? '')),
+            'p_expires_at_unix' => (int) ($_POST['expires_at_unix'] ?? (time() + 7200)),
             'p_seller' => trim((string) ($_POST['seller'] ?? 'npc_market')),
             'p_active' => isset($_POST['active']),
         ];
@@ -125,6 +138,8 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
         table {width:100%; border-collapse:collapse; margin-top:12px;}
         th, td {padding:10px; border-bottom:1px solid #1e293b; text-align:left;}
         code {background:#111827; padding:2px 6px; border-radius:6px;}
+        .market-row {display:grid; grid-template-columns: 120px 1fr; gap:10px; align-items:center;}
+        .thumb {width:110px; height:150px; border-radius:8px; object-fit:cover; border:1px solid #334155; background:#020617;}
     </style>
 </head>
 <body>
@@ -135,7 +150,7 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
 <?php if ($success !== ''): ?><div class="panel" style="border-color:#22c55e;"><?php echo h($success); ?></div><?php endif; ?>
 
 <div class="panel">
-    <h2>Nueva / editar publicación</h2>
+    <h2>Nueva / editar subasta</h2>
     <form method="post" class="grid">
         <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
         <input type="hidden" name="action" value="upsert_listing">
@@ -146,23 +161,53 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
                 <option value="<?php echo h((string) ($card['card_id'] ?? '')); ?>"><?php echo h((string) ($card['card_id'] ?? '')); ?> · <?php echo h((string) ($card['player_id'] ?? '')); ?></option>
             <?php endforeach; ?>
         </select>
-        <input type="number" min="0" name="price" value="100" placeholder="Precio">
+        <input type="number" min="100" name="start_price" value="1000" placeholder="Start Price">
+        <input type="number" min="0" name="current_bid" value="0" placeholder="Current Bid">
+        <input type="number" min="100" name="buy_now_price" value="2500" placeholder="Buy Now">
+        <input type="text" name="highest_bidder" value="" placeholder="Highest Bidder">
+        <input type="number" min="0" name="expires_at_unix" value="<?php echo h((string) (time() + 7200)); ?>" placeholder="Expiry Unix">
         <input type="text" name="seller" value="npc_market" placeholder="Seller">
         <label><input type="checkbox" name="active" checked> Activo</label>
-        <button type="submit" class="btn primary" style="width:max-content;">Guardar publicación</button>
+        <button type="submit" class="btn primary" style="width:max-content;">Guardar subasta</button>
     </form>
 </div>
 
 <div class="panel">
-    <h2>Publicaciones actuales</h2>
+    <h2>Subastas activas</h2>
     <table>
-        <thead><tr><th>listing_id</th><th>card_id</th><th>price</th><th>seller</th><th>active</th><th>acción</th></tr></thead>
+        <thead><tr><th>card</th><th>listing_id</th><th>start</th><th>current bid</th><th>buy now</th><th>countdown</th><th>seller</th><th>active</th><th>acción</th></tr></thead>
         <tbody>
         <?php foreach ($listings as $listing): ?>
+            <?php
+                $cardId = (string) ($listing['card_id'] ?? '');
+                $cardImage = '';
+                foreach ($cards as $cardRow) {
+                    if ((string) ($cardRow['card_id'] ?? '') === $cardId) {
+                        $cardImage = (string) ($cardRow['face_url'] ?? '');
+                        break;
+                    }
+                }
+            ?>
             <tr>
+                <td>
+                    <div class="market-row">
+                        <?php if ($cardImage !== ''): ?>
+                            <img class="thumb" src="<?php echo h($cardImage); ?>" alt="card">
+                        <?php else: ?>
+                            <div class="thumb"></div>
+                        <?php endif; ?>
+                        <div><code><?php echo h($cardId); ?></code></div>
+                    </div>
+                </td>
                 <td><code><?php echo h((string) ($listing['listing_id'] ?? '')); ?></code></td>
-                <td><code><?php echo h((string) ($listing['card_id'] ?? '')); ?></code></td>
-                <td><?php echo h((string) ($listing['price'] ?? '0')); ?></td>
+                <td><?php echo h((string) ($listing['start_price'] ?? $listing['price'] ?? '0')); ?></td>
+                <td><?php echo h((string) ($listing['current_bid'] ?? '0')); ?></td>
+                <td><?php echo h((string) ($listing['buy_now_price'] ?? '0')); ?></td>
+                <td>
+                    <?php $expires = (int) ($listing['expires_at_unix'] ?? 0); ?>
+                    <?php echo h(format_countdown($expires)); ?><br>
+                    <small><?php echo h((string) $expires); ?></small>
+                </td>
                 <td><?php echo h((string) ($listing['seller'] ?? '')); ?></td>
                 <td><?php echo ((bool) ($listing['active'] ?? false)) ? 'Sí' : 'No'; ?></td>
                 <td>

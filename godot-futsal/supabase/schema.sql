@@ -693,10 +693,21 @@ create table if not exists public.uft_market_catalog (
   listing_id text primary key,
   card_id text not null references public.uft_cards_catalog(card_id) on delete cascade,
   price integer not null default 100,
+  start_price integer not null default 100,
+  current_bid integer not null default 0,
+  buy_now_price integer not null default 1000,
+  highest_bidder text not null default '',
+  expires_at_unix bigint not null default (extract(epoch from now())::bigint + 7200),
   seller text not null default 'npc_market',
   active boolean not null default true,
   updated_at timestamptz not null default now()
 );
+
+alter table public.uft_market_catalog add column if not exists start_price integer not null default 100;
+alter table public.uft_market_catalog add column if not exists current_bid integer not null default 0;
+alter table public.uft_market_catalog add column if not exists buy_now_price integer not null default 1000;
+alter table public.uft_market_catalog add column if not exists highest_bidder text not null default '';
+alter table public.uft_market_catalog add column if not exists expires_at_unix bigint not null default (extract(epoch from now())::bigint + 7200);
 
 create table if not exists public.uft_seasons_catalog (
   season_id text primary key,
@@ -925,6 +936,11 @@ create or replace function public.upsert_uft_market_listing(
   p_listing_id text,
   p_card_id text,
   p_price integer default 100,
+  p_start_price integer default 100,
+  p_current_bid integer default 0,
+  p_buy_now_price integer default 1000,
+  p_highest_bidder text default '',
+  p_expires_at_unix bigint default null,
   p_seller text default 'npc_market',
   p_active boolean default true
 )
@@ -935,11 +951,28 @@ set search_path = public
 as $$
 begin
   if p_listing_id is null or trim(p_listing_id) = '' or p_card_id is null or trim(p_card_id) = '' then return false; end if;
-  insert into public.uft_market_catalog(listing_id, card_id, price, seller, active, updated_at)
-  values (trim(p_listing_id), trim(p_card_id), greatest(coalesce(p_price, 0), 0), coalesce(nullif(trim(p_seller), ''), 'npc_market'), coalesce(p_active, true), now())
+  insert into public.uft_market_catalog(listing_id, card_id, price, start_price, current_bid, buy_now_price, highest_bidder, expires_at_unix, seller, active, updated_at)
+  values (
+    trim(p_listing_id),
+    trim(p_card_id),
+    greatest(coalesce(p_price, 100), 100),
+    greatest(coalesce(p_start_price, p_price, 100), 100),
+    greatest(coalesce(p_current_bid, 0), 0),
+    greatest(coalesce(p_buy_now_price, p_start_price, p_price, 1000), 100),
+    coalesce(p_highest_bidder, ''),
+    coalesce(p_expires_at_unix, extract(epoch from now())::bigint + 7200),
+    coalesce(nullif(trim(p_seller), ''), 'npc_market'),
+    coalesce(p_active, true),
+    now()
+  )
   on conflict (listing_id) do update set
     card_id = excluded.card_id,
     price = excluded.price,
+    start_price = excluded.start_price,
+    current_bid = excluded.current_bid,
+    buy_now_price = excluded.buy_now_price,
+    highest_bidder = excluded.highest_bidder,
+    expires_at_unix = excluded.expires_at_unix,
     seller = excluded.seller,
     active = excluded.active,
     updated_at = now();
@@ -1013,7 +1046,7 @@ returns setof public.uft_market_catalog
 language sql
 security definer
 set search_path = public
-as $$ select * from public.uft_market_catalog order by updated_at desc; $$;
+as $$ select * from public.uft_market_catalog order by expires_at_unix asc, updated_at desc; $$;
 
 create or replace function public.list_uft_seasons()
 returns setof public.uft_seasons_catalog
@@ -1035,7 +1068,7 @@ grant execute on function public.upsert_uft_card(text, text, text, text, integer
 grant execute on function public.upsert_uft_card_type(text, text, text, jsonb, boolean) to anon, authenticated;
 grant execute on function public.upsert_uft_event(text, text, text, bigint, bigint, boolean, integer, jsonb, jsonb) to anon, authenticated;
 grant execute on function public.upsert_uft_pack(text, text, integer, integer, integer, text, jsonb) to anon, authenticated;
-grant execute on function public.upsert_uft_market_listing(text, text, integer, text, boolean) to anon, authenticated;
+grant execute on function public.upsert_uft_market_listing(text, text, integer, integer, integer, integer, text, bigint, text, boolean) to anon, authenticated;
 grant execute on function public.upsert_uft_season(text, text, bigint, bigint, jsonb) to anon, authenticated;
 grant execute on function public.list_uft_players() to anon, authenticated;
 grant execute on function public.list_uft_cards() to anon, authenticated;

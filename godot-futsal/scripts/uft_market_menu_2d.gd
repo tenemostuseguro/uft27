@@ -1,19 +1,21 @@
 extends Control
 
 const UFT_MENU_SCENE := "res://scenes/UFTMenu2D.tscn"
+const UFT_MARKET_SEARCH_SCENE := "res://scenes/UFTMarketSearchMenu2D.tscn"
 
 @onready var status_label: Label = $Margin/VBox/Status
-@onready var market_list: ItemList = $Margin/VBox/Body/MarketPanel/MarketVBox/MarketList
-@onready var collection_list: ItemList = $Margin/VBox/Body/CollectionPanel/CollectionVBox/CollectionList
+@onready var coins_label: Label = $Margin/VBox/TopBar/TopRow/Coins
+@onready var listings_grid: HBoxContainer = $Margin/VBox/Body/ListingsScroll/ListingsGrid
 
-var market_listing_ids: Array[String] = []
-var collection_card_ids: Array[String] = []
+var listing_cards: Array[Dictionary] = []
 
 func _ready() -> void:
 	_connect_button("Margin/VBox/TopBar/TopRow/Back", _on_back_pressed)
-	_connect_button("Margin/VBox/Body/MarketPanel/MarketVBox/BuySelected", _on_buy_market)
-	_connect_button("Margin/VBox/Body/CollectionPanel/CollectionVBox/ListSelected", _on_list_selected_card)
-	market_list.item_activated.connect(_on_market_item_activated)
+	_connect_button("Margin/VBox/TopBar/TopRow/Search", _on_open_search_pressed)
+	_connect_button("Margin/VBox/TopBar/TopRow/Sell", _on_sell_pressed)
+	_connect_button("Margin/VBox/TabBar/BrowseTab", _on_browse_tab)
+	_connect_button("Margin/VBox/TabBar/MyListingsTab", _on_my_listings_tab)
+	_connect_button("Margin/VBox/TabBar/MyBidsTab", _on_my_bids_tab)
 	_refresh()
 
 func _connect_button(path: String, callback: Callable) -> void:
@@ -21,68 +23,156 @@ func _connect_button(path: String, callback: Callable) -> void:
 	if btn != null and btn is Button and not btn.pressed.is_connected(callback):
 		btn.pressed.connect(callback)
 
-func _refresh() -> void:
+func _refresh(filters: Dictionary = {}) -> void:
 	var uft := get_node_or_null("/root/UFTManager")
 	if uft == null:
 		status_label.text = "UFTManager no disponible"
 		return
 
-	market_list.clear()
-	market_listing_ids.clear()
-	for listing in uft.get_market_listings():
-		var card: Dictionary = listing.get("card", {})
-		var player: Dictionary = card.get("player", {})
-		market_listing_ids.append(str(listing.get("listing_id", "")))
-		market_list.add_item("%s (%s) OVR %d - %d coins" % [str(player.get("name", "?")), str(player.get("main_position", "")), int(card.get("ovr", 0)), int(listing.get("price", 0))])
+	var sum: Dictionary = uft.get_summary()
+	coins_label.text = "Coins %d" % int(sum.get("coins", 0))
+	listing_cards = uft.get_market_listings(filters)
+	for child in listings_grid.get_children():
+		child.queue_free()
 
-	collection_list.clear()
-	collection_card_ids.clear()
-	for card in uft.get_collection_cards():
-		var player: Dictionary = card.get("player", {})
-		collection_card_ids.append(str(card.get("card_id", "")))
-		collection_list.add_item("%s (%s) OVR %d [%s]" % [str(player.get("name", "?")), str(player.get("main_position", "")), int(card.get("ovr", 0)), str(card.get("card_type", ""))])
+	for listing in listing_cards:
+		listings_grid.add_child(_build_listing_tile(listing))
 
-	status_label.text = "Mercado actualizado: %d ofertas" % market_listing_ids.size()
+	status_label.text = "Mercado: %d cartas activas" % listing_cards.size()
 
-func _on_buy_market() -> void:
-	var index := market_list.get_selected_items()
-	if index.is_empty():
-		status_label.text = "Selecciona una carta del mercado para comprar."
+func _build_listing_tile(listing: Dictionary) -> Control:
+	var root := PanelContainer.new()
+	root.custom_minimum_size = Vector2(230, 470)
+
+	var vbox := VBoxContainer.new()
+	vbox.theme_override_constants.separation = 4
+	root.add_child(vbox)
+
+	var card: Dictionary = listing.get("card", {})
+	var player: Dictionary = card.get("player", {})
+
+	var portrait := TextureRect.new()
+	portrait.custom_minimum_size = Vector2(220, 280)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	vbox.add_child(portrait)
+	_load_card_texture(portrait, card)
+
+	var timer := Label.new()
+	timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	timer.theme_override_font_sizes.font_size = 32
+	timer.text = _format_countdown(int(listing.get("expires_at_unix", 0)))
+	vbox.add_child(timer)
+
+	var footer := VBoxContainer.new()
+	footer.theme_override_constants.separation = 3
+	vbox.add_child(footer)
+
+	var name_label := Label.new()
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.text = "%s · OVR %d" % [str(player.get("name", "?")), int(card.get("ovr", 0))]
+	footer.add_child(name_label)
+
+	var start_label := Label.new()
+	start_label.text = "Start Price: %d" % int(listing.get("start_price", 0))
+	footer.add_child(start_label)
+
+	var bid_label := Label.new()
+	bid_label.text = "Current Bid: %d" % int(listing.get("current_bid", 0))
+	footer.add_child(bid_label)
+
+	var buy_label := Label.new()
+	buy_label.text = "Buy Now: %d" % int(listing.get("buy_now_price", 0))
+	footer.add_child(buy_label)
+
+	var actions := HBoxContainer.new()
+	actions.theme_override_constants.separation = 4
+	footer.add_child(actions)
+
+	var bid_btn := Button.new()
+	bid_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bid_btn.text = "Pujar"
+	bid_btn.pressed.connect(func() -> void:
+		_on_bid_pressed(str(listing.get("listing_id", "")), int(listing.get("current_bid", 0)), int(listing.get("start_price", 0)))
+	)
+	actions.add_child(bid_btn)
+
+	var buy_btn := Button.new()
+	buy_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	buy_btn.text = "Comprar ya"
+	buy_btn.pressed.connect(func() -> void:
+		_on_buy_now_pressed(str(listing.get("listing_id", "")))
+	)
+	actions.add_child(buy_btn)
+
+	return root
+
+func _load_card_texture(target: TextureRect, card: Dictionary) -> void:
+	var face_url := str(card.get("face_url", ""))
+	if face_url.is_empty():
 		return
-	_buy_market_listing_at(index[0])
-
-func _on_market_item_activated(index: int) -> void:
-	_buy_market_listing_at(index)
-
-func _buy_market_listing_at(index: int) -> void:
-	if index < 0 or index >= market_listing_ids.size():
-		status_label.text = "Oferta inválida."
+	var uft := get_node_or_null("/root/UFTManager")
+	if uft == null:
 		return
-	var listing_id := market_listing_ids[index]
-	var result: Dictionary = get_node("/root/UFTManager").buy_market_listing(listing_id)
+	var cached := await uft.cache_remote_image(face_url, "market_cards")
+	if cached.is_empty():
+		return
+	var tex := load(cached)
+	if tex is Texture2D:
+		target.texture = tex
+
+func _format_countdown(expires_at_unix: int) -> String:
+	var remaining := max(0, expires_at_unix - int(Time.get_unix_time_from_system()))
+	var hours := remaining / 3600
+	var minutes := (remaining % 3600) / 60
+	var seconds := remaining % 60
+	return "%02d:%02d:%02d" % [hours, minutes, seconds]
+
+func _on_bid_pressed(listing_id: String, current_bid: int, start_price: int) -> void:
+	var min_bid := max(start_price, current_bid + 100)
+	var uft := get_node_or_null("/root/UFTManager")
+	if uft == null:
+		status_label.text = "UFTManager no disponible"
+		return
+	var result: Dictionary = uft.place_bid_on_listing(listing_id, min_bid)
+	if result.get("ok", false):
+		status_label.text = "Puja realizada: %d" % int(result.get("amount", min_bid))
+	else:
+		status_label.text = "Puja fallida: %s" % str(result.get("error", "error"))
+	_refresh()
+
+func _on_buy_now_pressed(listing_id: String) -> void:
+	var uft := get_node_or_null("/root/UFTManager")
+	if uft == null:
+		status_label.text = "UFTManager no disponible"
+		return
+	var result: Dictionary = uft.buy_market_listing(listing_id)
 	if result.get("ok", false):
 		status_label.text = "Compra realizada: %s" % str(result.get("card_id", ""))
 	else:
 		status_label.text = "Compra fallida: %s" % str(result.get("error", "error"))
 	_refresh()
 
-func _on_list_selected_card() -> void:
-	var selected := collection_list.get_selected_items()
-	if selected.is_empty():
-		status_label.text = "Selecciona una carta de tu colección para listar."
-		return
-	var index := int(selected[0])
-	if index < 0 or index >= collection_card_ids.size():
-		status_label.text = "Carta inválida."
-		return
-	var card_id := collection_card_ids[index]
-	var suggested := int(get_node("/root/UFTManager").get_card_details(card_id).get("suggested_price", 100))
-	var result: Dictionary = get_node("/root/UFTManager").list_card_on_market(card_id, max(100, suggested))
-	if result.get("ok", false):
-		status_label.text = "Carta listada en el mercado."
-	else:
-		status_label.text = "No se pudo listar: %s" % str(result.get("error", "error"))
+func _on_open_search_pressed() -> void:
+	get_tree().change_scene_to_file(UFT_MARKET_SEARCH_SCENE)
+
+func _on_sell_pressed() -> void:
+	status_label.text = "Selecciona una carta en Search para listar en mercado."
+
+func _on_browse_tab() -> void:
 	_refresh()
+
+func _on_my_listings_tab() -> void:
+	var uft := get_node_or_null("/root/UFTManager")
+	if uft == null:
+		return
+	_refresh({"seller": "user"})
+
+func _on_my_bids_tab() -> void:
+	var uft := get_node_or_null("/root/UFTManager")
+	if uft == null:
+		return
+	_refresh({"highest_bidder": str(uft.state.get("club_name", ""))})
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file(UFT_MENU_SCENE)

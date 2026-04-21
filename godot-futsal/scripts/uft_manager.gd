@@ -266,10 +266,16 @@ func open_pack(pack_id: String) -> Dictionary:
 
 func get_market_listings(filters: Dictionary = {}) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
+	var now := int(Time.get_unix_time_from_system())
 	for raw in market_listings:
-		var listing: Dictionary = raw
+		var listing: Dictionary = raw.duplicate(true)
 		var card_id := str(listing.get("card_id", ""))
 		if not cards.has(card_id):
+			continue
+		if not bool(listing.get("active", true)):
+			continue
+		var expires_at := int(listing.get("expires_at_unix", now + 3600))
+		if expires_at <= now:
 			continue
 		var card := get_card_details(card_id)
 		if filters.has("min_ovr") and int(card.get("ovr", 0)) < int(filters["min_ovr"]):
@@ -279,8 +285,28 @@ func get_market_listings(filters: Dictionary = {}) -> Array[Dictionary]:
 		var player: Dictionary = card.get("player", {})
 		if filters.has("position") and str(filters["position"]) != "" and str(player.get("main_position", "")) != str(filters["position"]):
 			continue
+		if filters.has("seller") and str(filters.get("seller", "")) != "":
+			if str(listing.get("seller", "")) != str(filters.get("seller", "")):
+				continue
+		if filters.has("highest_bidder") and str(filters.get("highest_bidder", "")) != "":
+			if str(listing.get("highest_bidder", "")) != str(filters.get("highest_bidder", "")):
+				continue
+		if filters.has("query"):
+			var query := str(filters.get("query", "")).strip_edges().to_lower()
+			if not query.is_empty():
+				var haystack := ("%s %s %s" % [str(player.get("name", "")), str(player.get("main_position", "")), str(card.get("card_type", ""))]).to_lower()
+				if not haystack.contains(query):
+					continue
+		var start_price := int(listing.get("start_price", listing.get("price", 100)))
+		var current_bid := int(listing.get("current_bid", 0))
+		var buy_now_price := int(listing.get("buy_now_price", max(start_price + 100, 100)))
+		listing["start_price"] = max(start_price, 100)
+		listing["current_bid"] = max(current_bid, 0)
+		listing["buy_now_price"] = max(buy_now_price, listing["start_price"])
+		listing["expires_at_unix"] = expires_at
 		listing["card"] = card
 		result.append(listing)
+	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.get("expires_at_unix", 0)) < int(b.get("expires_at_unix", 0)))
 	return result
 
 func buy_market_listing(listing_id: String) -> Dictionary:
@@ -288,7 +314,7 @@ func buy_market_listing(listing_id: String) -> Dictionary:
 		var listing: Dictionary = market_listings[i]
 		if str(listing.get("listing_id", "")) != listing_id:
 			continue
-		var price := int(listing.get("price", 0))
+		var price := int(listing.get("buy_now_price", listing.get("price", 0)))
 		if not spend_currency(price, 0):
 			return {"ok": false, "error": "Coins insuficientes"}
 		var card_id := str(listing.get("card_id", ""))
@@ -298,11 +324,43 @@ func buy_market_listing(listing_id: String) -> Dictionary:
 		return {"ok": true, "card_id": card_id}
 	return {"ok": false, "error": "Oferta no encontrada"}
 
-func list_card_on_market(card_id: String, price: int) -> Dictionary:
+func place_bid_on_listing(listing_id: String, amount: int) -> Dictionary:
+	for i in range(market_listings.size()):
+		var listing: Dictionary = market_listings[i]
+		if str(listing.get("listing_id", "")) != listing_id:
+			continue
+		var min_bid := max(int(listing.get("start_price", listing.get("price", 100))), int(listing.get("current_bid", 0)) + 100)
+		if amount < min_bid:
+			return {"ok": false, "error": "Puja mínima: %d" % min_bid}
+		if not spend_currency(amount, 0):
+			return {"ok": false, "error": "Coins insuficientes"}
+		listing["current_bid"] = amount
+		listing["highest_bidder"] = str(state.get("club_name", "user"))
+		listing["updated_at"] = Time.get_unix_time_from_system()
+		market_listings[i] = listing
+		_save_state()
+		return {"ok": true, "listing_id": listing_id, "amount": amount}
+	return {"ok": false, "error": "Oferta no encontrada"}
+
+func list_card_on_market(card_id: String, price: int, buy_now_price: int = 0, duration_seconds: int = 7200) -> Dictionary:
 	if not state["collection"].has(card_id):
 		return {"ok": false, "error": "No posees esa carta"}
 	state["collection"].erase(card_id)
-	var listing := {"listing_id":"u_%d" % Time.get_unix_time_from_system(), "card_id": card_id, "price": max(100, price), "seller": "user"}
+	var start_price := max(100, price)
+	var buy_now := max(start_price + 100, buy_now_price if buy_now_price > 0 else int(round(start_price * 1.8)))
+	var now := int(Time.get_unix_time_from_system())
+	var listing := {
+		"listing_id":"u_%d" % now,
+		"card_id": card_id,
+		"price": start_price,
+		"start_price": start_price,
+		"current_bid": 0,
+		"buy_now_price": buy_now,
+		"highest_bidder": "",
+		"expires_at_unix": now + max(duration_seconds, 300),
+		"seller": "user",
+		"active": true
+	}
 	market_listings.append(listing)
 	_save_state()
 	return {"ok": true}

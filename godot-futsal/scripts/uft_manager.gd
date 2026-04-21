@@ -329,7 +329,7 @@ func place_bid_on_listing(listing_id: String, amount: int) -> Dictionary:
 		var listing: Dictionary = market_listings[i]
 		if str(listing.get("listing_id", "")) != listing_id:
 			continue
-		var min_bid := max(int(listing.get("start_price", listing.get("price", 100))), int(listing.get("current_bid", 0)) + 100)
+		var min_bid: int = max(int(listing.get("start_price", listing.get("price", 100))), int(listing.get("current_bid", 0)) + 100)
 		if amount < min_bid:
 			return {"ok": false, "error": "Puja mínima: %d" % min_bid}
 		if not spend_currency(amount, 0):
@@ -346,8 +346,8 @@ func list_card_on_market(card_id: String, price: int, buy_now_price: int = 0, du
 	if not state["collection"].has(card_id):
 		return {"ok": false, "error": "No posees esa carta"}
 	state["collection"].erase(card_id)
-	var start_price := max(100, price)
-	var buy_now := max(start_price + 100, buy_now_price if buy_now_price > 0 else int(round(start_price * 1.8)))
+	var start_price: int = max(100, price)
+	var buy_now: int = max(start_price + 100, buy_now_price if buy_now_price > 0 else int(round(start_price * 1.8)))
 	var now := int(Time.get_unix_time_from_system())
 	var listing := {
 		"listing_id":"u_%d" % now,

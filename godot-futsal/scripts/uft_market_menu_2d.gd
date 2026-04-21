@@ -123,34 +123,54 @@ func _build_listing_tile(listing: Dictionary) -> Control:
 	return root
 
 func _load_card_texture(target: TextureRect, card: Dictionary) -> void:
-	var face_url := str(card.get("face_url", ""))
-	if face_url.is_empty():
-		var player: Dictionary = card.get("player", {})
-		face_url = str(player.get("photo_face_url", ""))
-	if face_url.is_empty():
-		return
-	var uft := get_node_or_null("/root/UFTManager")
-	if uft == null:
-		return
-	var cached: String = await uft.cache_remote_image(face_url, "market_cards")
-	if cached.is_empty():
-		return
-	var image := Image.new()
-	var err: int = image.load(cached)
-	if err != OK:
-		var global_path: String = ProjectSettings.globalize_path(cached)
-		err = image.load(global_path)
-	if err != OK:
-		return
-	var tex: Texture2D = ImageTexture.create_from_image(image)
-	target.texture = tex
+	var player: Dictionary = card.get("player", {})
+	var image_urls: Array[String] = [
+		str(card.get("card_frame_url", "")),
+		str(card.get("face_url", "")),
+		str(player.get("photo_face_url", ""))
+	]
+	for image_url in image_urls:
+		if image_url.is_empty():
+			continue
+		var tex: Texture2D = await _fetch_remote_texture(image_url)
+		if tex != null:
+			target.texture = tex
+			return
 
 func _format_countdown(expires_at_unix: int) -> String:
 	var remaining: int = max(0, expires_at_unix - int(Time.get_unix_time_from_system()))
-	var hours: int = remaining / 3600
-	var minutes: int = (remaining % 3600) / 60
+	var hours: int = int(floor(float(remaining) / 3600.0))
+	var minutes: int = int(floor(float(remaining % 3600) / 60.0))
 	var seconds: int = remaining % 60
 	return "%02d:%02d:%02d" % [hours, minutes, seconds]
+
+func _fetch_remote_texture(url: String) -> Texture2D:
+	var http := HTTPRequest.new()
+	add_child(http)
+	var err: int = http.request(url)
+	if err != OK:
+		http.queue_free()
+		return null
+	var completed: Array = await http.request_completed
+	http.queue_free()
+	if int(completed[0]) != HTTPRequest.RESULT_SUCCESS:
+		return null
+	var status_code: int = int(completed[1])
+	if status_code < 200 or status_code >= 300:
+		return null
+	var body: PackedByteArray = completed[3]
+	if body.is_empty():
+		return null
+	var image := Image.new()
+	var parse_ok := false
+	parse_ok = image.load_png_from_buffer(body) == OK
+	if not parse_ok:
+		parse_ok = image.load_jpg_from_buffer(body) == OK
+	if not parse_ok:
+		parse_ok = image.load_webp_from_buffer(body) == OK
+	if not parse_ok:
+		return null
+	return ImageTexture.create_from_image(image)
 
 func _on_bid_pressed(listing_id: String, current_bid: int, start_price: int) -> void:
 	var min_bid: int = max(start_price, current_bid + 100)

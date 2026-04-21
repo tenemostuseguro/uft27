@@ -2,6 +2,7 @@ extends Control
 
 const UFT_MENU_SCENE := "res://scenes/UFTMenu2D.tscn"
 const UFT_MARKET_SEARCH_SCENE := "res://scenes/UFTMarketSearchMenu2D.tscn"
+const DIGITAL_FONT_PATH := "res://assets/fonts/DS-DIGI.TTF"
 
 @onready var status_label: Label = $Margin/VBox/Status
 @onready var coins_label: Label = $Margin/VBox/TopBar/TopRow/Coins
@@ -29,6 +30,7 @@ func _process(_delta: float) -> void:
 			continue
 		var expiry: int = int(item.get("expires_at_unix", 0))
 		timer_label.text = _format_countdown(expiry)
+		_apply_countdown_style(timer_label, max(0, expiry - int(Time.get_unix_time_from_system())))
 
 func _connect_button(path: String, callback: Callable) -> void:
 	var btn := get_node_or_null(path)
@@ -76,6 +78,10 @@ func _build_listing_tile(listing: Dictionary) -> Control:
 	timer.add_theme_font_size_override("font_size", 32)
 	var expires_at_unix: int = int(listing.get("expires_at_unix", 0))
 	timer.text = _format_countdown(expires_at_unix)
+	var digital_font := load(DIGITAL_FONT_PATH)
+	if digital_font is Font:
+		timer.add_theme_font_override("font", digital_font)
+	_apply_countdown_style(timer, max(0, expires_at_unix - int(Time.get_unix_time_from_system())))
 	vbox.add_child(timer)
 	countdown_labels.append({"label": timer, "expires_at_unix": expires_at_unix})
 
@@ -143,6 +149,14 @@ func _format_countdown(expires_at_unix: int) -> String:
 	var minutes: int = int(floor(float(remaining % 3600) / 60.0))
 	var seconds: int = remaining % 60
 	return "%02d:%02d:%02d" % [hours, minutes, seconds]
+
+func _apply_countdown_style(label: Label, remaining_seconds: int) -> void:
+	if remaining_seconds > 3600:
+		label.add_theme_color_override("font_color", Color(0.27, 0.95, 0.35, 1.0))
+	elif remaining_seconds > 600:
+		label.add_theme_color_override("font_color", Color(0.96, 0.83, 0.18, 1.0))
+	else:
+		label.add_theme_color_override("font_color", Color(0.95, 0.20, 0.20, 1.0))
 
 func _fetch_remote_texture(url: String) -> Texture2D:
 	var http := HTTPRequest.new()

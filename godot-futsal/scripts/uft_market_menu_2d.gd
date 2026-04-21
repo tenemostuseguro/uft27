@@ -45,7 +45,7 @@ func _build_listing_tile(listing: Dictionary) -> Control:
 	root.custom_minimum_size = Vector2(230, 470)
 
 	var vbox := VBoxContainer.new()
-	vbox.theme_override_constants.separation = 4
+	vbox.add_theme_constant_override("separation", 4)
 	root.add_child(vbox)
 
 	var card: Dictionary = listing.get("card", {})
@@ -60,12 +60,12 @@ func _build_listing_tile(listing: Dictionary) -> Control:
 
 	var timer := Label.new()
 	timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	timer.theme_override_font_sizes.font_size = 32
+	timer.add_theme_font_size_override("font_size", 32)
 	timer.text = _format_countdown(int(listing.get("expires_at_unix", 0)))
 	vbox.add_child(timer)
 
 	var footer := VBoxContainer.new()
-	footer.theme_override_constants.separation = 3
+	footer.add_theme_constant_override("separation", 3)
 	vbox.add_child(footer)
 
 	var name_label := Label.new()
@@ -86,7 +86,7 @@ func _build_listing_tile(listing: Dictionary) -> Control:
 	footer.add_child(buy_label)
 
 	var actions := HBoxContainer.new()
-	actions.theme_override_constants.separation = 4
+	actions.add_theme_constant_override("separation", 4)
 	footer.add_child(actions)
 
 	var bid_btn := Button.new()

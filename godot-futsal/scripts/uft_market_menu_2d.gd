@@ -114,7 +114,7 @@ func _load_card_texture(target: TextureRect, card: Dictionary) -> void:
 	var uft := get_node_or_null("/root/UFTManager")
 	if uft == null:
 		return
-	var cached := await uft.cache_remote_image(face_url, "market_cards")
+	var cached: String = await uft.cache_remote_image(face_url, "market_cards")
 	if cached.is_empty():
 		return
 	var tex := load(cached)
@@ -122,14 +122,14 @@ func _load_card_texture(target: TextureRect, card: Dictionary) -> void:
 		target.texture = tex
 
 func _format_countdown(expires_at_unix: int) -> String:
-	var remaining := max(0, expires_at_unix - int(Time.get_unix_time_from_system()))
-	var hours := remaining / 3600
-	var minutes := (remaining % 3600) / 60
-	var seconds := remaining % 60
+	var remaining: int = max(0, expires_at_unix - int(Time.get_unix_time_from_system()))
+	var hours: int = remaining / 3600
+	var minutes: int = (remaining % 3600) / 60
+	var seconds: int = remaining % 60
 	return "%02d:%02d:%02d" % [hours, minutes, seconds]
 
 func _on_bid_pressed(listing_id: String, current_bid: int, start_price: int) -> void:
-	var min_bid := max(start_price, current_bid + 100)
+	var min_bid: int = max(start_price, current_bid + 100)
 	var uft := get_node_or_null("/root/UFTManager")
 	if uft == null:
 		status_label.text = "UFTManager no disponible"

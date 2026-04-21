@@ -14,85 +14,153 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.03, 0.05, 0.1, 1)
+color = Color(0.03, 0.06, 0.12, 1)
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
 
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="Title" type="Label" parent="Margin/VBox"]
-layout_mode = 2
-text = "UFT / Ultimate Futsal Team"
-theme_override_font_sizes/font_size = 34
-
-[node name="Summary" type="Label" parent="Margin/VBox"]
-layout_mode = 2
-text = "Resumen"
-
-[node name="Buttons" type="HBoxContainer" parent="Margin/VBox"]
-layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="SquadBattle" type="Button" parent="Margin/VBox/Buttons"]
+[node name="TopBar" type="PanelContainer" parent="Margin/VBox"]
 layout_mode = 2
-text = "Squad Battle vs IA"
+custom_minimum_size = Vector2(0, 44)
 
-[node name="Champions" type="Button" parent="Margin/VBox/Buttons"]
+[node name="TopRow" type="HBoxContainer" parent="Margin/VBox/TopBar"]
 layout_mode = 2
-text = "Fut Champions"
+theme_override_constants/separation = 10
 
-[node name="OpenBronze" type="Button" parent="Margin/VBox/Buttons"]
+[node name="ClubInfo" type="Label" parent="Margin/VBox/TopBar/TopRow"]
 layout_mode = 2
-text = "Abrir Sobre Bronce"
+size_flags_horizontal = 3
+text = "Brescia FC · EST.2021"
 
-[node name="OpenEvent" type="Button" parent="Margin/VBox/Buttons"]
+[node name="Currency" type="Label" parent="Margin/VBox/TopBar/TopRow"]
 layout_mode = 2
-text = "Abrir Sobre Evento"
+text = "Coins 0 | Points 0 | XP 0"
 
-[node name="ClaimPass" type="Button" parent="Margin/VBox/Buttons"]
+[node name="Tabs" type="HBoxContainer" parent="Margin/VBox"]
 layout_mode = 2
-text = "Reclamar Pase Nv.1"
+theme_override_constants/separation = 2
 
-[node name="BuyMarket" type="Button" parent="Margin/VBox/Buttons"]
+[node name="TabHome" type="Label" parent="Margin/VBox/Tabs"]
 layout_mode = 2
-text = "Comprar seleccionada"
+size_flags_horizontal = 3
+text = "HOME"
+horizontal_alignment = 1
 
-[node name="ListSelected" type="Button" parent="Margin/VBox/Buttons"]
+[node name="TabPlay" type="Label" parent="Margin/VBox/Tabs"]
 layout_mode = 2
-text = "Listar seleccionada"
+size_flags_horizontal = 3
+text = "PLAY"
+horizontal_alignment = 1
+
+[node name="TabClub" type="Label" parent="Margin/VBox/Tabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CLUB"
+horizontal_alignment = 1
+
+[node name="Content" type="HBoxContainer" parent="Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="SquadPanel" type="PanelContainer" parent="Margin/VBox/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SquadVBox" type="VBoxContainer" parent="Margin/VBox/Content/SquadPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="SquadTitle" type="Label" parent="Margin/VBox/Content/SquadPanel/SquadVBox"]
+layout_mode = 2
+text = "SQUAD"
+theme_override_font_sizes/font_size = 40
+
+[node name="SquadMeta" type="Label" parent="Margin/VBox/Content/SquadPanel/SquadVBox"]
+layout_mode = 2
+text = "Rating 0 · Chemistry 0"
+
+[node name="Lineup" type="GridContainer" parent="Margin/VBox/Content/SquadPanel/SquadVBox"]
+layout_mode = 2
+columns = 3
+
+[node name="POR" type="Label" parent="Margin/VBox/Content/SquadPanel/SquadVBox/Lineup"]
+layout_mode = 2
+text = "POR: -"
+
+[node name="C" type="Label" parent="Margin/VBox/Content/SquadPanel/SquadVBox/Lineup"]
+layout_mode = 2
+text = "C: -"
+
+[node name="AI" type="Label" parent="Margin/VBox/Content/SquadPanel/SquadVBox/Lineup"]
+layout_mode = 2
+text = "AI: -"
+
+[node name="AD" type="Label" parent="Margin/VBox/Content/SquadPanel/SquadVBox/Lineup"]
+layout_mode = 2
+text = "AD: -"
+
+[node name="P" type="Label" parent="Margin/VBox/Content/SquadPanel/SquadVBox/Lineup"]
+layout_mode = 2
+text = "P: -"
+
+[node name="PromoPanel" type="PanelContainer" parent="Margin/VBox/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(260, 0)
+
+[node name="PromoVBox" type="VBoxContainer" parent="Margin/VBox/Content/PromoPanel"]
+layout_mode = 2
+alignment = 1
+
+[node name="PromoTitle" type="Label" parent="Margin/VBox/Content/PromoPanel/PromoVBox"]
+layout_mode = 2
+text = "FUT\nMODE"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 46
+
+[node name="OpenMarket" type="Button" parent="Margin/VBox/Content/PromoPanel/PromoVBox"]
+layout_mode = 2
+text = "Mercado de jugadores"
 
 [node name="Status" type="Label" parent="Margin/VBox"]
 layout_mode = 2
 text = "Estado"
 
-[node name="Row" type="HBoxContainer" parent="Margin/VBox"]
+[node name="BottomTabs" type="HBoxContainer" parent="Margin/VBox"]
 layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
 
-[node name="Collection" type="ItemList" parent="Margin/VBox/Row"]
+[node name="SquadBattle" type="Button" parent="Margin/VBox/BottomTabs"]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
+text = "Squad"
 
-[node name="Market" type="ItemList" parent="Margin/VBox/Row"]
+[node name="Champions" type="Button" parent="Margin/VBox/BottomTabs"]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
+text = "Champions"
 
-[node name="Buttons2" type="HBoxContainer" parent="Margin/VBox"]
+[node name="OpenBronze" type="Button" parent="Margin/VBox/BottomTabs"]
 layout_mode = 2
+text = "Pack Bronce"
 
-[node name="Back" type="Button" parent="Margin/VBox/Buttons2"]
+[node name="OpenEvent" type="Button" parent="Margin/VBox/BottomTabs"]
+layout_mode = 2
+text = "Pack Evento"
+
+[node name="ClaimPass" type="Button" parent="Margin/VBox/BottomTabs"]
+layout_mode = 2
+text = "Pase"
+
+[node name="Back" type="Button" parent="Margin/VBox/BottomTabs"]
 layout_mode = 2
 text = "Volver"

@@ -1,0 +1,102 @@
+[gd_scene load_steps=2 format=3 uid="uid://uft_market_menu_2d"]
+
+[ext_resource type="Script" path="res://scripts/uft_market_menu_2d.gd" id="1_market"]
+
+[node name="UFTMarketMenu2D" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_market")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.025, 0.05, 0.1, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="TopBar" type="PanelContainer" parent="Margin/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+
+[node name="TopRow" type="HBoxContainer" parent="Margin/VBox/TopBar"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Margin/VBox/TopBar/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Mercado de jugadores"
+theme_override_font_sizes/font_size = 24
+
+[node name="Back" type="Button" parent="Margin/VBox/TopBar/TopRow"]
+layout_mode = 2
+text = "Volver"
+
+[node name="Body" type="HBoxContainer" parent="Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="MarketPanel" type="PanelContainer" parent="Margin/VBox/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MarketVBox" type="VBoxContainer" parent="Margin/VBox/Body/MarketPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="MarketTitle" type="Label" parent="Margin/VBox/Body/MarketPanel/MarketVBox"]
+layout_mode = 2
+text = "Ofertas"
+
+[node name="MarketList" type="ItemList" parent="Margin/VBox/Body/MarketPanel/MarketVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BuySelected" type="Button" parent="Margin/VBox/Body/MarketPanel/MarketVBox"]
+layout_mode = 2
+text = "Comprar seleccionado"
+
+[node name="CollectionPanel" type="PanelContainer" parent="Margin/VBox/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CollectionVBox" type="VBoxContainer" parent="Margin/VBox/Body/CollectionPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="CollectionTitle" type="Label" parent="Margin/VBox/Body/CollectionPanel/CollectionVBox"]
+layout_mode = 2
+text = "Mi colección"
+
+[node name="CollectionList" type="ItemList" parent="Margin/VBox/Body/CollectionPanel/CollectionVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ListSelected" type="Button" parent="Margin/VBox/Body/CollectionPanel/CollectionVBox"]
+layout_mode = 2
+text = "Listar seleccionado"
+
+[node name="Status" type="Label" parent="Margin/VBox"]
+layout_mode = 2
+text = "Estado"

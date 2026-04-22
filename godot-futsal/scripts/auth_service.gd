@@ -154,28 +154,61 @@ func set_profile_logo(logo_id: String, custom_image_url: String = "") -> Diction
 	if logo_id.strip_edges().is_empty() and custom_image_url.strip_edges().is_empty():
 		return {"ok": false, "error": "Logo inválido"}
 	var endpoint := "%s/rest/v1/rpc/set_player_profile_logo" % DEFAULT_SUPABASE_URL
+	var payload_logo_id: Variant = null
+	if not logo_id.strip_edges().is_empty():
+		payload_logo_id = logo_id.strip_edges()
 	var payload := {
 		"p_player_id": user_id,
-		"p_logo_id": null if logo_id.strip_edges().is_empty() else logo_id.strip_edges(),
+		"p_logo_id": payload_logo_id,
 		"p_custom_image_url": custom_image_url.strip_edges()
 	}
 	return await _request_json(endpoint, HTTPClient.METHOD_POST, payload)
 
 
-func list_uft_configs() -> Dictionary:
-	if not is_configured():
-		return {"ok": false, "error": "Configuración interna de auth incompleta"}
-	var endpoint := "%s/rest/v1/rpc/list_uft_configs" % DEFAULT_SUPABASE_URL
-	return await _request_json(endpoint, HTTPClient.METHOD_POST, {})
+func list_uft_players() -> Dictionary:
+	return await _list_uft_catalog("list_uft_players")
 
-func save_uft_config(config_key: String, payload: Variant) -> Dictionary:
+func list_uft_cards() -> Dictionary:
+	return await _list_uft_catalog("list_uft_cards")
+
+func list_uft_events() -> Dictionary:
+	return await _list_uft_catalog("list_uft_events")
+
+func list_uft_packs() -> Dictionary:
+	return await _list_uft_catalog("list_uft_packs")
+
+func list_uft_market_listings() -> Dictionary:
+	return await _list_uft_catalog("list_uft_market_listings")
+
+func upsert_uft_market_listing(listing: Dictionary) -> Dictionary:
 	if not is_configured():
 		return {"ok": false, "error": "Configuración interna de auth incompleta"}
-	if config_key.strip_edges().is_empty():
-		return {"ok": false, "error": "config_key inválido"}
-	var endpoint := "%s/rest/v1/rpc/save_uft_config" % DEFAULT_SUPABASE_URL
-	var body := {"p_key": config_key.strip_edges(), "p_payload": payload}
-	return await _request_json(endpoint, HTTPClient.METHOD_POST, body)
+	var endpoint := "%s/rest/v1/rpc/upsert_uft_market_listing" % DEFAULT_SUPABASE_URL
+	var payload := {
+		"p_listing_id": str(listing.get("listing_id", "")),
+		"p_card_id": str(listing.get("card_id", "")),
+		"p_price": int(listing.get("price", 100)),
+		"p_start_price": int(listing.get("start_price", listing.get("price", 100))),
+		"p_current_bid": int(listing.get("current_bid", 0)),
+		"p_buy_now_price": int(listing.get("buy_now_price", 1000)),
+		"p_highest_bidder": str(listing.get("highest_bidder", "")),
+		"p_expires_at_unix": int(listing.get("expires_at_unix", 0)),
+		"p_seller": str(listing.get("seller", "npc_market")),
+		"p_active": bool(listing.get("active", true))
+	}
+	return await _request_json(endpoint, HTTPClient.METHOD_POST, payload)
+
+func list_uft_seasons() -> Dictionary:
+	return await _list_uft_catalog("list_uft_seasons")
+
+func list_uft_countries() -> Dictionary:
+	return await _list_uft_catalog("list_uft_countries")
+
+func list_uft_leagues() -> Dictionary:
+	return await _list_uft_catalog("list_uft_leagues")
+
+func list_uft_clubs() -> Dictionary:
+	return await _list_uft_catalog("list_uft_clubs")
 
 func get_uft_snapshot() -> Dictionary:
 	if not is_configured():
@@ -200,6 +233,14 @@ func save_uft_snapshot(snapshot: Dictionary) -> Dictionary:
 	var endpoint := "%s/rest/v1/rpc/save_uft_snapshot" % DEFAULT_SUPABASE_URL
 	var body := {"p_player_id": user_id, "p_snapshot": snapshot}
 	return await _request_json(endpoint, HTTPClient.METHOD_POST, body)
+
+func _list_uft_catalog(function_name: String) -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	if function_name.strip_edges().is_empty():
+		return {"ok": false, "error": "Función RPC inválida"}
+	var endpoint := "%s/rest/v1/rpc/%s" % [DEFAULT_SUPABASE_URL, function_name.strip_edges()]
+	return await _request_json(endpoint, HTTPClient.METHOD_POST, {})
 
 func _validate_username(user_name: String) -> Dictionary:
 	var normalized_username := user_name.strip_edges().to_lower()
@@ -246,13 +287,20 @@ func _request_json(url: String, method: int, payload: Dictionary) -> Dictionary:
 	var response_code: int = completed[1]
 	var raw: PackedByteArray = completed[3]
 	var text := raw.get_string_from_utf8()
-	var parsed: Variant = JSON.parse_string(text)
+	var parsed: Variant = null
+	if not text.strip_edges().is_empty():
+		parsed = JSON.parse_string(text)
 
 	if response_code < 200 or response_code >= 300:
-		var parsed_dict: Dictionary = parsed if parsed is Dictionary else {}
+		var parsed_dict: Dictionary = {}
+		if parsed is Dictionary:
+			parsed_dict = parsed
 		var msg := str(parsed_dict.get("message", parsed_dict.get("msg", parsed_dict.get("error", text))))
 		return {"ok": false, "error": msg}
-
+	if text.strip_edges().is_empty():
+		return {"ok": true, "json": {}}
+	if parsed == null:
+		return {"ok": false, "error": "Respuesta inválida de Supabase (no JSON): %s" % text.left(120)}
 	return {"ok": true, "json": parsed}
 
 func _save_session() -> void:

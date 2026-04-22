@@ -9,48 +9,30 @@ const CHANGELOG_SCENE := "res://scenes/ChangelogMenu2D.tscn"
 const UFT_SCENE := "res://scenes/UFTMenu2D.tscn"
 const DEFAULT_LOGO_PATH := "res://assets/default_profile_logo.png"
 
-@onready var status_label: Label = $MainRow/RightPanel/RightVBox/StatusLabel
+@onready var status_label: Label = $MainRow/CenterArea/StatusLabel
 @onready var game_label: Label = $TopBar/TopRow/GameLabel
 @onready var build_label: Label = $TopBar/TopRow/BuildLabel
-@onready var profile_logo_rect: TextureRect = $MainRow/RightPanel/RightVBox/ProfileLogo
-@onready var notification_panel: PanelContainer = $NotificationPanel
-@onready var notification_header_label: Label = $NotificationPanel/Margin/VBox/Header
-@onready var notification_title_label: Label = $NotificationPanel/Margin/VBox/Body/Left/Title
-@onready var notification_body_label: RichTextLabel = $NotificationPanel/Margin/VBox/Body/Left/BodyText
-@onready var notification_image_rect: TextureRect = $NotificationPanel/Margin/VBox/Body/Right/Image
-@onready var notification_counter_label: Label = $NotificationPanel/Margin/VBox/Footer/Counter
-@onready var notification_close_button: Button = $NotificationPanel/Margin/VBox/Footer/CloseButton
-
-var notification_queue: Array[Dictionary] = []
-var active_notification: Dictionary = {}
+@onready var profile_logo_rect: TextureRect = $MainRow/LeftVisual/LeftVBox/ProfileLogo
 
 func _ready() -> void:
-	$MainRow/CenterArea/KickoffCard/KickoffVBox/PlayButton.pressed.connect(_on_play_pressed)
-	$MainRow/LeftNav/QuickMatchButton.pressed.connect(_on_quick_match_pressed)
-	$MainRow/LeftNav/TemplateButton.pressed.connect(_on_template_pressed)
-	$MainRow/LeftNav/ProfileButton.pressed.connect(_on_profile_pressed)
-	$MainRow/LeftNav/UFTButton.pressed.connect(_on_uft_pressed)
-	$MainRow/LeftNav/ChangeLogButton.pressed.connect(_on_changelog_pressed)
+	$MainRow/CenterArea/Grid/KickoffCard/KickoffVBox/PlayButton.pressed.connect(_on_play_pressed)
+	$MainRow/CenterArea/Grid/KickoffCard/KickoffVBox/QuickMatchButton.pressed.connect(_on_quick_match_pressed)
+	$MainRow/CenterArea/Grid/TemplateButton.pressed.connect(_on_template_pressed)
+	$MainRow/LeftVisual/LeftVBox/ProfileButton.pressed.connect(_on_profile_pressed)
+	$MainRow/CenterArea/Grid/RightTiles/UFTTile/UFTVBox/UFTButton.pressed.connect(_on_uft_pressed)
+	$MainRow/CenterArea/Grid/RightTiles/BottomNews/NewsVBox/ChangeLogButton.pressed.connect(_on_changelog_pressed)
+	$MainRow/CenterArea/Grid/RightTiles/BottomNews/NewsVBox/TemplateSmall.pressed.connect(_on_template_pressed)
 	$TopBar/TopRow/HelpButton.pressed.connect(_on_help_pressed)
 	$TopBar/TopRow/SettingsButton.pressed.connect(_on_settings_pressed)
 	$TopBar/TopRow/QuitButton.pressed.connect(_on_quit_pressed)
 	game_label.text = MatchConfig.GAME_NAME
 	build_label.text = MatchConfig.get_build_label()
-	notification_panel.visible = false
-	notification_close_button.pressed.connect(_on_notification_close_pressed)
 	_refresh_status()
 	_load_profile_logo()
-	_load_notifications()
-
-func _unhandled_input(event: InputEvent) -> void:
-	if notification_panel.visible and event.is_action_pressed("ui_accept"):
-		_on_notification_close_pressed()
 
 func _on_play_pressed() -> void:
-	if notification_panel.visible:
-		return
 	if not MatchConfig.template_ready:
-		status_label.text = "Antes de jugar, creá tu plantilla."
+		status_label.text = "Antes de jugar, crea tu plantilla."
 		return
 	get_tree().change_scene_to_file(MATCH_MODE_SCENE)
 
@@ -67,8 +49,6 @@ func _on_uft_pressed() -> void:
 	get_tree().change_scene_to_file(UFT_SCENE)
 
 func _on_quick_match_pressed() -> void:
-	if notification_panel.visible:
-		return
 	MatchConfig.template_ready = false
 	status_label.text = "Entrando en partido rápido..."
 	get_tree().change_scene_to_file(MATCH_MODE_SCENE)
@@ -116,18 +96,39 @@ func _load_logo_texture(path_or_url: String) -> void:
 		_apply_profile_logo_texture(_load_local_texture(DEFAULT_LOGO_PATH))
 		return
 	if _is_remote_path(path_or_url):
-		_request_remote_texture(path_or_url, _on_profile_logo_texture_ready)
+		_request_remote_texture(path_or_url)
 		return
 	_apply_profile_logo_texture(_load_local_texture(path_or_url))
 
-func _on_profile_logo_texture_ready(texture: Texture2D) -> void:
-	_apply_profile_logo_texture(texture)
+func _request_remote_texture(url: String) -> void:
+	var http := HTTPRequest.new()
+	add_child(http)
+	if http.request(url) != OK:
+		http.queue_free()
+		_apply_profile_logo_texture(_load_local_texture(DEFAULT_LOGO_PATH))
+		return
+	var completed: Array = await http.request_completed
+	http.queue_free()
+	if int(completed[0]) != HTTPRequest.RESULT_SUCCESS:
+		_apply_profile_logo_texture(_load_local_texture(DEFAULT_LOGO_PATH))
+		return
+	var image := Image.new()
+	var body: PackedByteArray = completed[3]
+	var err := image.load_png_from_buffer(body)
+	if err != OK:
+		err = image.load_jpg_from_buffer(body)
+	if err != OK:
+		err = image.load_webp_from_buffer(body)
+	if err != OK:
+		_apply_profile_logo_texture(_load_local_texture(DEFAULT_LOGO_PATH))
+		return
+	_apply_profile_logo_texture(ImageTexture.create_from_image(image))
 
 func _apply_profile_logo_texture(texture: Texture2D) -> void:
 	if texture != null:
 		profile_logo_rect.texture = texture
-		return
-	profile_logo_rect.texture = _load_local_texture(DEFAULT_LOGO_PATH)
+	else:
+		profile_logo_rect.texture = _load_local_texture(DEFAULT_LOGO_PATH)
 
 func _load_local_texture(path: String) -> Texture2D:
 	if path.strip_edges().is_empty() or not ResourceLoader.exists(path):
@@ -140,164 +141,5 @@ func _load_local_texture(path: String) -> Texture2D:
 		return ImageTexture.create_from_image(image)
 	return null
 
-func _request_remote_texture(url: String, callback: Callable) -> void:
-	var candidates := _build_remote_image_candidates(url)
-	_request_remote_texture_candidate(candidates, 0, callback)
-
-func _request_remote_texture_candidate(candidates: Array[String], index: int, callback: Callable) -> void:
-	if index >= candidates.size():
-		callback.call(null)
-		return
-	var target_url := candidates[index]
-	var http := HTTPRequest.new()
-	add_child(http)
-	http.request_completed.connect(_on_remote_texture_downloaded.bind(http, candidates, index, callback))
-	if http.request(target_url) != OK:
-		http.queue_free()
-		_request_remote_texture_candidate(candidates, index + 1, callback)
-
-func _on_remote_texture_downloaded(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray, http: HTTPRequest, candidates: Array[String], index: int, callback: Callable) -> void:
-	http.queue_free()
-	if result == HTTPRequest.RESULT_SUCCESS and response_code >= 200 and response_code < 300:
-		var texture := _texture_from_http_body(candidates[index], headers, body)
-		if texture != null:
-			callback.call(texture)
-			return
-	_request_remote_texture_candidate(candidates, index + 1, callback)
-
-func _texture_from_http_body(url: String, headers: PackedStringArray, body: PackedByteArray) -> Texture2D:
-	var kind := _detect_remote_image_kind(url, headers, body)
-	if kind == "gif":
-		return null
-	var image := Image.new()
-	var err := ERR_PARSE_ERROR
-	match kind:
-		"png":
-			err = image.load_png_from_buffer(body)
-		"jpg":
-			err = image.load_jpg_from_buffer(body)
-		"webp":
-			err = image.load_webp_from_buffer(body)
-		_:
-			err = image.load_png_from_buffer(body)
-			if err != OK:
-				err = image.load_jpg_from_buffer(body)
-			if err != OK:
-				err = image.load_webp_from_buffer(body)
-	if err != OK:
-		return null
-	return ImageTexture.create_from_image(image)
-
-func _detect_remote_image_kind(url: String, headers: PackedStringArray, body: PackedByteArray) -> String:
-	var mime_type := _extract_content_type(headers).to_lower()
-	if mime_type.contains("png"):
-		return "png"
-	if mime_type.contains("jpeg") or mime_type.contains("jpg"):
-		return "jpg"
-	if mime_type.contains("webp"):
-		return "webp"
-	if mime_type.contains("gif"):
-		return "gif"
-	var lower_url := url.to_lower()
-	if lower_url.contains(".png"):
-		return "png"
-	if lower_url.contains(".jpeg") or lower_url.contains(".jpg"):
-		return "jpg"
-	if lower_url.contains(".webp"):
-		return "webp"
-	if lower_url.contains(".gif"):
-		return "gif"
-	if body.size() >= 12:
-		if body[0] == 0x89 and body[1] == 0x50 and body[2] == 0x4E and body[3] == 0x47:
-			return "png"
-		if body[0] == 0xFF and body[1] == 0xD8:
-			return "jpg"
-		if body[0] == 0x47 and body[1] == 0x49 and body[2] == 0x46:
-			return "gif"
-		if body[0] == 0x52 and body[1] == 0x49 and body[2] == 0x46 and body[3] == 0x46 and body[8] == 0x57 and body[9] == 0x45 and body[10] == 0x42 and body[11] == 0x50:
-			return "webp"
-	return "unknown"
-
-func _extract_content_type(headers: PackedStringArray) -> String:
-	for header in headers:
-		var normalized := str(header).to_lower()
-		if normalized.begins_with("content-type:"):
-			return str(header).split(":", true, 1)[1].strip_edges()
-	return ""
-
-func _build_remote_image_candidates(url: String) -> Array[String]:
-	var normalized := url.strip_edges()
-	var candidates: Array[String] = []
-	if normalized.is_empty():
-		return candidates
-	candidates.append(normalized)
-	var lower := normalized.to_lower()
-	var gif_pos := lower.find(".gif")
-	if gif_pos != -1:
-		var prefix := normalized.substr(0, gif_pos)
-		var suffix := normalized.substr(gif_pos + 4)
-		for ext in [".png", ".webp", ".jpg", ".jpeg"]:
-			var alt := "%s%s%s" % [prefix, ext, suffix]
-			if not candidates.has(alt):
-				candidates.append(alt)
-	return candidates
-
 func _is_remote_path(path_or_url: String) -> bool:
 	return path_or_url.begins_with("http://") or path_or_url.begins_with("https://")
-
-func _load_notifications() -> void:
-	var auth: Node = _get_auth_service()
-	if auth == null or not auth.is_authenticated():
-		return
-	var result: Dictionary = await auth.get_unread_notifications(12)
-	if not result.get("ok", false):
-		status_label.text = "No se pudieron cargar notificaciones"
-		return
-	var rows: Variant = result.get("notifications", [])
-	if rows is not Array:
-		return
-	notification_queue.clear()
-	for row in rows:
-		if row is Dictionary:
-			notification_queue.append(row)
-	if notification_queue.size() > 0:
-		_show_next_notification()
-
-func _show_next_notification() -> void:
-	if notification_queue.is_empty():
-		notification_panel.visible = false
-		active_notification = {}
-		return
-	var next_notification: Dictionary = notification_queue.pop_front()
-	active_notification = next_notification
-	notification_panel.visible = true
-	notification_header_label.text = str(active_notification.get("header", "MENSAJE DEL EQUIPO UFT"))
-	notification_title_label.text = str(active_notification.get("title", "Actualización"))
-	notification_body_label.text = str(active_notification.get("body", ""))
-	notification_counter_label.text = "Pendientes: %d" % (notification_queue.size() + 1)
-	_load_notification_image(str(active_notification.get("image_url", "")))
-
-func _load_notification_image(image_url: String) -> void:
-	notification_image_rect.texture = null
-	if image_url.strip_edges().is_empty():
-		return
-	if _is_remote_path(image_url):
-		_request_remote_texture(image_url, _on_notification_texture_ready)
-		return
-	notification_image_rect.texture = _load_local_texture(image_url)
-
-func _on_notification_texture_ready(texture: Texture2D) -> void:
-	notification_image_rect.texture = texture
-
-func _on_notification_close_pressed() -> void:
-	if active_notification.is_empty():
-		notification_panel.visible = false
-		return
-	var auth: Node = _get_auth_service()
-	if auth != null and auth.is_authenticated():
-		await auth.mark_notification_read(str(active_notification.get("id", "")))
-	active_notification = {}
-	if notification_queue.size() > 0:
-		_show_next_notification()
-	else:
-		notification_panel.visible = false

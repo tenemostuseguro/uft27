@@ -41,7 +41,7 @@ theme_override_constants/separation = 14
 
 [node name="PhotoPanel" type="PanelContainer" parent="Margin/VBox/Row"]
 layout_mode = 2
-custom_minimum_size = Vector2(230, 220)
+custom_minimum_size = Vector2(260, 240)
 
 [node name="PhotoVBox" type="VBoxContainer" parent="Margin/VBox/Row/PhotoPanel"]
 layout_mode = 2
@@ -66,39 +66,24 @@ size_flags_horizontal = 3
 
 [node name="CrestVBox" type="VBoxContainer" parent="Margin/VBox/Row/CrestPanel"]
 layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="LogoTitle" type="Label" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
-layout_mode = 2
-text = "Logo de perfil (evento/equipo)"
-
-[node name="LogoSelect" type="OptionButton" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
-layout_mode = 2
-
-[node name="CustomLogoUrl" type="LineEdit" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
-layout_mode = 2
-placeholder_text = "URL opcional de logo (.png o .gif)"
+theme_override_constants/separation = 10
 
 [node name="CrestTitle" type="Label" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
 layout_mode = 2
-text = "Escudo del equipo (obligatorio)"
+text = "Escudo del equipo"
 
-[node name="CountryFilter" type="OptionButton" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
+[node name="CrestDescription" type="Label" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
 layout_mode = 2
+text = "Ahora se selecciona desde una pantalla dedicada conectada a Supabase."
+autowrap_mode = 2
 
-[node name="LeagueFilter" type="OptionButton" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
+[node name="OpenCrestMenu" type="Button" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
 layout_mode = 2
-
-[node name="CrestSelect" type="OptionButton" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
-layout_mode = 2
-
-[node name="CrestPreview" type="Label" parent="Margin/VBox/Row/CrestPanel/CrestVBox"]
-layout_mode = 2
-text = "Escudo: -"
+text = "Abrir selector de escudo"
 
 [node name="Status" type="Label" parent="Margin/VBox"]
 layout_mode = 2
-text = "Seleccioná foto y escudo para tu perfil"
+text = "Configura tu foto y tu escudo"
 
 [node name="Buttons" type="HBoxContainer" parent="Margin/VBox"]
 layout_mode = 2
@@ -107,6 +92,10 @@ theme_override_constants/separation = 10
 [node name="SaveButton" type="Button" parent="Margin/VBox/Buttons"]
 layout_mode = 2
 text = "Guardar perfil"
+
+[node name="CrestButton" type="Button" parent="Margin/VBox/Buttons"]
+layout_mode = 2
+text = "Selector de escudo"
 
 [node name="BackButton" type="Button" parent="Margin/VBox/Buttons"]
 layout_mode = 2

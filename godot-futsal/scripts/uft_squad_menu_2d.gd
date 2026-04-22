@@ -35,6 +35,7 @@ func _ready() -> void:
 	auto_fill_btn.pressed.connect(_on_auto_fill_pressed)
 	collection_list.item_activated.connect(_on_collection_item_activated)
 	formation_select.item_selected.connect(_on_formation_selected)
+	slot_layer.resized.connect(_on_slot_layer_resized)
 	set_process(true)
 	_setup_visuals()
 	_refresh()
@@ -55,6 +56,7 @@ func _setup_visuals() -> void:
 	var court_tex: Variant = load(COURT_TEXTURE_PATH)
 	if court_tex is Texture2D:
 		court_rect.texture = court_tex
+	court_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	formation_select.clear()
 	for key in FORMATIONS.keys():
 		formation_select.add_item(key)
@@ -92,12 +94,12 @@ func _rebuild_slot_nodes() -> void:
 	var formation: Dictionary = FORMATIONS.get(current_formation, FORMATIONS["1-2-1"])
 	for pos in POSITIONS:
 		var marker := TextureRect.new()
-		marker.size = Vector2(74, 100)
+		marker.size = Vector2(92, 128)
 		marker.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		marker.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		marker.mouse_filter = Control.MOUSE_FILTER_STOP
 		var p: Vector2 = formation.get(pos, Vector2(0.5, 0.5))
-		marker.position = Vector2(slot_layer.size.x * p.x - 37, slot_layer.size.y * p.y - 50)
+		marker.position = Vector2(slot_layer.size.x * p.x - marker.size.x * 0.5, slot_layer.size.y * p.y - marker.size.y * 0.5)
 		marker.gui_input.connect(_on_slot_gui_input.bind(pos))
 		slot_layer.add_child(marker)
 		var lbl := Label.new()
@@ -132,9 +134,9 @@ func _load_card_slot_texture(slot: TextureRect, card_id: String) -> void:
 	if card.is_empty():
 		_assign_empty_texture(slot)
 		return
-	var url := str(card.get("card_frame_url", ""))
+	var url := str(card.get("face_url", ""))
 	if url.is_empty():
-		url = str(card.get("face_url", ""))
+		url = str(card.get("card_frame_url", ""))
 	if url.is_empty():
 		_assign_empty_texture(slot)
 		return
@@ -188,12 +190,14 @@ func _start_drag(pos: String) -> void:
 	var card_id := str(lineup_cards.get(pos, ""))
 	if card_id.is_empty():
 		return
+	if not card_cache.has(card_id):
+		return
 	dragging = true
 	drag_from_slot = pos
 	if drag_preview != null and is_instance_valid(drag_preview):
 		drag_preview.queue_free()
 	drag_preview = TextureRect.new()
-	drag_preview.size = Vector2(74, 100)
+	drag_preview.size = Vector2(92, 128)
 	drag_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	drag_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	drag_preview.z_index = 99
@@ -298,6 +302,10 @@ func _on_auto_fill_pressed() -> void:
 
 func _on_formation_selected(index: int) -> void:
 	current_formation = formation_select.get_item_text(index)
+	_rebuild_slot_nodes()
+	_refresh_slot_visuals()
+
+func _on_slot_layer_resized() -> void:
 	_rebuild_slot_nodes()
 	_refresh_slot_visuals()
 

@@ -146,13 +146,33 @@ func _load_card_slot_texture(slot: TextureRect, card_id: String) -> void:
 	_load_remote_texture_into(slot, url)
 
 func _load_remote_texture_into(slot: TextureRect, url: String) -> void:
-	var tex: Texture2D = await _fetch_remote_texture(url)
+	var tex: Texture2D = await _load_texture_with_cache_fallback(url)
 	if tex == null:
 		_assign_empty_texture(slot)
 		return
 	if not is_instance_valid(slot):
 		return
 	slot.texture = tex
+
+func _load_texture_with_cache_fallback(url: String) -> Texture2D:
+	var uft := get_node_or_null("/root/UFTManager")
+	if uft != null and uft.has_method("cache_remote_image"):
+		var cached_path: String = await uft.cache_remote_image(url, "squad_cards")
+		if not cached_path.is_empty():
+			var from_cache: Texture2D = _load_texture_from_path(cached_path)
+			if from_cache != null:
+				return from_cache
+	return await _fetch_remote_texture(url)
+
+func _load_texture_from_path(path: String) -> Texture2D:
+	var image := Image.new()
+	var err: int = image.load(path)
+	if err != OK:
+		var global_path: String = ProjectSettings.globalize_path(path)
+		err = image.load(global_path)
+	if err != OK:
+		return null
+	return ImageTexture.create_from_image(image)
 
 func _fetch_remote_texture(url: String) -> Texture2D:
 	var http := HTTPRequest.new()

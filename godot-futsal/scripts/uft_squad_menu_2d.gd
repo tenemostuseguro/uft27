@@ -17,7 +17,7 @@ const FORMATIONS := {
 @onready var auto_fill_btn: Button = $Margin/VBox/FormationRow/AutoFill
 @onready var court_rect: TextureRect = $Margin/VBox/FieldArea/Court
 @onready var slot_layer: Control = $Margin/VBox/FieldArea/SlotLayer
-@onready var collection_list: ItemList = $Margin/VBox/Collection
+@onready var collection_grid: GridContainer = $Margin/VBox/CollectionScroll/CollectionGrid
 
 var current_formation := "1-2-1"
 var lineup_cards: Dictionary = {"POR":"", "C":"", "AI":"", "AD":"", "P":""}
@@ -28,12 +28,12 @@ var selected_slot := "P"
 
 var dragging := false
 var drag_from_slot := ""
+var drag_from_collection_card_id := ""
 var drag_preview: TextureRect = null
 
 func _ready() -> void:
 	$Margin/VBox/Header/Back.pressed.connect(func() -> void: get_tree().change_scene_to_file(UFT_MENU_SCENE))
 	auto_fill_btn.pressed.connect(_on_auto_fill_pressed)
-	collection_list.item_activated.connect(_on_collection_item_activated)
 	formation_select.item_selected.connect(_on_formation_selected)
 	slot_layer.resized.connect(_on_slot_layer_resized)
 	set_process(true)
@@ -77,15 +77,50 @@ func _refresh() -> void:
 	_refresh_squad_meta(uft)
 
 func _build_collection(uft: Node) -> void:
-	collection_list.clear()
+	for child in collection_grid.get_children():
+		child.queue_free()
 	collection_card_ids.clear()
 	card_cache.clear()
 	for card in uft.get_collection_cards():
 		var card_id := str(card.get("card_id", ""))
 		card_cache[card_id] = card
 		collection_card_ids.append(card_id)
-		var player: Dictionary = card.get("player", {})
-		collection_list.add_item("%s (%s) OVR %d" % [str(player.get("name", "?")), str(player.get("main_position", "")), int(card.get("ovr", 0))])
+		collection_grid.add_child(_create_collection_card_widget(card_id, card))
+
+func _create_collection_card_widget(card_id: String, card: Dictionary) -> Control:
+	var holder := PanelContainer.new()
+	holder.custom_minimum_size = Vector2(90, 122)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 2)
+	holder.add_child(vb)
+	var tex := TextureRect.new()
+	tex.custom_minimum_size = Vector2(88, 98)
+	tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	vb.add_child(tex)
+	var card_name := Label.new()
+	card_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	card_name.add_theme_font_size_override("font_size", 12)
+	var player: Dictionary = card.get("player", {})
+	card_name.text = \"%s %d\" % [str(player.get("main_position", "")), int(card.get("ovr", 0))]
+	vb.add_child(card_name)
+	holder.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			_start_drag_from_collection(card_id, tex.texture)
+		if event is InputEventScreenTouch and event.pressed:
+			_start_drag_from_collection(card_id, tex.texture)
+	)
+	var image_url := str(card.get("card_frame_url", ""))
+	if image_url.is_empty():
+		image_url = str(card.get("face_url", ""))
+	if image_url.is_empty():
+		var p: Dictionary = card.get("player", {})
+		image_url = str(p.get("photo_face_url", ""))
+	if image_url.is_empty():
+		_assign_empty_texture(tex)
+	else:
+		_load_remote_texture_into(tex, image_url)
+	return holder
 
 func _rebuild_slot_nodes() -> void:
 	for child in slot_layer.get_children():
@@ -217,6 +252,7 @@ func _start_drag(pos: String) -> void:
 		return
 	dragging = true
 	drag_from_slot = pos
+	drag_from_collection_card_id = ""
 	if drag_preview != null and is_instance_valid(drag_preview):
 		drag_preview.queue_free()
 	drag_preview = TextureRect.new()
@@ -229,16 +265,36 @@ func _start_drag(pos: String) -> void:
 		drag_preview.texture = origin.texture
 	add_child(drag_preview)
 
+func _start_drag_from_collection(card_id: String, source_texture: Texture2D) -> void:
+	if card_id.is_empty():
+		return
+	dragging = true
+	drag_from_slot = ""
+	drag_from_collection_card_id = card_id
+	if drag_preview != null and is_instance_valid(drag_preview):
+		drag_preview.queue_free()
+	drag_preview = TextureRect.new()
+	drag_preview.size = Vector2(92, 128)
+	drag_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	drag_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	drag_preview.z_index = 99
+	drag_preview.texture = source_texture
+	add_child(drag_preview)
+
 func _finish_drag(target_pos: String) -> void:
 	if not dragging:
 		return
 	var resolved_target := target_pos
 	if resolved_target.is_empty():
 		resolved_target = _find_slot_under_mouse()
-	if not resolved_target.is_empty() and resolved_target != drag_from_slot:
-		_swap_slots(drag_from_slot, resolved_target)
+	if not resolved_target.is_empty():
+		if not drag_from_collection_card_id.is_empty():
+			_assign_collection_card_to_slot(drag_from_collection_card_id, resolved_target)
+		elif resolved_target != drag_from_slot:
+			_swap_slots(drag_from_slot, resolved_target)
 	dragging = false
 	drag_from_slot = ""
+	drag_from_collection_card_id = ""
 	if drag_preview != null and is_instance_valid(drag_preview):
 		drag_preview.queue_free()
 	drag_preview = null
@@ -284,12 +340,9 @@ func _has_unique_players(lineup: Dictionary) -> bool:
 		seen[player_id] = true
 	return true
 
-func _on_collection_item_activated(index: int) -> void:
-	if index < 0 or index >= collection_card_ids.size():
-		return
-	var card_id := collection_card_ids[index]
+func _assign_collection_card_to_slot(card_id: String, slot_pos: String) -> void:
 	var simulated := lineup_cards.duplicate(true)
-	simulated[selected_slot] = card_id
+	simulated[slot_pos] = card_id
 	if not _has_unique_players(simulated):
 		status_label.text = "No puedes usar dos cartas del mismo jugador en el quinteto."
 		return

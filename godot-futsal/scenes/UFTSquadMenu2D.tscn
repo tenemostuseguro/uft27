@@ -22,7 +22,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 14
+theme_override_constants/margin_top = 30
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 14
 
@@ -90,9 +90,16 @@ anchor_bottom = 1.0
 layout_mode = 2
 text = "Mi colección UFT"
 
-[node name="Collection" type="ItemList" parent="Margin/VBox"]
+[node name="CollectionScroll" type="ScrollContainer" parent="Margin/VBox"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 120)
+horizontal_scroll_mode = 0
+
+[node name="CollectionGrid" type="GridContainer" parent="Margin/VBox/CollectionScroll"]
+layout_mode = 2
+columns = 8
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
 
 [node name="Status" type="Label" parent="Margin/VBox"]
 layout_mode = 2

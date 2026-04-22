@@ -102,7 +102,7 @@ func _create_collection_card_widget(card_id: String, card: Dictionary) -> Contro
 	card_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card_name.add_theme_font_size_override("font_size", 12)
 	var player: Dictionary = card.get("player", {})
-	card_name.text = \"%s %d\" % [str(player.get("main_position", "")), int(card.get("ovr", 0))]
+	card_name.text = "%s %d" % [str(player.get("main_position", "")), int(card.get("ovr", 0))]
 	vb.add_child(card_name)
 	holder.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:

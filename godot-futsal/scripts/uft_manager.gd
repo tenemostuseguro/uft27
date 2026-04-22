@@ -319,6 +319,8 @@ func buy_market_listing(listing_id: String) -> Dictionary:
 			return {"ok": false, "error": "Coins insuficientes"}
 		var card_id := str(listing.get("card_id", ""))
 		state["collection"].append(card_id)
+		listing["active"] = false
+		_sync_market_listing_async(listing)
 		market_listings.remove_at(i)
 		_save_state()
 		return {"ok": true, "card_id": card_id}
@@ -338,6 +340,7 @@ func place_bid_on_listing(listing_id: String, amount: int) -> Dictionary:
 		listing["highest_bidder"] = str(state.get("club_name", "user"))
 		listing["updated_at"] = Time.get_unix_time_from_system()
 		market_listings[i] = listing
+		_sync_market_listing_async(listing)
 		_save_state()
 		return {"ok": true, "listing_id": listing_id, "amount": amount}
 	return {"ok": false, "error": "Oferta no encontrada"}
@@ -362,8 +365,17 @@ func list_card_on_market(card_id: String, price: int, buy_now_price: int = 0, du
 		"active": true
 	}
 	market_listings.append(listing)
+	_sync_market_listing_async(listing)
 	_save_state()
 	return {"ok": true}
+
+func _sync_market_listing_async(listing: Dictionary) -> void:
+	var auth := get_node_or_null("/root/AuthService")
+	if auth == null:
+		return
+	if not auth.has_method("upsert_uft_market_listing"):
+		return
+	auth.upsert_uft_market_listing(listing)
 
 func get_active_events() -> Array[Dictionary]:
 	var now := int(Time.get_unix_time_from_system())

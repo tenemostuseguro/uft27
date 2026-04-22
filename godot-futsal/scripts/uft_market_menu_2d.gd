@@ -139,6 +139,8 @@ func _load_card_texture(target: TextureRect, card: Dictionary) -> void:
 		if image_url.is_empty():
 			continue
 		var tex: Texture2D = await _fetch_remote_texture(image_url)
+		if not is_instance_valid(target):
+			return
 		if tex != null:
 			target.texture = tex
 			return

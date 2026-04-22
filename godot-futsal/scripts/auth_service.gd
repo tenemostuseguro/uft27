@@ -180,6 +180,24 @@ func list_uft_packs() -> Dictionary:
 func list_uft_market_listings() -> Dictionary:
 	return await _list_uft_catalog("list_uft_market_listings")
 
+func upsert_uft_market_listing(listing: Dictionary) -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	var endpoint := "%s/rest/v1/rpc/upsert_uft_market_listing" % DEFAULT_SUPABASE_URL
+	var payload := {
+		"p_listing_id": str(listing.get("listing_id", "")),
+		"p_card_id": str(listing.get("card_id", "")),
+		"p_price": int(listing.get("price", 100)),
+		"p_start_price": int(listing.get("start_price", listing.get("price", 100))),
+		"p_current_bid": int(listing.get("current_bid", 0)),
+		"p_buy_now_price": int(listing.get("buy_now_price", 1000)),
+		"p_highest_bidder": str(listing.get("highest_bidder", "")),
+		"p_expires_at_unix": int(listing.get("expires_at_unix", 0)),
+		"p_seller": str(listing.get("seller", "npc_market")),
+		"p_active": bool(listing.get("active", true))
+	}
+	return await _request_json(endpoint, HTTPClient.METHOD_POST, payload)
+
 func list_uft_seasons() -> Dictionary:
 	return await _list_uft_catalog("list_uft_seasons")
 

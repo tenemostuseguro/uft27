@@ -80,7 +80,6 @@ size_flags_horizontal = 3
 
 [node name="SquadVBox" type="VBoxContainer" parent="Margin/VBox/Content/SquadPanel"]
 layout_mode = 2
-size_flags_vertical = 3
 theme_override_constants/separation = 6
 
 [node name="SquadTitle" type="Label" parent="Margin/VBox/Content/SquadPanel/SquadVBox"]
@@ -92,47 +91,14 @@ theme_override_font_sizes/font_size = 40
 layout_mode = 2
 text = "Rating 0 · Chemistry 0"
 
-[node name="FormationRow" type="HBoxContainer" parent="Margin/VBox/Content/SquadPanel/SquadVBox"]
+[node name="LineupText" type="Label" parent="Margin/VBox/Content/SquadPanel/SquadVBox"]
 layout_mode = 2
-theme_override_constants/separation = 6
+text = "POR: -  C: -  AI: -  AD: -  P: -"
+autowrap_mode = 3
 
-[node name="FormationLabel" type="Label" parent="Margin/VBox/Content/SquadPanel/SquadVBox/FormationRow"]
+[node name="OpenSquadMenu" type="Button" parent="Margin/VBox/Content/SquadPanel/SquadVBox"]
 layout_mode = 2
-text = "Formación"
-
-[node name="FormationSelect" type="OptionButton" parent="Margin/VBox/Content/SquadPanel/SquadVBox/FormationRow"]
-layout_mode = 2
-
-[node name="AutoFill" type="Button" parent="Margin/VBox/Content/SquadPanel/SquadVBox/FormationRow"]
-layout_mode = 2
-text = "Auto"
-
-[node name="FieldArea" type="Control" parent="Margin/VBox/Content/SquadPanel/SquadVBox"]
-custom_minimum_size = Vector2(0, 300)
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="Court" type="TextureRect" parent="Margin/VBox/Content/SquadPanel/SquadVBox/FieldArea"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-expand_mode = 1
-stretch_mode = 5
-
-[node name="SlotLayer" type="Control" parent="Margin/VBox/Content/SquadPanel/SquadVBox/FieldArea"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-
-[node name="CollectionLabel" type="Label" parent="Margin/VBox/Content/SquadPanel/SquadVBox"]
-layout_mode = 2
-text = "Mi colección UFT"
-
-[node name="Collection" type="ItemList" parent="Margin/VBox/Content/SquadPanel/SquadVBox"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 125)
+text = "Editar alineación"
 
 [node name="PromoPanel" type="PanelContainer" parent="Margin/VBox/Content"]
 layout_mode = 2

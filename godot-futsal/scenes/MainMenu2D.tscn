@@ -14,23 +14,26 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.03, 0.07, 0.14, 1)
+color = Color(0.85, 0.85, 0.84, 1)
 
 [node name="TopBar" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 72.0
+offset_left = 280.0
+offset_top = 18.0
+offset_right = -28.0
+offset_bottom = 64.0
 
 [node name="TopRow" type="HBoxContainer" parent="TopBar"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="GameLabel" type="Label" parent="TopBar/TopRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "UFT 27"
-theme_override_font_sizes/font_size = 36
+theme_override_font_sizes/font_size = 24
 
 [node name="BuildLabel" type="Label" parent="TopBar/TopRow"]
 layout_mode = 2
@@ -38,238 +41,153 @@ text = "PREALPHA"
 
 [node name="SettingsButton" type="Button" parent="TopBar/TopRow"]
 layout_mode = 2
-text = "⚙ Ajustes"
+text = "Ajustes"
 
 [node name="HelpButton" type="Button" parent="TopBar/TopRow"]
 layout_mode = 2
-text = "? Ayuda"
+text = "Ayuda"
 
 [node name="QuitButton" type="Button" parent="TopBar/TopRow"]
 layout_mode = 2
-text = "✕ Salir"
+text = "Salir"
 
 [node name="MainRow" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
-anchor_top = 0.11
+anchor_top = 0.1
 anchor_right = 1.0
 anchor_bottom = 0.9
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
-theme_override_constants/separation = 16
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = -18.0
+theme_override_constants/separation = 14
 
-[node name="LeftNav" type="VBoxContainer" parent="MainRow"]
+[node name="LeftVisual" type="PanelContainer" parent="MainRow"]
 layout_mode = 2
-custom_minimum_size = Vector2(210, 0)
-theme_override_constants/separation = 10
+custom_minimum_size = Vector2(250, 0)
 
-[node name="TemplateButton" type="Button" parent="MainRow/LeftNav"]
+[node name="LeftVBox" type="VBoxContainer" parent="MainRow/LeftVisual"]
 layout_mode = 2
-text = "MY TEAM\n(plantilla)"
+theme_override_constants/separation = 8
 
-[node name="ProfileButton" type="Button" parent="MainRow/LeftNav"]
+[node name="ProfileLogo" type="TextureRect" parent="MainRow/LeftVisual/LeftVBox"]
+custom_minimum_size = Vector2(220, 220)
 layout_mode = 2
-text = "PERFIL\n(foto + escudo)"
+expand_mode = 1
+stretch_mode = 5
 
-[node name="UFTButton" type="Button" parent="MainRow/LeftNav"]
+[node name="ProfileButton" type="Button" parent="MainRow/LeftVisual/LeftVBox"]
 layout_mode = 2
-text = "UFT MODE"
-
-[node name="QuickMatchButton" type="Button" parent="MainRow/LeftNav"]
-layout_mode = 2
-text = "PARTIDO RÁPIDO"
-
-[node name="ChangeLogButton" type="Button" parent="MainRow/LeftNav"]
-layout_mode = 2
-text = "CHANGELOG"
+text = "Perfil"
 
 [node name="CenterArea" type="VBoxContainer" parent="MainRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
-[node name="KickoffCard" type="PanelContainer" parent="MainRow/CenterArea"]
+[node name="Tabs" type="HBoxContainer" parent="MainRow/CenterArea"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="HomeTab" type="Label" parent="MainRow/CenterArea/Tabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "HOME"
+horizontal_alignment = 1
+
+[node name="PlayTab" type="Label" parent="MainRow/CenterArea/Tabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "PLAY"
+horizontal_alignment = 1
+
+[node name="OnlineTab" type="Label" parent="MainRow/CenterArea/Tabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "ONLINE"
+horizontal_alignment = 1
+
+[node name="CustomTab" type="Label" parent="MainRow/CenterArea/Tabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CUSTOMISE"
+horizontal_alignment = 1
+
+[node name="Grid" type="HBoxContainer" parent="MainRow/CenterArea"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 8
 
-[node name="KickoffVBox" type="VBoxContainer" parent="MainRow/CenterArea/KickoffCard"]
+[node name="TemplateButton" type="Button" parent="MainRow/CenterArea/Grid"]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_vertical = 3
+text = "MY TEAM"
+
+[node name="KickoffCard" type="PanelContainer" parent="MainRow/CenterArea/Grid"]
+layout_mode = 2
+custom_minimum_size = Vector2(280, 0)
+size_flags_vertical = 3
+
+[node name="KickoffVBox" type="VBoxContainer" parent="MainRow/CenterArea/Grid/KickoffCard"]
 layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 8
 
-[node name="KickoffTitle" type="Label" parent="MainRow/CenterArea/KickoffCard/KickoffVBox"]
+[node name="KickoffTitle" type="Label" parent="MainRow/CenterArea/Grid/KickoffCard/KickoffVBox"]
 layout_mode = 2
-text = "KICK-OFF"
+text = "KICK OFF"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 42
+theme_override_font_sizes/font_size = 38
 
-[node name="KickoffSubtitle" type="Label" parent="MainRow/CenterArea/KickoffCard/KickoffVBox"]
+[node name="KickoffSubtitle" type="Label" parent="MainRow/CenterArea/Grid/KickoffCard/KickoffVBox"]
 layout_mode = 2
-text = "Entrar al modo de partido"
+text = "Modo partido"
 horizontal_alignment = 1
 
-[node name="PlayButton" type="Button" parent="MainRow/CenterArea/KickoffCard/KickoffVBox"]
+[node name="PlayButton" type="Button" parent="MainRow/CenterArea/Grid/KickoffCard/KickoffVBox"]
 layout_mode = 2
 text = "JUGAR"
 
-[node name="BottomTiles" type="HBoxContainer" parent="MainRow/CenterArea"]
+[node name="QuickMatchButton" type="Button" parent="MainRow/CenterArea/Grid/KickoffCard/KickoffVBox"]
 layout_mode = 2
-theme_override_constants/separation = 10
+text = "PARTIDO RÁPIDO"
 
-[node name="LiveEventsCard" type="PanelContainer" parent="MainRow/CenterArea/BottomTiles"]
+[node name="RightTiles" type="VBoxContainer" parent="MainRow/CenterArea/Grid"]
 layout_mode = 2
-size_flags_horizontal = 3
+custom_minimum_size = Vector2(360, 0)
+size_flags_vertical = 3
+theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="MainRow/CenterArea/BottomTiles/LiveEventsCard"]
+[node name="UFTTile" type="PanelContainer" parent="MainRow/CenterArea/Grid/RightTiles"]
 layout_mode = 2
-text = "LIVE EVENTS\n(próximamente)"
-horizontal_alignment = 1
-vertical_alignment = 1
+size_flags_vertical = 3
 
-[node name="RivalsCard" type="PanelContainer" parent="MainRow/CenterArea/BottomTiles"]
+[node name="UFTVBox" type="VBoxContainer" parent="MainRow/CenterArea/Grid/RightTiles/UFTTile"]
 layout_mode = 2
-size_flags_horizontal = 3
+alignment = 1
 
-[node name="Label" type="Label" parent="MainRow/CenterArea/BottomTiles/RivalsCard"]
+[node name="UFTButton" type="Button" parent="MainRow/CenterArea/Grid/RightTiles/UFTTile/UFTVBox"]
 layout_mode = 2
-text = "DIVISION RIVALS\n(próximamente)"
-horizontal_alignment = 1
-vertical_alignment = 1
+text = "CLAIM YOUR PACK / UFT MODE"
 
-[node name="RightPanel" type="PanelContainer" parent="MainRow"]
+[node name="BottomNews" type="PanelContainer" parent="MainRow/CenterArea/Grid/RightTiles"]
 layout_mode = 2
-custom_minimum_size = Vector2(260, 0)
+size_flags_vertical = 3
 
-[node name="RightVBox" type="VBoxContainer" parent="MainRow/RightPanel"]
+[node name="NewsVBox" type="VBoxContainer" parent="MainRow/CenterArea/Grid/RightTiles/BottomNews"]
 layout_mode = 2
-theme_override_constants/separation = 10
+alignment = 1
 
-[node name="ProfileLogo" type="TextureRect" parent="MainRow/RightPanel/RightVBox"]
-custom_minimum_size = Vector2(128, 128)
+[node name="ChangeLogButton" type="Button" parent="MainRow/CenterArea/Grid/RightTiles/BottomNews/NewsVBox"]
 layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
+text = "CHANGELOG"
 
-[node name="ClubTitle" type="Label" parent="MainRow/RightPanel/RightVBox"]
+[node name="TemplateSmall" type="Button" parent="MainRow/CenterArea/Grid/RightTiles/BottomNews/NewsVBox"]
 layout_mode = 2
-text = "MY CLUB"
-theme_override_font_sizes/font_size = 28
+text = "Alineación / Plantilla"
 
-[node name="ClubInfo" type="Label" parent="MainRow/RightPanel/RightVBox"]
-layout_mode = 2
-text = "Valor del equipo\n1.267.000"
-
-[node name="StatusLabel" type="Label" parent="MainRow/RightPanel/RightVBox"]
+[node name="StatusLabel" type="Label" parent="MainRow/CenterArea"]
 layout_mode = 2
 text = "Estado"
-
-[node name="NotificationPanel" type="PanelContainer" parent="."]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 80.0
-offset_top = 70.0
-offset_right = -80.0
-offset_bottom = -70.0
-
-[node name="Margin" type="MarginContainer" parent="NotificationPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
-
-[node name="VBox" type="VBoxContainer" parent="NotificationPanel/Margin"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="Header" type="Label" parent="NotificationPanel/Margin/VBox"]
-layout_mode = 2
-text = "MENSAJE DEL EQUIPO UFT"
-theme_override_font_sizes/font_size = 36
-
-[node name="Body" type="HBoxContainer" parent="NotificationPanel/Margin/VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/separation = 18
-
-[node name="Left" type="VBoxContainer" parent="NotificationPanel/Margin/VBox/Body"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Title" type="Label" parent="NotificationPanel/Margin/VBox/Body/Left"]
-layout_mode = 2
-text = "Título de notificación"
-theme_override_font_sizes/font_size = 52
-autowrap_mode = 3
-
-[node name="BodyText" type="RichTextLabel" parent="NotificationPanel/Margin/VBox/Body/Left"]
-layout_mode = 2
-size_flags_vertical = 3
-bbcode_enabled = true
-text = "Descripción de la notificación"
-fit_content = false
-scroll_active = true
-
-[node name="Right" type="PanelContainer" parent="NotificationPanel/Margin/VBox/Body"]
-layout_mode = 2
-custom_minimum_size = Vector2(420, 0)
-size_flags_vertical = 3
-
-[node name="Image" type="TextureRect" parent="NotificationPanel/Margin/VBox/Body/Right"]
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Footer" type="HBoxContainer" parent="NotificationPanel/Margin/VBox"]
-layout_mode = 2
-alignment = 2
-theme_override_constants/separation = 12
-
-[node name="Counter" type="Label" parent="NotificationPanel/Margin/VBox/Footer"]
-layout_mode = 2
-text = "Pendientes: 0"
-
-[node name="CloseButton" type="Button" parent="NotificationPanel/Margin/VBox/Footer"]
-layout_mode = 2
-text = "Aceptar"
-
-[node name="BottomBar" type="PanelContainer" parent="."]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -64.0
-
-[node name="BottomNav" type="HBoxContainer" parent="BottomBar"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="QuestsLabel" type="Label" parent="BottomBar/BottomNav"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "QUESTS"
-horizontal_alignment = 1
-
-[node name="LeaguesLabel" type="Label" parent="BottomBar/BottomNav"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "LEAGUES"
-horizontal_alignment = 1
-
-[node name="MarketLabel" type="Label" parent="BottomBar/BottomNav"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "MARKET"
-horizontal_alignment = 1
-
-[node name="StoreLabel" type="Label" parent="BottomBar/BottomNav"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "STORE"
-horizontal_alignment = 1

@@ -25,8 +25,9 @@ const FORMATIONS := {
 @onready var court_rect: TextureRect = $Margin/VBox/FieldArea/Court
 @onready var slot_layer: Control = $Margin/VBox/FieldArea/SlotLayer
 @onready var collection_grid: GridContainer = $Margin/VBox/CollectionScroll/CollectionGrid
-@onready var lineup_grl_badge: TextureRect = $Margin/VBox/Header/LineupGrlBadge/Badge
-@onready var lineup_grl_label: Label = $Margin/VBox/Header/LineupGrlBadge/Badge/Value
+@onready var lineup_grl_badge: TextureRect = $RightPanel/PanelMargin/PanelVBox/LineupGrlBadge/Badge
+@onready var lineup_grl_label: Label = $RightPanel/PanelMargin/PanelVBox/LineupGrlBadge/Badge/Value
+@onready var lineup_formation_label: Label = $RightPanel/PanelMargin/PanelVBox/LineupFormation
 
 var current_formation := "1-2-1"
 var lineup_cards: Dictionary = {"POR":"", "C":"", "AI":"", "AD":"", "P":""}
@@ -75,6 +76,7 @@ func _setup_visuals() -> void:
 	for key in FORMATIONS.keys():
 		formation_select.add_item(key)
 	formation_select.select(0)
+	lineup_formation_label.text = current_formation
 
 func _refresh() -> void:
 	var uft := get_node_or_null("/root/UFTManager")
@@ -419,6 +421,7 @@ func _on_auto_fill_pressed() -> void:
 
 func _on_formation_selected(index: int) -> void:
 	current_formation = formation_select.get_item_text(index)
+	lineup_formation_label.text = current_formation
 	_rebuild_slot_nodes()
 	_refresh_slot_visuals()
 

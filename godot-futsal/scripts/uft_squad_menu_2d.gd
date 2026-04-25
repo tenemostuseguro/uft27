@@ -64,7 +64,9 @@ func _setup_visuals() -> void:
 	var court_tex: Variant = load(COURT_TEXTURE_PATH)
 	if court_tex is Texture2D:
 		court_rect.texture = court_tex
-	court_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	# Mostramos el PNG completo (incluido el panel derecho integrado en court.png)
+	# y evitamos que el modo "covered" lo recorte en pantallas anchas.
+	court_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
 	formation_select.clear()
 	for key in FORMATIONS.keys():
 		formation_select.add_item(key)

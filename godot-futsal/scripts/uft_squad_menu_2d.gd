@@ -3,6 +3,13 @@ extends Control
 const UFT_MENU_SCENE := "res://scenes/UFTMenu2D.tscn"
 const COURT_TEXTURE_PATH := "res://assets/court.png"
 const EMPTY_SLOT_TEXTURE_PATH := "res://assets/vacio.png"
+const GRL_FONT_PATH := "res://assets/fonts/grl.otf"
+const GRL_BADGE_TEXTURES := {
+	"low": "res://assets/amagrl.png",
+	"mid": "res://assets/rojgrl.png",
+	"high": "res://assets/morgrl.png",
+	"elite": "res://assets/blagrl.png"
+}
 const POSITIONS: Array[String] = ["POR", "C", "AI", "AD", "P"]
 
 const FORMATIONS := {
@@ -18,6 +25,9 @@ const FORMATIONS := {
 @onready var court_rect: TextureRect = $Margin/VBox/FieldArea/Court
 @onready var slot_layer: Control = $Margin/VBox/FieldArea/SlotLayer
 @onready var collection_grid: GridContainer = $Margin/VBox/CollectionScroll/CollectionGrid
+@onready var lineup_grl_badge: TextureRect = $RightPanel/PanelMargin/PanelVBox/LineupGrlBadge/Badge
+@onready var lineup_grl_label: Label = $RightPanel/PanelMargin/PanelVBox/LineupGrlBadge/Badge/Value
+@onready var lineup_formation_label: Label = $RightPanel/PanelMargin/PanelVBox/LineupFormation
 
 var current_formation := "1-2-1"
 var lineup_cards: Dictionary = {"POR":"", "C":"", "AI":"", "AD":"", "P":""}
@@ -30,6 +40,7 @@ var dragging := false
 var drag_from_slot := ""
 var drag_from_collection_card_id := ""
 var drag_preview: TextureRect = null
+var grl_font: FontFile = null
 
 func _ready() -> void:
 	$Margin/VBox/Header/Back.pressed.connect(func() -> void: get_tree().change_scene_to_file(UFT_MENU_SCENE))
@@ -53,6 +64,10 @@ func _input(event: InputEvent) -> void:
 		_finish_drag("")
 
 func _setup_visuals() -> void:
+	grl_font = load(GRL_FONT_PATH) as FontFile
+	if grl_font != null:
+		lineup_grl_label.add_theme_font_override("font", grl_font)
+	lineup_grl_label.add_theme_color_override("font_color", Color.WHITE)
 	var court_tex: Variant = load(COURT_TEXTURE_PATH)
 	if court_tex is Texture2D:
 		court_rect.texture = court_tex
@@ -61,6 +76,7 @@ func _setup_visuals() -> void:
 	for key in FORMATIONS.keys():
 		formation_select.add_item(key)
 	formation_select.select(0)
+	lineup_formation_label.text = current_formation
 
 func _refresh() -> void:
 	var uft := get_node_or_null("/root/UFTManager")
@@ -90,6 +106,7 @@ func _build_collection(uft: Node) -> void:
 func _create_collection_card_widget(card_id: String, card: Dictionary) -> Control:
 	var holder := PanelContainer.new()
 	holder.custom_minimum_size = Vector2(90, 122)
+	holder.mouse_filter = Control.MOUSE_FILTER_STOP
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 2)
 	holder.add_child(vb)
@@ -101,8 +118,9 @@ func _create_collection_card_widget(card_id: String, card: Dictionary) -> Contro
 	var card_name := Label.new()
 	card_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card_name.add_theme_font_size_override("font_size", 12)
-	var player: Dictionary = card.get("player", {})
-	card_name.text = "%s %d" % [str(player.get("main_position", "")), int(card.get("ovr", 0))]
+	var player := card.get("player", {}) as Dictionary
+	var ovr := int(card.get("ovr", 0))
+	card_name.text = "%s %d" % [str(player.get("main_position", "")), ovr]
 	vb.add_child(card_name)
 	holder.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -257,6 +275,8 @@ func _start_drag(pos: String) -> void:
 		drag_preview.queue_free()
 	drag_preview = TextureRect.new()
 	drag_preview.size = Vector2(92, 128)
+	drag_preview.top_level = true
+	drag_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	drag_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	drag_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	drag_preview.z_index = 99
@@ -264,6 +284,7 @@ func _start_drag(pos: String) -> void:
 	if origin != null:
 		drag_preview.texture = origin.texture
 	add_child(drag_preview)
+	drag_preview.global_position = get_global_mouse_position() - drag_preview.size * 0.5
 
 func _start_drag_from_collection(card_id: String, source_texture: Texture2D) -> void:
 	if card_id.is_empty():
@@ -275,11 +296,14 @@ func _start_drag_from_collection(card_id: String, source_texture: Texture2D) -> 
 		drag_preview.queue_free()
 	drag_preview = TextureRect.new()
 	drag_preview.size = Vector2(92, 128)
+	drag_preview.top_level = true
+	drag_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	drag_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	drag_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	drag_preview.z_index = 99
 	drag_preview.texture = source_texture
 	add_child(drag_preview)
+	drag_preview.global_position = get_global_mouse_position() - drag_preview.size * 0.5
 
 func _finish_drag(target_pos: String) -> void:
 	if not dragging:
@@ -305,9 +329,26 @@ func _find_slot_under_mouse() -> String:
 		var slot: TextureRect = slot_nodes.get(pos, null)
 		if slot == null:
 			continue
-		if Rect2(slot.global_position, slot.size).has_point(mouse):
+		if slot.get_global_rect().has_point(mouse):
 			return pos
 	return ""
+
+func _select_grl_badge_texture_path(ovr: int) -> String:
+	if ovr >= 100:
+		return str(GRL_BADGE_TEXTURES.get("elite", ""))
+	if ovr >= 90:
+		return str(GRL_BADGE_TEXTURES.get("high", ""))
+	if ovr >= 80:
+		return str(GRL_BADGE_TEXTURES.get("mid", ""))
+	return str(GRL_BADGE_TEXTURES.get("low", ""))
+
+func _set_badge_visuals(badge: TextureRect, badge_label: Label, ovr: int, visible: bool) -> void:
+	if not visible:
+		badge.visible = false
+		return
+	badge.visible = true
+	badge.texture = load(_select_grl_badge_texture_path(ovr)) as Texture2D
+	badge_label.text = str(ovr)
 
 func _swap_slots(from_pos: String, to_pos: String) -> void:
 	var from_id := str(lineup_cards.get(from_pos, ""))
@@ -335,6 +376,8 @@ func _has_unique_players(lineup: Dictionary) -> bool:
 		var details: Dictionary = uft.get_card_details(card_id)
 		var player: Dictionary = details.get("player", {})
 		var player_id := str(player.get("player_id", ""))
+		if player_id.is_empty():
+			continue
 		if seen.has(player_id):
 			return false
 		seen[player_id] = true
@@ -378,6 +421,7 @@ func _on_auto_fill_pressed() -> void:
 
 func _on_formation_selected(index: int) -> void:
 	current_formation = formation_select.get_item_text(index)
+	lineup_formation_label.text = current_formation
 	_rebuild_slot_nodes()
 	_refresh_slot_visuals()
 
@@ -409,3 +453,4 @@ func _refresh_squad_meta(uft: Node) -> void:
 	var rating: int = int(round(float(total) / float(max(1, count)))) if count > 0 else 0
 	var chemistry := count * 20
 	squad_meta_label.text = "Rating %d · Chemistry %d" % [rating, chemistry]
+	_set_badge_visuals(lineup_grl_badge, lineup_grl_label, rating, true)

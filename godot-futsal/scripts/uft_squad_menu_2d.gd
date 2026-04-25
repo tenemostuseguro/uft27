@@ -3,6 +3,11 @@ extends Control
 const UFT_MENU_SCENE := "res://scenes/UFTMenu2D.tscn"
 const COURT_TEXTURE_PATH := "res://assets/court.png"
 const EMPTY_SLOT_TEXTURE_PATH := "res://assets/vacio.png"
+const GRL_FONT_PATH := "res://assets/fonts/grl.otf"
+const GRL_BADGE_LOW_PATH := "res://assets/amagrl.png"
+const GRL_BADGE_MID_PATH := "res://assets/rojgrl.png"
+const GRL_BADGE_HIGH_PATH := "res://assets/morgrl.png"
+const GRL_BADGE_ELITE_PATH := "res://assets/blagrl.png"
 const POSITIONS: Array[String] = ["POR", "C", "AI", "AD", "P"]
 const FIELD_LEFT_MARGIN_RATIO := 0.04
 const FIELD_RIGHT_MARGIN_RATIO := 0.06
@@ -26,7 +31,8 @@ const FORMATIONS := {
 @onready var collection_grid: GridContainer = $Margin/VBox/CollectionScroll/CollectionGrid
 @onready var lineup_title_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/LineupTitle
 @onready var lineup_state_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/LineupState
-@onready var grl_value_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/GrlBadge/GrlCenter/GrlValue
+@onready var grl_badge_image: TextureRect = $Margin/VBox/FieldArea/RightPanel/RightVBox/GrlBadge/BadgeImage
+@onready var grl_value_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/GrlBadge/GrlValue
 @onready var formation_info_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/FormationInfo
 
 var current_formation := "1-2-1"
@@ -78,6 +84,10 @@ func _setup_visuals() -> void:
 	formation_info_label.text = current_formation
 	lineup_title_label.text = "LINEUP 1"
 	lineup_state_label.text = "ACTIVE"
+	var grl_font: FontFile = load(GRL_FONT_PATH) as FontFile
+	if grl_font != null:
+		grl_value_label.add_theme_font_override("font", grl_font)
+	grl_value_label.add_theme_color_override("font_color", Color.WHITE)
 	_apply_collection_visibility()
 
 func _refresh() -> void:
@@ -425,6 +435,7 @@ func _commit_lineup() -> void:
 func _refresh_squad_meta(uft: Node) -> void:
 	if uft == null:
 		squad_meta_label.text = "Rating 0 · Chemistry 0"
+		_update_grl_badge(0)
 		return
 	var total := 0
 	var count := 0
@@ -438,7 +449,7 @@ func _refresh_squad_meta(uft: Node) -> void:
 	var rating: int = int(round(float(total) / float(max(1, count)))) if count > 0 else 0
 	var chemistry := count * 20
 	squad_meta_label.text = "Rating %d · Chemistry %d" % [rating, chemistry]
-	grl_value_label.text = str(rating)
+	_update_grl_badge(rating)
 
 func _on_collection_toggle_pressed() -> void:
 	collection_expanded = not collection_expanded
@@ -449,3 +460,18 @@ func _apply_collection_visibility() -> void:
 		return
 	collection_scroll.visible = collection_expanded
 	collection_toggle_btn.text = "Mi colección UFT ▾" if collection_expanded else "Mi colección UFT ▸"
+
+func _update_grl_badge(grl: int) -> void:
+	grl_value_label.text = str(grl)
+	var badge_path := GRL_BADGE_LOW_PATH
+	if grl >= 100:
+		badge_path = GRL_BADGE_ELITE_PATH
+	elif grl >= 90:
+		badge_path = GRL_BADGE_HIGH_PATH
+	elif grl >= 81:
+		badge_path = GRL_BADGE_MID_PATH
+	var badge_tex: Texture2D = load(badge_path) as Texture2D
+	if badge_tex != null:
+		grl_badge_image.texture = badge_tex
+	else:
+		grl_badge_image.texture = null

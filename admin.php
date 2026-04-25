@@ -610,6 +610,7 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
                 <a href="#temporadas-uft">Temporadas UFT</a>
                 <a href="market_admin.php">Página Mercado</a>
                 <a href="player_card_wizard.php">Asistente Jugador/Carta</a>
+                <a href="pack_system_admin.php">Sistema de Sobres</a>
             </div>
         </div>
         <form method="post" class="inline">

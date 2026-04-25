@@ -691,6 +691,28 @@ create table if not exists public.uft_packs_catalog (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.player_uft_cards (
+  player_id uuid not null references public.player_accounts(id) on delete cascade,
+  card_id text not null references public.uft_cards_catalog(card_id) on delete cascade,
+  quantity integer not null default 1,
+  first_obtained_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (player_id, card_id)
+);
+
+create table if not exists public.uft_pack_openings (
+  opening_id uuid primary key default gen_random_uuid(),
+  player_id uuid not null references public.player_accounts(id) on delete cascade,
+  pack_id text not null references public.uft_packs_catalog(pack_id) on delete cascade,
+  won_cards jsonb not null default '[]'::jsonb,
+  duplicates integer not null default 0,
+  duplicate_coins integer not null default 0,
+  opened_at timestamptz not null default now()
+);
+
+create index if not exists idx_player_uft_cards_player on public.player_uft_cards(player_id, updated_at desc);
+create index if not exists idx_uft_pack_openings_player on public.uft_pack_openings(player_id, opened_at desc);
+
 create table if not exists public.uft_market_catalog (
   listing_id text primary key,
   card_id text not null references public.uft_cards_catalog(card_id) on delete cascade,
@@ -1103,6 +1125,110 @@ security definer
 set search_path = public
 as $$ select * from public.uft_packs_catalog order by updated_at desc; $$;
 
+create or replace function public.list_player_uft_cards(
+  p_player_id uuid
+)
+returns table(
+  card_id text,
+  quantity integer,
+  updated_at timestamptz
+)
+language sql
+security definer
+set search_path = public
+as $$
+  select puc.card_id, puc.quantity, puc.updated_at
+  from public.player_uft_cards puc
+  where puc.player_id = p_player_id
+  order by puc.updated_at desc;
+$$;
+
+create or replace function public.open_uft_pack(
+  p_player_id uuid,
+  p_pack_id text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_pack public.uft_packs_catalog%rowtype;
+  v_pool text[];
+  v_pool_len integer;
+  v_count integer := 1;
+  v_card_id text;
+  v_duplicate_policy text := 'allow';
+  v_won_cards jsonb := '[]'::jsonb;
+  v_duplicates integer := 0;
+  v_duplicate_coins integer := 0;
+  v_card_suggested integer := 0;
+begin
+  if p_player_id is null or p_pack_id is null or trim(p_pack_id) = '' then
+    return jsonb_build_object('ok', false, 'error', 'Parámetros inválidos');
+  end if;
+
+  select *
+  into v_pack
+  from public.uft_packs_catalog
+  where pack_id = trim(p_pack_id);
+
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'Sobre no encontrado');
+  end if;
+
+  v_count := greatest(coalesce(v_pack.cards_count, 1), 1);
+  v_duplicate_policy := coalesce(nullif(trim(v_pack.duplicate_policy), ''), 'allow');
+  v_pool := array(select jsonb_array_elements_text(coalesce(v_pack.pool, '[]'::jsonb)));
+  v_pool_len := coalesce(array_length(v_pool, 1), 0);
+
+  if v_pool_len = 0 then
+    return jsonb_build_object('ok', false, 'error', 'El sobre no tiene pool de cartas');
+  end if;
+
+  for i in 1..v_count loop
+    v_card_id := v_pool[1 + floor(random() * v_pool_len)::int];
+    if v_card_id is null or trim(v_card_id) = '' then
+      continue;
+    end if;
+
+    if v_duplicate_policy = 'coins'
+      and exists(
+        select 1
+        from public.player_uft_cards puc
+        where puc.player_id = p_player_id
+          and puc.card_id = v_card_id
+      )
+    then
+      select coalesce(c.suggested_price, 0) into v_card_suggested
+      from public.uft_cards_catalog c
+      where c.card_id = v_card_id;
+      v_duplicate_coins := v_duplicate_coins + greatest(v_card_suggested, 200);
+      v_duplicates := v_duplicates + 1;
+    else
+      insert into public.player_uft_cards(player_id, card_id, quantity, first_obtained_at, updated_at)
+      values (p_player_id, v_card_id, 1, now(), now())
+      on conflict (player_id, card_id) do update set
+        quantity = public.player_uft_cards.quantity + 1,
+        updated_at = now();
+
+      v_won_cards := v_won_cards || jsonb_build_array(v_card_id);
+    end if;
+  end loop;
+
+  insert into public.uft_pack_openings(player_id, pack_id, won_cards, duplicates, duplicate_coins, opened_at)
+  values (p_player_id, trim(p_pack_id), v_won_cards, v_duplicates, v_duplicate_coins, now());
+
+  return jsonb_build_object(
+    'ok', true,
+    'pack_id', trim(p_pack_id),
+    'won_cards', v_won_cards,
+    'duplicates', v_duplicates,
+    'duplicate_coins', v_duplicate_coins
+  );
+end;
+$$;
+
 create or replace function public.list_uft_market_listings()
 returns setof public.uft_market_catalog
 language sql
@@ -1124,6 +1250,8 @@ revoke all on public.uft_packs_catalog from anon, authenticated;
 revoke all on public.uft_market_catalog from anon, authenticated;
 revoke all on public.uft_seasons_catalog from anon, authenticated;
 revoke all on public.uft_card_types_catalog from anon, authenticated;
+revoke all on public.player_uft_cards from anon, authenticated;
+revoke all on public.uft_pack_openings from anon, authenticated;
 
 grant execute on function public.upsert_uft_player(text, text, text, jsonb, text, text, uuid, text, jsonb) to anon, authenticated;
 grant execute on function public.upsert_uft_player(text, text, text, jsonb, text, text, text, text, jsonb) to anon, authenticated;
@@ -1138,5 +1266,7 @@ grant execute on function public.list_uft_cards() to anon, authenticated;
 grant execute on function public.list_uft_card_types() to anon, authenticated;
 grant execute on function public.list_uft_events() to anon, authenticated;
 grant execute on function public.list_uft_packs() to anon, authenticated;
+grant execute on function public.list_player_uft_cards(uuid) to anon, authenticated;
+grant execute on function public.open_uft_pack(uuid, text) to anon, authenticated;
 grant execute on function public.list_uft_market_listings() to anon, authenticated;
 grant execute on function public.list_uft_seasons() to anon, authenticated;

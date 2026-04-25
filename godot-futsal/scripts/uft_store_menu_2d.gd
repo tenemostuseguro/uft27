@@ -109,10 +109,10 @@ func _update_time_labels() -> void:
 func _update_single_timer_label(timer_label: Label) -> void:
 	var ends_at := int(timer_label.get_meta("ends_at_unix", 0))
 	var now := int(Time.get_unix_time_from_system())
-	var remain := max(0, ends_at - now)
-	var h := remain / 3600
-	var m := (remain % 3600) / 60
-	var s := remain % 60
+	var remain: int = int(max(0, ends_at - now))
+	var h: int = int(remain / 3600)
+	var m: int = int((remain % 3600) / 60)
+	var s: int = int(remain % 60)
 	timer_label.text = "Tiempo restante: %02d:%02d:%02d" % [h, m, s]
 
 func _on_buy_pressed(pack_id: String) -> void:

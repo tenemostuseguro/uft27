@@ -25,6 +25,8 @@ const FORMATIONS := {
 @onready var court_rect: TextureRect = $Margin/VBox/FieldArea/Court
 @onready var slot_layer: Control = $Margin/VBox/FieldArea/SlotLayer
 @onready var collection_grid: GridContainer = $Margin/VBox/CollectionScroll/CollectionGrid
+@onready var lineup_grl_badge: TextureRect = $Margin/LineupGrlBadge/Badge
+@onready var lineup_grl_label: Label = $Margin/LineupGrlBadge/Badge/Value
 
 var current_formation := "1-2-1"
 var lineup_cards: Dictionary = {"POR":"", "C":"", "AI":"", "AD":"", "P":""}
@@ -62,6 +64,9 @@ func _input(event: InputEvent) -> void:
 
 func _setup_visuals() -> void:
 	grl_font = load(GRL_FONT_PATH) as FontFile
+	if grl_font != null:
+		lineup_grl_label.add_theme_font_override("font", grl_font)
+	lineup_grl_label.add_theme_color_override("font_color", Color.WHITE)
 	var court_tex: Variant = load(COURT_TEXTURE_PATH)
 	if court_tex is Texture2D:
 		court_rect.texture = court_tex
@@ -115,7 +120,6 @@ func _create_collection_card_widget(card_id: String, card: Dictionary) -> Contro
 	var ovr := int(card.get("ovr", 0))
 	card_name.text = "%s %d" % [str(player.get("main_position", "")), ovr]
 	vb.add_child(card_name)
-	_add_grl_badge(holder, ovr)
 	holder.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			_start_drag_from_collection(card_id, tex.texture)
@@ -155,37 +159,6 @@ func _rebuild_slot_nodes() -> void:
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 		lbl.anchors_preset = Control.PRESET_FULL_RECT
 		marker.add_child(lbl)
-		var badge_root := Control.new()
-		badge_root.name = "BadgeRoot"
-		badge_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		badge_root.anchors_preset = Control.PRESET_TOP_RIGHT
-		badge_root.anchor_left = 1.0
-		badge_root.anchor_right = 1.0
-		badge_root.anchor_top = 0.0
-		badge_root.anchor_bottom = 0.0
-		badge_root.offset_left = -46
-		badge_root.offset_top = 4
-		badge_root.offset_right = -2
-		badge_root.offset_bottom = 48
-		marker.add_child(badge_root)
-		var badge_tex := TextureRect.new()
-		badge_tex.name = "Badge"
-		badge_tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		badge_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		badge_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		badge_tex.anchors_preset = Control.PRESET_FULL_RECT
-		badge_root.add_child(badge_tex)
-		var badge_label := Label.new()
-		badge_label.name = "BadgeLabel"
-		badge_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		badge_label.anchors_preset = Control.PRESET_FULL_RECT
-		badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		badge_label.add_theme_color_override("font_color", Color.WHITE)
-		badge_label.add_theme_font_size_override("font_size", 14)
-		if grl_font != null:
-			badge_label.add_theme_font_override("font", grl_font)
-		badge_root.add_child(badge_label)
 		slot_nodes[pos] = marker
 
 func _refresh_slot_visuals() -> void:
@@ -196,15 +169,8 @@ func _refresh_slot_visuals() -> void:
 		var card_id := str(lineup_cards.get(pos, ""))
 		if card_id.is_empty():
 			_assign_empty_texture(slot)
-			_set_slot_badge(slot, 0, false)
 		else:
 			_load_card_slot_texture(slot, card_id)
-			var details := card_cache.get(card_id, {}) as Dictionary
-			if details.is_empty():
-				var uft := get_node_or_null("/root/UFTManager")
-				if uft != null:
-					details = uft.get_card_details(card_id)
-			_set_slot_badge(slot, int(details.get("ovr", 0)), true)
 		slot.modulate = Color(1, 1, 1, 1) if pos == selected_slot else Color(0.85, 0.85, 0.85, 1)
 
 func _assign_empty_texture(slot: TextureRect) -> void:
@@ -374,44 +340,6 @@ func _select_grl_badge_texture_path(ovr: int) -> String:
 		return str(GRL_BADGE_TEXTURES.get("mid", ""))
 	return str(GRL_BADGE_TEXTURES.get("low", ""))
 
-func _add_grl_badge(parent: Control, ovr: int) -> void:
-	var badge := TextureRect.new()
-	badge.name = "Badge"
-	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge.custom_minimum_size = Vector2(34, 40)
-	badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	badge.anchors_preset = Control.PRESET_TOP_RIGHT
-	badge.anchor_left = 1.0
-	badge.anchor_right = 1.0
-	badge.offset_left = -34
-	badge.offset_right = 0
-	badge.offset_top = 2
-	badge.offset_bottom = 42
-	parent.add_child(badge)
-	var badge_label := Label.new()
-	badge_label.name = "BadgeLabel"
-	badge_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge_label.anchors_preset = Control.PRESET_FULL_RECT
-	badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	badge_label.add_theme_color_override("font_color", Color.WHITE)
-	badge_label.add_theme_font_size_override("font_size", 12)
-	if grl_font != null:
-		badge_label.add_theme_font_override("font", grl_font)
-	badge.add_child(badge_label)
-	_set_badge_visuals(badge, badge_label, ovr, true)
-
-func _set_slot_badge(slot: TextureRect, ovr: int, visible: bool) -> void:
-	var badge_root := slot.get_node_or_null("BadgeRoot") as Control
-	if badge_root == null:
-		return
-	var badge := badge_root.get_node_or_null("Badge") as TextureRect
-	var badge_label := badge_root.get_node_or_null("BadgeLabel") as Label
-	if badge == null or badge_label == null:
-		return
-	_set_badge_visuals(badge, badge_label, ovr, visible)
-
 func _set_badge_visuals(badge: TextureRect, badge_label: Label, ovr: int, visible: bool) -> void:
 	if not visible:
 		badge.visible = false
@@ -446,6 +374,8 @@ func _has_unique_players(lineup: Dictionary) -> bool:
 		var details: Dictionary = uft.get_card_details(card_id)
 		var player: Dictionary = details.get("player", {})
 		var player_id := str(player.get("player_id", ""))
+		if player_id.is_empty():
+			continue
 		if seen.has(player_id):
 			return false
 		seen[player_id] = true
@@ -520,3 +450,4 @@ func _refresh_squad_meta(uft: Node) -> void:
 	var rating: int = int(round(float(total) / float(max(1, count)))) if count > 0 else 0
 	var chemistry := count * 20
 	squad_meta_label.text = "Rating %d · Chemistry %d" % [rating, chemistry]
+	_set_badge_visuals(lineup_grl_badge, lineup_grl_label, rating, true)

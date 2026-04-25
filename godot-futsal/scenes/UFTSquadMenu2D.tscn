@@ -86,14 +86,16 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 
-[node name="CollectionLabel" type="Label" parent="Margin/VBox"]
+[node name="CollectionToggle" type="Button" parent="Margin/VBox"]
 layout_mode = 2
-text = "Mi colección UFT"
+alignment = 0
+text = "Mi colección UFT ▸"
 
 [node name="CollectionScroll" type="ScrollContainer" parent="Margin/VBox"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 120)
 horizontal_scroll_mode = 0
+visible = false
 
 [node name="CollectionGrid" type="GridContainer" parent="Margin/VBox/CollectionScroll"]
 layout_mode = 2

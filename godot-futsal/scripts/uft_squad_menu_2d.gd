@@ -4,6 +4,10 @@ const UFT_MENU_SCENE := "res://scenes/UFTMenu2D.tscn"
 const COURT_TEXTURE_PATH := "res://assets/court.png"
 const EMPTY_SLOT_TEXTURE_PATH := "res://assets/vacio.png"
 const POSITIONS: Array[String] = ["POR", "C", "AI", "AD", "P"]
+const FIELD_LEFT_MARGIN_RATIO := 0.04
+const FIELD_RIGHT_MARGIN_RATIO := 0.20
+const FIELD_TOP_MARGIN_RATIO := 0.05
+const FIELD_BOTTOM_MARGIN_RATIO := 0.05
 
 const FORMATIONS := {
 	"1-2-1": {"POR": Vector2(0.50, 0.88), "C": Vector2(0.50, 0.62), "AI": Vector2(0.28, 0.42), "AD": Vector2(0.72, 0.42), "P": Vector2(0.50, 0.18)},
@@ -17,6 +21,8 @@ const FORMATIONS := {
 @onready var auto_fill_btn: Button = $Margin/VBox/FormationRow/AutoFill
 @onready var court_rect: TextureRect = $Margin/VBox/FieldArea/Court
 @onready var slot_layer: Control = $Margin/VBox/FieldArea/SlotLayer
+@onready var collection_toggle_btn: Button = $Margin/VBox/CollectionToggle
+@onready var collection_scroll: ScrollContainer = $Margin/VBox/CollectionScroll
 @onready var collection_grid: GridContainer = $Margin/VBox/CollectionScroll/CollectionGrid
 
 var current_formation := "1-2-1"
@@ -30,12 +36,14 @@ var dragging := false
 var drag_from_slot := ""
 var drag_from_collection_card_id := ""
 var drag_preview: TextureRect = null
+var collection_expanded := false
 
 func _ready() -> void:
 	$Margin/VBox/Header/Back.pressed.connect(func() -> void: get_tree().change_scene_to_file(UFT_MENU_SCENE))
 	auto_fill_btn.pressed.connect(_on_auto_fill_pressed)
 	formation_select.item_selected.connect(_on_formation_selected)
 	slot_layer.resized.connect(_on_slot_layer_resized)
+	collection_toggle_btn.pressed.connect(_on_collection_toggle_pressed)
 	set_process(true)
 	_setup_visuals()
 	_refresh()
@@ -61,6 +69,7 @@ func _setup_visuals() -> void:
 	for key in FORMATIONS.keys():
 		formation_select.add_item(key)
 	formation_select.select(0)
+	_apply_collection_visibility()
 
 func _refresh() -> void:
 	var uft := get_node_or_null("/root/UFTManager")
@@ -100,7 +109,7 @@ func _create_collection_card_widget(card_id: String, card: Dictionary) -> Contro
 	vb.add_child(tex)
 	var card_name := Label.new()
 	card_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	card_name.add_theme_font_size_override("font_size", 12)
+	card_name.add_theme_font_size_override("font_size", 16)
 	var player: Dictionary = card.get("player", {})
 	card_name.text = "%s %d" % [str(player.get("main_position", "")), int(card.get("ovr", 0))]
 	vb.add_child(card_name)
@@ -127,6 +136,13 @@ func _rebuild_slot_nodes() -> void:
 		child.queue_free()
 	slot_nodes.clear()
 	var formation: Dictionary = FORMATIONS.get(current_formation, FORMATIONS["1-2-1"])
+	var usable_rect := Rect2(
+		Vector2(slot_layer.size.x * FIELD_LEFT_MARGIN_RATIO, slot_layer.size.y * FIELD_TOP_MARGIN_RATIO),
+		Vector2(
+			slot_layer.size.x * (1.0 - FIELD_LEFT_MARGIN_RATIO - FIELD_RIGHT_MARGIN_RATIO),
+			slot_layer.size.y * (1.0 - FIELD_TOP_MARGIN_RATIO - FIELD_BOTTOM_MARGIN_RATIO)
+		)
+	)
 	for pos in POSITIONS:
 		var marker := TextureRect.new()
 		marker.size = Vector2(92, 128)
@@ -134,7 +150,10 @@ func _rebuild_slot_nodes() -> void:
 		marker.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		marker.mouse_filter = Control.MOUSE_FILTER_STOP
 		var p: Vector2 = formation.get(pos, Vector2(0.5, 0.5))
-		marker.position = Vector2(slot_layer.size.x * p.x - marker.size.x * 0.5, slot_layer.size.y * p.y - marker.size.y * 0.5)
+		marker.position = Vector2(
+			usable_rect.position.x + usable_rect.size.x * p.x - marker.size.x * 0.5,
+			usable_rect.position.y + usable_rect.size.y * p.y - marker.size.y * 0.5
+		)
 		marker.gui_input.connect(_on_slot_gui_input.bind(pos))
 		slot_layer.add_child(marker)
 		var lbl := Label.new()
@@ -409,3 +428,13 @@ func _refresh_squad_meta(uft: Node) -> void:
 	var rating: int = int(round(float(total) / float(max(1, count)))) if count > 0 else 0
 	var chemistry := count * 20
 	squad_meta_label.text = "Rating %d · Chemistry %d" % [rating, chemistry]
+
+func _on_collection_toggle_pressed() -> void:
+	collection_expanded = not collection_expanded
+	_apply_collection_visibility()
+
+func _apply_collection_visibility() -> void:
+	if collection_scroll == null or collection_toggle_btn == null:
+		return
+	collection_scroll.visible = collection_expanded
+	collection_toggle_btn.text = "Mi colección UFT ▾" if collection_expanded else "Mi colección UFT ▸"

@@ -717,6 +717,18 @@ create table if not exists public.uft_pack_openings (
 create index if not exists idx_player_uft_cards_player on public.player_uft_cards(player_id, updated_at desc);
 create index if not exists idx_uft_pack_openings_player on public.uft_pack_openings(player_id, opened_at desc);
 
+create table if not exists public.uft_store_slots (
+  slot_id uuid primary key default gen_random_uuid(),
+  pack_id text not null references public.uft_packs_catalog(pack_id) on delete cascade,
+  starts_at_unix bigint not null,
+  ends_at_unix bigint not null,
+  sort_order integer not null default 0,
+  manual_note text not null default '',
+  active boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_uft_store_slots_active_time on public.uft_store_slots(active, starts_at_unix, ends_at_unix);
+
 create table if not exists public.uft_market_catalog (
   listing_id text primary key,
   card_id text not null references public.uft_cards_catalog(card_id) on delete cascade,
@@ -1083,6 +1095,54 @@ begin
 end;
 $$;
 
+create or replace function public.upsert_uft_store_slot(
+  p_slot_id uuid default null,
+  p_pack_id text default null,
+  p_starts_at_unix bigint default null,
+  p_ends_at_unix bigint default null,
+  p_active boolean default true,
+  p_sort_order integer default 0,
+  p_manual_note text default ''
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_slot_id uuid := coalesce(p_slot_id, gen_random_uuid());
+begin
+  if p_pack_id is null or trim(p_pack_id) = '' then
+    raise exception 'pack_id inválido';
+  end if;
+  if p_starts_at_unix is null or p_ends_at_unix is null or p_ends_at_unix <= p_starts_at_unix then
+    raise exception 'rango de tiempo inválido';
+  end if;
+
+  insert into public.uft_store_slots(slot_id, pack_id, starts_at_unix, ends_at_unix, sort_order, manual_note, active, updated_at)
+  values (
+    v_slot_id,
+    trim(p_pack_id),
+    p_starts_at_unix,
+    p_ends_at_unix,
+    coalesce(p_sort_order, 0),
+    coalesce(p_manual_note, ''),
+    coalesce(p_active, true),
+    now()
+  )
+  on conflict (slot_id) do update set
+    pack_id = excluded.pack_id,
+    starts_at_unix = excluded.starts_at_unix,
+    ends_at_unix = excluded.ends_at_unix,
+    sort_order = excluded.sort_order,
+    manual_note = excluded.manual_note,
+    active = excluded.active,
+    updated_at = now();
+
+  return v_slot_id;
+end;
+$$;
+
 create or replace function public.upsert_uft_season(
   p_season_id text,
   p_name text,
@@ -1306,6 +1366,54 @@ security definer
 set search_path = public
 as $$ select * from public.uft_market_catalog order by expires_at_unix asc, updated_at desc; $$;
 
+create or replace function public.list_uft_store_slots(
+  p_now_unix bigint default null
+)
+returns table(
+  slot_id uuid,
+  pack_id text,
+  pack_name text,
+  image_url text,
+  cost_coins integer,
+  cost_points integer,
+  cards_count integer,
+  duplicate_policy text,
+  starts_at_unix bigint,
+  ends_at_unix bigint,
+  remaining_seconds bigint,
+  sort_order integer,
+  manual_note text
+)
+language sql
+security definer
+set search_path = public
+as $$
+  with now_ref as (
+    select coalesce(p_now_unix, extract(epoch from now())::bigint) as now_unix
+  )
+  select
+    s.slot_id,
+    s.pack_id,
+    p.name as pack_name,
+    p.image_url,
+    p.cost_coins,
+    p.cost_points,
+    p.cards_count,
+    p.duplicate_policy,
+    s.starts_at_unix,
+    s.ends_at_unix,
+    greatest(s.ends_at_unix - n.now_unix, 0) as remaining_seconds,
+    s.sort_order,
+    s.manual_note
+  from public.uft_store_slots s
+  join public.uft_packs_catalog p on p.pack_id = s.pack_id
+  cross join now_ref n
+  where s.active = true
+    and s.starts_at_unix <= n.now_unix
+    and s.ends_at_unix > n.now_unix
+  order by s.sort_order asc, s.ends_at_unix asc, s.updated_at desc;
+$$;
+
 create or replace function public.list_uft_seasons()
 returns setof public.uft_seasons_catalog
 language sql
@@ -1322,6 +1430,7 @@ revoke all on public.uft_seasons_catalog from anon, authenticated;
 revoke all on public.uft_card_types_catalog from anon, authenticated;
 revoke all on public.player_uft_cards from anon, authenticated;
 revoke all on public.uft_pack_openings from anon, authenticated;
+revoke all on public.uft_store_slots from anon, authenticated;
 
 grant execute on function public.upsert_uft_player(text, text, text, jsonb, text, text, uuid, text, jsonb) to anon, authenticated;
 grant execute on function public.upsert_uft_player(text, text, text, jsonb, text, text, text, text, jsonb) to anon, authenticated;
@@ -1330,6 +1439,7 @@ grant execute on function public.upsert_uft_card_type(text, text, text, jsonb, b
 grant execute on function public.upsert_uft_event(text, text, text, bigint, bigint, boolean, integer, jsonb, jsonb) to anon, authenticated;
 grant execute on function public.upsert_uft_pack(text, text, text, integer, integer, integer, text, jsonb, jsonb) to anon, authenticated;
 grant execute on function public.upsert_uft_market_listing(text, text, integer, integer, integer, integer, text, bigint, text, boolean) to anon, authenticated;
+grant execute on function public.upsert_uft_store_slot(uuid, text, bigint, bigint, boolean, integer, text) to anon, authenticated;
 grant execute on function public.upsert_uft_season(text, text, bigint, bigint, jsonb) to anon, authenticated;
 grant execute on function public.list_uft_players() to anon, authenticated;
 grant execute on function public.list_uft_cards() to anon, authenticated;
@@ -1339,4 +1449,5 @@ grant execute on function public.list_uft_packs() to anon, authenticated;
 grant execute on function public.list_player_uft_cards(uuid) to anon, authenticated;
 grant execute on function public.open_uft_pack(uuid, text) to anon, authenticated;
 grant execute on function public.list_uft_market_listings() to anon, authenticated;
+grant execute on function public.list_uft_store_slots(bigint) to anon, authenticated;
 grant execute on function public.list_uft_seasons() to anon, authenticated;

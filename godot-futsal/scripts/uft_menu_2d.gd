@@ -4,6 +4,7 @@ const MAIN_MENU_SCENE := "res://scenes/MainMenu2D.tscn"
 const GAME_SCENE := "res://scenes/Main3D.tscn"
 const MARKET_SCENE := "res://scenes/UFTMarketMenu2D.tscn"
 const SQUAD_SCENE := "res://scenes/UFTSquadMenu2D.tscn"
+const STORE_SCENE := "res://scenes/UFTStoreMenu2D.tscn"
 const POSITIONS: Array[String] = ["POR", "C", "AI", "AD", "P"]
 
 @onready var club_label: Label = $Margin/VBox/TopBar/TopRow/ClubInfo
@@ -21,6 +22,7 @@ func _ready() -> void:
 	_connect_button("Margin/VBox/BottomTabs/ClaimPass", _on_claim_pass)
 	_connect_button("Margin/VBox/BottomTabs/Back", _on_back_pressed)
 	_connect_button("Margin/VBox/Content/PromoPanel/PromoVBox/OpenMarket", _on_open_market_pressed)
+	_connect_button("Margin/VBox/Content/PromoPanel/PromoVBox/OpenStore", _on_open_store_pressed)
 	_refresh()
 
 func _connect_button(path: String, callback: Callable) -> void:
@@ -86,6 +88,9 @@ func _on_claim_pass() -> void:
 
 func _on_open_market_pressed() -> void:
 	get_tree().change_scene_to_file(MARKET_SCENE)
+
+func _on_open_store_pressed() -> void:
+	get_tree().change_scene_to_file(STORE_SCENE)
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)

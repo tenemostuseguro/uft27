@@ -307,6 +307,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
         }
 
         if ($action === 'upsert_uft_pack') {
+            $probabilityRules = json_decode((string) ($_POST['p_probability_rules'] ?? '[]'), true);
+            if (!is_array($probabilityRules)) {
+                $probabilityRules = [];
+            }
+            if (isset($_POST['use_assisted_rules'])) {
+                $weights = $_POST['pack_rule_weight'] ?? [];
+                $minOvrs = $_POST['pack_rule_min_ovr'] ?? [];
+                $maxOvrs = $_POST['pack_rule_max_ovr'] ?? [];
+                $cardTypes = $_POST['pack_rule_card_type'] ?? [];
+                $nationalities = $_POST['pack_rule_nationality'] ?? [];
+                $leagueIds = $_POST['pack_rule_league_id'] ?? [];
+                $clubIds = $_POST['pack_rule_club_id'] ?? [];
+                $probabilityRules = [];
+                $rows = max(count($weights), count($minOvrs), count($maxOvrs), count($cardTypes), count($nationalities), count($leagueIds), count($clubIds));
+                for ($i = 0; $i < $rows; $i++) {
+                    $weight = (int) ($weights[$i] ?? 0);
+                    if ($weight <= 0) {
+                        continue;
+                    }
+                    $filters = [];
+                    $min = trim((string) ($minOvrs[$i] ?? ''));
+                    $max = trim((string) ($maxOvrs[$i] ?? ''));
+                    $cardType = trim((string) ($cardTypes[$i] ?? ''));
+                    $nat = trim((string) ($nationalities[$i] ?? ''));
+                    $leagueId = trim((string) ($leagueIds[$i] ?? ''));
+                    $clubId = trim((string) ($clubIds[$i] ?? ''));
+                    if ($min !== '') { $filters['min_ovr'] = (int) $min; }
+                    if ($max !== '') { $filters['max_ovr'] = (int) $max; }
+                    if ($cardType !== '') { $filters['card_type'] = $cardType; }
+                    if ($nat !== '') { $filters['nationality'] = $nat; }
+                    if ($leagueId !== '') { $filters['league_id'] = $leagueId; }
+                    if ($clubId !== '') { $filters['club_id'] = $clubId; }
+                    $probabilityRules[] = ['weight' => $weight, 'filters' => $filters];
+                }
+            }
             $payload = [
                 'p_pack_id' => trim((string) ($_POST['p_pack_id'] ?? '')),
                 'p_name' => trim((string) ($_POST['p_pack_name'] ?? '')),
@@ -316,7 +351,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
                 'p_cards_count' => (int) ($_POST['p_cards_count'] ?? 1),
                 'p_duplicate_policy' => trim((string) ($_POST['p_duplicate_policy'] ?? 'allow')),
                 'p_pool' => json_decode((string) ($_POST['p_pool'] ?? '[]'), true),
-                'p_probability_rules' => json_decode((string) ($_POST['p_probability_rules'] ?? '[]'), true),
+                'p_probability_rules' => $probabilityRules,
             ];
             $rpcUrl = $supabaseUrl . '/rest/v1/rpc/upsert_uft_pack';
             $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
@@ -324,6 +359,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
                 $success = 'Sobre UFT guardado en Supabase.';
             } else {
                 $errors[] = 'No se pudo guardar sobre UFT: ' . $result['error'];
+            }
+        }
+
+        if ($action === 'upsert_uft_store_slot') {
+            $payload = [
+                'p_slot_id' => (($slotId = trim((string) ($_POST['p_slot_id'] ?? ''))) === '' ? null : $slotId),
+                'p_pack_id' => trim((string) ($_POST['p_store_pack_id'] ?? '')),
+                'p_starts_at_unix' => (int) ($_POST['p_store_starts_at_unix'] ?? 0),
+                'p_ends_at_unix' => (int) ($_POST['p_store_ends_at_unix'] ?? 0),
+                'p_active' => isset($_POST['p_store_active']),
+                'p_sort_order' => (int) ($_POST['p_store_sort_order'] ?? 0),
+                'p_manual_note' => trim((string) ($_POST['p_store_manual_note'] ?? '')),
+            ];
+            $rpcUrl = $supabaseUrl . '/rest/v1/rpc/upsert_uft_store_slot';
+            $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
+            if ($result['ok']) {
+                $success = 'Slot manual de tienda guardado.';
+            } else {
+                $errors[] = 'No se pudo guardar slot de tienda: ' . $result['error'];
             }
         }
 
@@ -463,6 +517,7 @@ $uftCardTypes = [];
 $uftEvents = [];
 $uftPacks = [];
 $uftMarketListings = [];
+$uftStoreSlots = [];
 $uftSeasons = [];
 $uftCountries = [];
 $uftLeagues = [];
@@ -526,6 +581,10 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
     $uftSeasonsResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_seasons', $serviceRoleKey, []);
     if ($uftSeasonsResult['ok'] && is_array($uftSeasonsResult['data'])) {
         $uftSeasons = $uftSeasonsResult['data'];
+    }
+    $uftStoreSlotsResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_store_slots', $serviceRoleKey, []);
+    if ($uftStoreSlotsResult['ok'] && is_array($uftStoreSlotsResult['data'])) {
+        $uftStoreSlots = $uftStoreSlotsResult['data'];
     }
 
     $countriesResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_countries', $serviceRoleKey, []);
@@ -924,7 +983,24 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
             <input type="number" name="p_cards_count" placeholder="Cantidad de cartas" value="1" min="1" required>
             <input type="text" name="p_duplicate_policy" placeholder="Política duplicados (allow/no_dupes)" value="allow">
             <textarea name="p_pool" rows="3" placeholder='Pool fijo opcional: ["card_1","card_2"]'></textarea>
-            <textarea name="p_probability_rules" rows="6" placeholder='Reglas de probabilidad (JSON): [{"weight":60,"filters":{"min_ovr":70,"max_ovr":84,"card_type":"Base"}},{"weight":30,"filters":{"nationality":"Argentina"}},{"weight":10,"filters":{"league_id":"UUID_LIGA","club_id":"UUID_CLUB"}}]'></textarea>
+            <input type="hidden" name="use_assisted_rules" value="1">
+            <input type="hidden" name="p_probability_rules" value="[]">
+            <div style="border:1px dashed #334155; border-radius:8px; padding:10px;">
+                <strong>Probabilidades asistidas (sin JSON manual)</strong>
+                <p style="margin:6px 0 10px; color:#94a3b8;">Cada fila es una regla con peso y filtros opcionales.</p>
+                <div id="pack-rules-builder" style="display:grid; gap:8px;">
+                    <div class="pack-rule-row" style="display:grid; grid-template-columns:90px repeat(6,minmax(120px,1fr)); gap:6px;">
+                        <input type="number" name="pack_rule_weight[]" min="1" value="100" placeholder="Peso">
+                        <input type="number" name="pack_rule_min_ovr[]" min="1" max="120" placeholder="OVR min">
+                        <input type="number" name="pack_rule_max_ovr[]" min="1" max="120" placeholder="OVR max">
+                        <input type="text" name="pack_rule_card_type[]" placeholder="Tipo carta">
+                        <input type="text" name="pack_rule_nationality[]" placeholder="Nacionalidad">
+                        <input type="text" name="pack_rule_league_id[]" placeholder="league_id">
+                        <input type="text" name="pack_rule_club_id[]" placeholder="club_id">
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary" style="width:max-content; margin-top:8px;" onclick="addPackRuleRow()">+ Añadir regla</button>
+            </div>
             <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar sobre UFT</button>
         </form>
         <table><thead><tr><th>pack_id</th><th>Nombre</th><th>Imagen</th><th>Coins</th><th>Points</th><th>Cards</th><th>Policy</th><th>Reglas</th></tr></thead><tbody>
@@ -938,6 +1014,41 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
                     <td><?php echo h((string)($p['cards_count'] ?? '')); ?></td>
                     <td><?php echo h((string)($p['duplicate_policy'] ?? '')); ?></td>
                     <td><code><?php echo h((string)json_encode($p['probability_rules'] ?? [])); ?></code></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody></table>
+    </div>
+
+    <div class="panel">
+        <h2 style="margin-top:0;">Tienda manual de sobres</h2>
+        <p style="color:#94a3b8; margin-top:0;">Añadí sobres manualmente con ventana de tiempo definida (inicio/fin). Debajo del sobre en tienda se mostrará el tiempo restante.</p>
+        <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
+            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="action" value="upsert_uft_store_slot">
+            <input type="text" name="p_slot_id" placeholder="slot_id UUID (vacío para crear)">
+            <select name="p_store_pack_id" required>
+                <option value="">Selecciona pack</option>
+                <?php foreach ($uftPacks as $p): ?>
+                    <option value="<?php echo h((string)($p['pack_id'] ?? '')); ?>"><?php echo h((string)($p['name'] ?? '')); ?> · <?php echo h((string)($p['pack_id'] ?? '')); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <input type="number" name="p_store_starts_at_unix" value="<?php echo h((string)time()); ?>" placeholder="Inicio unix" required>
+            <input type="number" name="p_store_ends_at_unix" value="<?php echo h((string)(time() + 86400)); ?>" placeholder="Fin unix" required>
+            <input type="number" name="p_store_sort_order" value="0" placeholder="Orden">
+            <input type="text" name="p_store_manual_note" placeholder="Nota manual (ej: Promo fin de semana)">
+            <label><input type="checkbox" name="p_store_active" checked> Activo</label>
+            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar slot tienda</button>
+        </form>
+        <table><thead><tr><th>slot_id</th><th>pack</th><th>inicio</th><th>fin</th><th>restante(s)</th><th>orden</th><th>nota</th></tr></thead><tbody>
+            <?php foreach ($uftStoreSlots as $slot): ?>
+                <tr>
+                    <td><code><?php echo h((string)($slot['slot_id'] ?? '')); ?></code></td>
+                    <td><code><?php echo h((string)($slot['pack_id'] ?? '')); ?></code> · <?php echo h((string)($slot['pack_name'] ?? '')); ?></td>
+                    <td><?php echo h((string)($slot['starts_at_unix'] ?? '')); ?></td>
+                    <td><?php echo h((string)($slot['ends_at_unix'] ?? '')); ?></td>
+                    <td><?php echo h((string)($slot['remaining_seconds'] ?? '0')); ?></td>
+                    <td><?php echo h((string)($slot['sort_order'] ?? '0')); ?></td>
+                    <td><?php echo h((string)($slot['manual_note'] ?? '')); ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody></table>
@@ -1059,5 +1170,26 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
             <?php endforeach; ?>
         </tbody></table>
     </div>
+<script>
+function addPackRuleRow() {
+    const container = document.getElementById('pack-rules-builder');
+    if (!container) return;
+    const row = document.createElement('div');
+    row.className = 'pack-rule-row';
+    row.style.display = 'grid';
+    row.style.gridTemplateColumns = '90px repeat(6,minmax(120px,1fr))';
+    row.style.gap = '6px';
+    row.innerHTML = `
+        <input type="number" name="pack_rule_weight[]" min="1" value="100" placeholder="Peso">
+        <input type="number" name="pack_rule_min_ovr[]" min="1" max="120" placeholder="OVR min">
+        <input type="number" name="pack_rule_max_ovr[]" min="1" max="120" placeholder="OVR max">
+        <input type="text" name="pack_rule_card_type[]" placeholder="Tipo carta">
+        <input type="text" name="pack_rule_nationality[]" placeholder="Nacionalidad">
+        <input type="text" name="pack_rule_league_id[]" placeholder="league_id">
+        <input type="text" name="pack_rule_club_id[]" placeholder="club_id">
+    `;
+    container.appendChild(row);
+}
+</script>
 </body>
 </html>

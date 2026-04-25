@@ -71,12 +71,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
     }
 }
 
-$packs = [];
+$storeSlots = [];
 $players = [];
 if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
-    $packsResp = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_packs', $serviceRoleKey, []);
-    if ($packsResp['ok'] && is_array($packsResp['data'])) {
-        $packs = $packsResp['data'];
+    $slotsResp = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_store_slots', $serviceRoleKey, []);
+    if ($slotsResp['ok'] && is_array($slotsResp['data'])) {
+        $storeSlots = $slotsResp['data'];
     }
     $playersResp = api_request('GET', $supabaseUrl . '/rest/v1/player_accounts?select=id,username&order=created_at.desc&limit=200', $serviceRoleKey);
     if ($playersResp['ok'] && is_array($playersResp['data'])) {
@@ -125,19 +125,20 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
 </div>
 
 <div class="store">
-    <?php foreach ($packs as $pack): ?>
-        <?php $packId = (string)($pack['pack_id'] ?? ''); ?>
+    <?php foreach ($storeSlots as $slot): ?>
+        <?php $packId = (string)($slot['pack_id'] ?? ''); ?>
         <div class="pack">
-            <?php if ((string)($pack['image_url'] ?? '') !== ''): ?>
-                <img src="<?php echo h((string)$pack['image_url']); ?>" alt="<?php echo h((string)($pack['name'] ?? $packId)); ?>">
+            <?php if ((string)($slot['image_url'] ?? '') !== ''): ?>
+                <img src="<?php echo h((string)$slot['image_url']); ?>" alt="<?php echo h((string)($slot['pack_name'] ?? $packId)); ?>">
             <?php else: ?>
                 <div style="height:170px;display:grid;place-items:center;border:1px dashed #334155;border-radius:10px;">Sin imagen</div>
             <?php endif; ?>
-            <h3><?php echo h((string)($pack['name'] ?? $packId)); ?></h3>
+            <h3><?php echo h((string)($slot['pack_name'] ?? $packId)); ?></h3>
             <div class="muted">ID: <code><?php echo h($packId); ?></code></div>
-            <div class="muted">Costo: <?php echo h((string)($pack['cost_coins'] ?? 0)); ?> UFT Coins / <?php echo h((string)($pack['cost_points'] ?? 0)); ?> UFT Points</div>
-            <div class="muted">Cartas: <?php echo h((string)($pack['cards_count'] ?? 1)); ?></div>
-            <div class="muted">Policy: <?php echo h((string)($pack['duplicate_policy'] ?? 'allow')); ?></div>
+            <div class="muted">Costo: <?php echo h((string)($slot['cost_coins'] ?? 0)); ?> UFT Coins / <?php echo h((string)($slot['cost_points'] ?? 0)); ?> UFT Points</div>
+            <div class="muted">Cartas: <?php echo h((string)($slot['cards_count'] ?? 1)); ?></div>
+            <div class="muted">Policy: <?php echo h((string)($slot['duplicate_policy'] ?? 'allow')); ?></div>
+            <div class="muted">Tiempo restante: <?php echo h((string)($slot['remaining_seconds'] ?? 0)); ?>s</div>
             <button type="button" onclick="buyPack('<?php echo h($packId); ?>')">Comprar / Abrir</button>
         </div>
     <?php endforeach; ?>

@@ -209,6 +209,12 @@ func open_uft_pack(pack_id: String) -> Dictionary:
 func list_uft_market_listings() -> Dictionary:
 	return await _list_uft_catalog("list_uft_market_listings")
 
+func list_uft_store_slots() -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	var endpoint := "%s/rest/v1/rpc/list_uft_store_slots" % DEFAULT_SUPABASE_URL
+	return await _request_json(endpoint, HTTPClient.METHOD_POST, {})
+
 func upsert_uft_market_listing(listing: Dictionary) -> Dictionary:
 	if not is_configured():
 		return {"ok": false, "error": "Configuración interna de auth incompleta"}

@@ -463,15 +463,38 @@ func _apply_collection_visibility() -> void:
 
 func _update_grl_badge(grl: int) -> void:
 	grl_value_label.text = str(grl)
-	var badge_path := GRL_BADGE_LOW_PATH
+	var badge_candidates: Array[String] = [GRL_BADGE_LOW_PATH, "res://assets/grl/amagrl.png", "res://assets/AMAGRL.png"]
 	if grl >= 100:
-		badge_path = GRL_BADGE_ELITE_PATH
+		badge_candidates = [GRL_BADGE_ELITE_PATH, "res://assets/grl/blagrl.png", "res://assets/BLAGRL.png"]
 	elif grl >= 90:
-		badge_path = GRL_BADGE_HIGH_PATH
+		badge_candidates = [GRL_BADGE_HIGH_PATH, "res://assets/grl/morgrl.png", "res://assets/MORGRL.png"]
 	elif grl >= 81:
-		badge_path = GRL_BADGE_MID_PATH
-	var badge_tex: Texture2D = load(badge_path) as Texture2D
+		badge_candidates = [GRL_BADGE_MID_PATH, "res://assets/grl/rojgrl.png", "res://assets/ROJGRL.png"]
+	var badge_tex: Texture2D = _load_texture_from_candidates(badge_candidates)
 	if badge_tex != null:
 		grl_badge_image.texture = badge_tex
 	else:
 		grl_badge_image.texture = null
+		push_warning("No se pudo cargar insignia GRL. Probadas rutas: %s" % [", ".join(PackedStringArray(badge_candidates))])
+
+func _load_texture_from_candidates(paths: Array[String]) -> Texture2D:
+	for path in paths:
+		if ResourceLoader.exists(path):
+			var tex: Texture2D = load(path) as Texture2D
+			if tex != null:
+				return tex
+		var image_tex := _load_texture_direct_image(path)
+		if image_tex != null:
+			return image_tex
+	return null
+
+func _load_texture_direct_image(path: String) -> Texture2D:
+	var image := Image.new()
+	var err := image.load(path)
+	if err != OK:
+		var global_path := ProjectSettings.globalize_path(path)
+		if FileAccess.file_exists(global_path):
+			err = image.load(global_path)
+	if err != OK:
+		return null
+	return ImageTexture.create_from_image(image)

@@ -596,12 +596,14 @@ create table if not exists public.uft_players (
   secondary_positions jsonb not null default '[]'::jsonb,
   dominant_foot text,
   nationality text,
+  club_id uuid references public.uft_clubs(id) on delete set null,
   club text,
   photo_face_url text not null default '',
   metadata jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
 alter table public.uft_players add column if not exists metadata jsonb not null default '{}'::jsonb;
+alter table public.uft_players add column if not exists club_id uuid references public.uft_clubs(id) on delete set null;
 
 create table if not exists public.uft_cards_catalog (
   card_id text primary key,
@@ -725,6 +727,60 @@ create or replace function public.upsert_uft_player(
   p_secondary_positions jsonb default '[]'::jsonb,
   p_dominant_foot text default null,
   p_nationality text default null,
+  p_club_id uuid default null,
+  p_photo_face_url text default '',
+  p_metadata jsonb default '{}'::jsonb
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_club_name text;
+begin
+  if p_player_id is null or trim(p_player_id) = '' then return false; end if;
+  select c.name into v_club_name
+  from public.uft_clubs c
+  where c.id = p_club_id;
+
+  insert into public.uft_players(player_id, name, main_position, secondary_positions, dominant_foot, nationality, club_id, club, photo_face_url, metadata, updated_at)
+  values (
+    trim(p_player_id),
+    coalesce(p_name, 'Unknown'),
+    coalesce(p_main_position, 'P'),
+    coalesce(p_secondary_positions, '[]'::jsonb),
+    p_dominant_foot,
+    p_nationality,
+    p_club_id,
+    v_club_name,
+    coalesce(p_photo_face_url, ''),
+    coalesce(p_metadata, '{}'::jsonb),
+    now()
+  )
+  on conflict (player_id) do update set
+    name = excluded.name,
+    main_position = excluded.main_position,
+    secondary_positions = excluded.secondary_positions,
+    dominant_foot = excluded.dominant_foot,
+    nationality = excluded.nationality,
+    club_id = excluded.club_id,
+    club = excluded.club,
+    photo_face_url = excluded.photo_face_url,
+    metadata = excluded.metadata,
+    updated_at = now();
+  return true;
+end;
+$$;
+
+-- Compatibilidad con paneles antiguos que enviaban nombre de club en texto libre.
+create or replace function public.upsert_uft_player(
+  p_player_id text,
+  p_name text,
+  p_main_position text,
+  p_secondary_positions jsonb default '[]'::jsonb,
+  p_dominant_foot text default null,
+  p_nationality text default null,
   p_club text default null,
   p_photo_face_url text default '',
   p_metadata jsonb default '{}'::jsonb
@@ -734,21 +790,27 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_club_id uuid;
 begin
-  if p_player_id is null or trim(p_player_id) = '' then return false; end if;
-  insert into public.uft_players(player_id, name, main_position, secondary_positions, dominant_foot, nationality, club, photo_face_url, metadata, updated_at)
-  values (trim(p_player_id), coalesce(p_name, 'Unknown'), coalesce(p_main_position, 'P'), coalesce(p_secondary_positions, '[]'::jsonb), p_dominant_foot, p_nationality, p_club, coalesce(p_photo_face_url, ''), coalesce(p_metadata, '{}'::jsonb), now())
-  on conflict (player_id) do update set
-    name = excluded.name,
-    main_position = excluded.main_position,
-    secondary_positions = excluded.secondary_positions,
-    dominant_foot = excluded.dominant_foot,
-    nationality = excluded.nationality,
-    club = excluded.club,
-    photo_face_url = excluded.photo_face_url,
-    metadata = excluded.metadata,
-    updated_at = now();
-  return true;
+  if p_club is not null and trim(p_club) <> '' then
+    select c.id into v_club_id
+    from public.uft_clubs c
+    where lower(c.name) = lower(trim(p_club))
+    limit 1;
+  end if;
+
+  return public.upsert_uft_player(
+    p_player_id,
+    p_name,
+    p_main_position,
+    p_secondary_positions,
+    p_dominant_foot,
+    p_nationality,
+    v_club_id,
+    p_photo_face_url,
+    p_metadata
+  );
 end;
 $$;
 
@@ -1063,6 +1125,7 @@ revoke all on public.uft_market_catalog from anon, authenticated;
 revoke all on public.uft_seasons_catalog from anon, authenticated;
 revoke all on public.uft_card_types_catalog from anon, authenticated;
 
+grant execute on function public.upsert_uft_player(text, text, text, jsonb, text, text, uuid, text, jsonb) to anon, authenticated;
 grant execute on function public.upsert_uft_player(text, text, text, jsonb, text, text, text, text, jsonb) to anon, authenticated;
 grant execute on function public.upsert_uft_card(text, text, text, text, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, text, text, boolean, boolean, integer, boolean, integer) to anon, authenticated;
 grant execute on function public.upsert_uft_card_type(text, text, text, jsonb, boolean) to anon, authenticated;

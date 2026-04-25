@@ -219,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
                 'p_secondary_positions' => json_decode((string) ($_POST['p_secondary_positions'] ?? '[]'), true),
                 'p_dominant_foot' => trim((string) ($_POST['p_dominant_foot'] ?? '')),
                 'p_nationality' => trim((string) ($_POST['p_nationality'] ?? '')),
-                'p_club' => trim((string) ($_POST['p_club'] ?? '')),
+                'p_club_id' => (($clubId = trim((string) ($_POST['p_club_id'] ?? ''))) === '' ? null : $clubId),
                 'p_photo_face_url' => trim((string) ($_POST['p_photo_face_url'] ?? '')),
                 'p_metadata' => json_decode((string) ($_POST['p_metadata'] ?? '{}'), true),
             ];
@@ -609,6 +609,7 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
                 <a href="#estructura-futbol">Países/Ligas/Clubes</a>
                 <a href="#temporadas-uft">Temporadas UFT</a>
                 <a href="market_admin.php">Página Mercado</a>
+                <a href="player_card_wizard.php">Asistente Jugador/Carta</a>
             </div>
         </div>
         <form method="post" class="inline">
@@ -789,13 +790,29 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
             <div class="field"><label>URL foto de cara</label><input type="text" name="p_photo_face_url" placeholder="https://..."></div>
             <div class="field"><label>Pie dominante</label><input type="text" name="p_dominant_foot" placeholder="Derecho / Izquierdo"></div>
             <div class="field"><label>Nacionalidad</label><input type="text" name="p_nationality" placeholder="Argentina"></div>
-            <div class="field"><label>Club (texto libre)</label><input type="text" name="p_club" placeholder="Club"></div>
+            <div class="field">
+                <label>Club (ID UUID)</label>
+                <select name="p_club_id">
+                    <option value="">Sin club</option>
+                    <?php foreach ($clubs as $club): ?>
+                        <option value="<?php echo h((string) ($club['id'] ?? '')); ?>">
+                            <?php echo h((string) ($club['name'] ?? '')); ?> · <?php echo h((string) ($club['id'] ?? '')); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
             <div class="field"><label>Metadata adicional (JSON)</label><textarea name="p_metadata" rows="3" placeholder='{"height_cm":178}'></textarea></div>
             <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar jugador UFT</button>
         </form>
-        <table><thead><tr><th>player_id</th><th>Nombre</th><th>Pos</th><th>Club</th></tr></thead><tbody>
+        <table><thead><tr><th>player_id</th><th>Nombre</th><th>Pos</th><th>club_id</th><th>Club</th></tr></thead><tbody>
             <?php foreach ($uftPlayers as $p): ?>
-                <tr><td><code><?php echo h((string)($p['player_id'] ?? '')); ?></code></td><td><?php echo h((string)($p['name'] ?? '')); ?></td><td><?php echo h((string)($p['main_position'] ?? '')); ?></td><td><?php echo h((string)($p['club'] ?? '')); ?></td></tr>
+                <tr>
+                    <td><code><?php echo h((string)($p['player_id'] ?? '')); ?></code></td>
+                    <td><?php echo h((string)($p['name'] ?? '')); ?></td>
+                    <td><?php echo h((string)($p['main_position'] ?? '')); ?></td>
+                    <td><code><?php echo h((string)($p['club_id'] ?? '')); ?></code></td>
+                    <td><?php echo h((string)($p['club'] ?? '')); ?></td>
+                </tr>
             <?php endforeach; ?>
         </tbody></table>
     </div>

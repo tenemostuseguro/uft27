@@ -46,27 +46,46 @@ func _load_static_data() -> void:
 	if auth == null:
 		push_warning("UFTManager: AuthService no disponible, no se pueden cargar catálogos desde Supabase.")
 		return
-	var remote: Dictionary = await auth.list_uft_configs()
-	if remote.get("ok", false):
-		var rows: Variant = remote.get("json", [])
-		if rows is Array and rows.size() > 0:
-			for row in rows:
-				var k := str(row.get("key", ""))
-				var payload: Variant = row.get("payload", null)
-				if k == "base_players" and payload is Array:
-					base_players = _array_to_dict(_as_dict_array(payload), "player_id")
-				elif k == "cards" and payload is Array:
-					cards = _array_to_dict(_as_dict_array(payload), "card_id")
-				elif k == "packs" and payload is Array:
-					packs = _array_to_dict(_as_dict_array(payload), "pack_id")
-				elif k == "events" and payload is Array:
-					events = _as_dict_array(payload)
-				elif k == "market" and payload is Array:
-					market_listings = _as_dict_array(payload)
-				elif k == "season" and payload is Dictionary:
-					season_config = payload
-	if base_players.is_empty() and cards.is_empty():
-		push_warning("UFTManager: Supabase no devolvió catálogos UFT (base_players/cards).")
+	var players_result: Dictionary = await auth.list_uft_players()
+	if players_result.get("ok", false):
+		base_players = _array_to_dict(_as_dict_array(players_result.get("json", [])), "player_id")
+	else:
+		push_warning("UFTManager: error cargando uft_players: %s" % str(players_result.get("error", "desconocido")))
+
+	var cards_result: Dictionary = await auth.list_uft_cards()
+	if cards_result.get("ok", false):
+		cards = _array_to_dict(_as_dict_array(cards_result.get("json", [])), "card_id")
+	else:
+		push_warning("UFTManager: error cargando uft_cards_catalog: %s" % str(cards_result.get("error", "desconocido")))
+
+	var packs_result: Dictionary = await auth.list_uft_packs()
+	if packs_result.get("ok", false):
+		packs = _array_to_dict(_as_dict_array(packs_result.get("json", [])), "pack_id")
+	else:
+		push_warning("UFTManager: error cargando uft_packs_catalog: %s" % str(packs_result.get("error", "desconocido")))
+
+	var events_result: Dictionary = await auth.list_uft_events()
+	if events_result.get("ok", false):
+		events = _as_dict_array(events_result.get("json", []))
+	else:
+		push_warning("UFTManager: error cargando uft_events_catalog: %s" % str(events_result.get("error", "desconocido")))
+
+	var market_result: Dictionary = await auth.list_uft_market_listings()
+	if market_result.get("ok", false):
+		market_listings = _as_dict_array(market_result.get("json", []))
+	else:
+		push_warning("UFTManager: error cargando uft_market_catalog: %s" % str(market_result.get("error", "desconocido")))
+
+	var seasons_result: Dictionary = await auth.list_uft_seasons()
+	if seasons_result.get("ok", false):
+		var seasons_rows := _as_dict_array(seasons_result.get("json", []))
+		if seasons_rows.size() > 0:
+			season_config = seasons_rows[0]
+	else:
+		push_warning("UFTManager: error cargando uft_seasons_catalog: %s" % str(seasons_result.get("error", "desconocido")))
+
+	if base_players.is_empty() or cards.is_empty():
+		push_warning("UFTManager: catálogos UFT incompletos desde Supabase (players/cards).")
 
 func _load_state() -> void:
 	var auth := get_node_or_null("/root/AuthService")
@@ -140,23 +159,21 @@ func compute_main_stats(card: Dictionary) -> Dictionary:
 	var player: Dictionary = base_players.get(str(card.get("player_id", "")), {})
 	var is_gk := str(player.get("main_position", "")) == "POR"
 	if is_gk:
-		var s: Dictionary = card.get("gk_substats", {})
 		return {
-			"reflejos": _avg([s.get("reaction", 0), s.get("reflejos_cortos", 0), s.get("rebotes", 0)]),
-			"parada": _avg([s.get("paradas_cercanas", 0), s.get("blocaje", 0), s.get("desvio", 0), s.get("paradas_media", 0)]),
-			"uno_vs_uno": _avg([s.get("achique", 0), s.get("timing_salida", 0), s.get("cobertura_corporal", 0), s.get("lectura_atacante", 0)]),
-			"colocacion": _avg([s.get("posicionamiento", 0), s.get("lectura_jugada", 0), s.get("segundo_palo", 0), s.get("ajuste_lateral", 0)]),
-			"juego_pies": _avg([s.get("pase_corto", 0), s.get("control", 0), s.get("pase_largo", 0), s.get("decision", 0)]),
-			"fisico": _avg([s.get("explosividad", 0), s.get("agilidad", 0), s.get("resistencia", 0), s.get("elasticidad", 0)])
+			"reflejos": _card_stat(card, "gk_reflejos", "gk_substats", "reaction"),
+			"parada": _card_stat(card, "gk_parada", "gk_substats", "paradas_cercanas"),
+			"uno_vs_uno": _card_stat(card, "gk_uno_vs_uno", "gk_substats", "achique"),
+			"colocacion": _card_stat(card, "gk_colocacion", "gk_substats", "posicionamiento"),
+			"juego_pies": _card_stat(card, "gk_juego_pies", "gk_substats", "pase_corto"),
+			"fisico": _card_stat(card, "gk_fisico", "gk_substats", "explosividad")
 		}
-	var f: Dictionary = card.get("field_substats", {})
 	return {
-		"ritmo": _avg([f.get("aceleracion_corta", 0), f.get("velocidad_punta", 0), f.get("cambio_ritmo", 0), f.get("agilidad_lateral", 0), f.get("recuperacion_sprint", 0)]),
-		"regate": _avg([f.get("regate_corto", 0), f.get("conduccion_cerrada", 0), f.get("finta_tecnica", 0), f.get("giro_con_balon", 0), f.get("proteccion_balon", 0), f.get("salida_presion", 0)]),
-		"pase": _avg([f.get("pase_corto", 0), f.get("pase_primertoque", 0), f.get("pase_rapido", 0), f.get("vision", 0), f.get("pase_filtrado", 0), f.get("pase_presion", 0)]),
-		"tiro": _avg([f.get("definicion_corta", 0), f.get("potencia_tiro", 0), f.get("colocacion", 0), f.get("tiro_rapido", 0), f.get("puntera", 0), f.get("volea", 0), f.get("tiro_movimiento", 0)]),
-		"defensa": _avg([f.get("marcaje", 0), f.get("anticipacion", 0), f.get("robo", 0), f.get("intercepcion", 0), f.get("cobertura", 0), f.get("presion_def", 0), f.get("temporizacion", 0)]),
-		"fisico": _avg([f.get("resistencia", 0), f.get("explosividad", 0), f.get("equilibrio", 0), f.get("fuerza_choque", 0), f.get("resistencia_contacto", 0), f.get("recuperacion", 0)])
+		"ritmo": _card_stat(card, "pace", "main_stats", "pace"),
+		"regate": _card_stat(card, "dribbling", "main_stats", "dribbling"),
+		"pase": _card_stat(card, "passing", "main_stats", "passing"),
+		"tiro": _card_stat(card, "shooting", "main_stats", "shooting"),
+		"defensa": _card_stat(card, "defense", "main_stats", "defense"),
+		"fisico": _card_stat(card, "physical", "main_stats", "physical")
 	}
 
 func compute_card_ovr(card: Dictionary) -> int:
@@ -249,10 +266,16 @@ func open_pack(pack_id: String) -> Dictionary:
 
 func get_market_listings(filters: Dictionary = {}) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
+	var now := int(Time.get_unix_time_from_system())
 	for raw in market_listings:
-		var listing: Dictionary = raw
+		var listing: Dictionary = raw.duplicate(true)
 		var card_id := str(listing.get("card_id", ""))
 		if not cards.has(card_id):
+			continue
+		if not bool(listing.get("active", true)):
+			continue
+		var expires_at := int(listing.get("expires_at_unix", now + 3600))
+		if expires_at <= now:
 			continue
 		var card := get_card_details(card_id)
 		if filters.has("min_ovr") and int(card.get("ovr", 0)) < int(filters["min_ovr"]):
@@ -262,8 +285,28 @@ func get_market_listings(filters: Dictionary = {}) -> Array[Dictionary]:
 		var player: Dictionary = card.get("player", {})
 		if filters.has("position") and str(filters["position"]) != "" and str(player.get("main_position", "")) != str(filters["position"]):
 			continue
+		if filters.has("seller") and str(filters.get("seller", "")) != "":
+			if str(listing.get("seller", "")) != str(filters.get("seller", "")):
+				continue
+		if filters.has("highest_bidder") and str(filters.get("highest_bidder", "")) != "":
+			if str(listing.get("highest_bidder", "")) != str(filters.get("highest_bidder", "")):
+				continue
+		if filters.has("query"):
+			var query := str(filters.get("query", "")).strip_edges().to_lower()
+			if not query.is_empty():
+				var haystack := ("%s %s %s" % [str(player.get("name", "")), str(player.get("main_position", "")), str(card.get("card_type", ""))]).to_lower()
+				if not haystack.contains(query):
+					continue
+		var start_price := int(listing.get("start_price", listing.get("price", 100)))
+		var current_bid := int(listing.get("current_bid", 0))
+		var buy_now_price := int(listing.get("buy_now_price", max(start_price + 100, 100)))
+		listing["start_price"] = max(start_price, 100)
+		listing["current_bid"] = max(current_bid, 0)
+		listing["buy_now_price"] = max(buy_now_price, listing["start_price"])
+		listing["expires_at_unix"] = expires_at
 		listing["card"] = card
 		result.append(listing)
+	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.get("expires_at_unix", 0)) < int(b.get("expires_at_unix", 0)))
 	return result
 
 func buy_market_listing(listing_id: String) -> Dictionary:
@@ -271,24 +314,68 @@ func buy_market_listing(listing_id: String) -> Dictionary:
 		var listing: Dictionary = market_listings[i]
 		if str(listing.get("listing_id", "")) != listing_id:
 			continue
-		var price := int(listing.get("price", 0))
+		var price := int(listing.get("buy_now_price", listing.get("price", 0)))
 		if not spend_currency(price, 0):
 			return {"ok": false, "error": "Coins insuficientes"}
 		var card_id := str(listing.get("card_id", ""))
 		state["collection"].append(card_id)
+		listing["active"] = false
+		_sync_market_listing_async(listing)
 		market_listings.remove_at(i)
 		_save_state()
 		return {"ok": true, "card_id": card_id}
 	return {"ok": false, "error": "Oferta no encontrada"}
 
-func list_card_on_market(card_id: String, price: int) -> Dictionary:
+func place_bid_on_listing(listing_id: String, amount: int) -> Dictionary:
+	for i in range(market_listings.size()):
+		var listing: Dictionary = market_listings[i]
+		if str(listing.get("listing_id", "")) != listing_id:
+			continue
+		var min_bid: int = max(int(listing.get("start_price", listing.get("price", 100))), int(listing.get("current_bid", 0)) + 100)
+		if amount < min_bid:
+			return {"ok": false, "error": "Puja mínima: %d" % min_bid}
+		if not spend_currency(amount, 0):
+			return {"ok": false, "error": "Coins insuficientes"}
+		listing["current_bid"] = amount
+		listing["highest_bidder"] = str(state.get("club_name", "user"))
+		listing["updated_at"] = Time.get_unix_time_from_system()
+		market_listings[i] = listing
+		_sync_market_listing_async(listing)
+		_save_state()
+		return {"ok": true, "listing_id": listing_id, "amount": amount}
+	return {"ok": false, "error": "Oferta no encontrada"}
+
+func list_card_on_market(card_id: String, price: int, buy_now_price: int = 0, duration_seconds: int = 7200) -> Dictionary:
 	if not state["collection"].has(card_id):
 		return {"ok": false, "error": "No posees esa carta"}
 	state["collection"].erase(card_id)
-	var listing := {"listing_id":"u_%d" % Time.get_unix_time_from_system(), "card_id": card_id, "price": max(100, price), "seller": "user"}
+	var start_price: int = max(100, price)
+	var buy_now: int = max(start_price + 100, buy_now_price if buy_now_price > 0 else int(round(start_price * 1.8)))
+	var now := int(Time.get_unix_time_from_system())
+	var listing := {
+		"listing_id":"u_%d" % now,
+		"card_id": card_id,
+		"price": start_price,
+		"start_price": start_price,
+		"current_bid": 0,
+		"buy_now_price": buy_now,
+		"highest_bidder": "",
+		"expires_at_unix": now + max(duration_seconds, 300),
+		"seller": "user",
+		"active": true
+	}
 	market_listings.append(listing)
+	_sync_market_listing_async(listing)
 	_save_state()
 	return {"ok": true}
+
+func _sync_market_listing_async(listing: Dictionary) -> void:
+	var auth := get_node_or_null("/root/AuthService")
+	if auth == null:
+		return
+	if not auth.has_method("upsert_uft_market_listing"):
+		return
+	auth.upsert_uft_market_listing(listing)
 
 func get_active_events() -> Array[Dictionary]:
 	var now := int(Time.get_unix_time_from_system())
@@ -417,3 +504,11 @@ func _avg(values: Array) -> float:
 	for value in values:
 		total += float(value)
 	return clamp(total / float(values.size()), 1.0, 120.0)
+
+func _card_stat(card: Dictionary, flat_key: String, legacy_parent: String, legacy_key: String) -> float:
+	if card.has(flat_key):
+		return clamp(float(card.get(flat_key, 1)), 1.0, 120.0)
+	var legacy: Variant = card.get(legacy_parent, {})
+	if legacy is Dictionary:
+		return clamp(float(legacy.get(legacy_key, 1)), 1.0, 120.0)
+	return 1.0

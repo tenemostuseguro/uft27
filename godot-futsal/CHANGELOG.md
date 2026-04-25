@@ -7,6 +7,27 @@
 - `UFTManager` ahora prioriza Supabase para cargar configuración UFT y estado del club autenticado (snapshot), manteniendo fallback local solo de contingencia.
 - `admin.php` ahora guarda/lee configuración UFT desde Supabase en lugar de editar archivos locales del repo.
 
+## 0.1.2-prealpha
+- `UFTManager` ahora carga catálogos UFT directamente desde tablas normalizadas de Supabase (`list_uft_players`, `list_uft_cards`, `list_uft_packs`, `list_uft_events`, `list_uft_market_listings`, `list_uft_seasons`) y deja de depender de blobs JSON de configuración para el modo.
+- `AuthService` incorpora helpers dedicados para leer catálogos UFT vía RPC.
+- `admin.php` fue rediseñado con navegación rápida, métricas y secciones más claras, eliminando el editor de configuración JSON para UFT.
+
+## 0.1.3-prealpha
+- Se implementó compra/venta de jugadores en el menú UFT: ahora se puede comprar una carta seleccionada del mercado y listar cartas propias para la venta.
+- Se migró el alta/edición de cartas UFT a stats escalares por carta (sin JSON de `main_stats/field_substats/gk_substats`), con soporte en `schema.sql`, `admin.php` y lógica de cálculo en `UFTManager`.
+- Se añadió `market_admin.php` como página dedicada para administrar el mercado del servidor (`uft_market_catalog`) de forma directa.
+
+## 0.1.4-prealpha
+- `admin.php` mejora la UX de formularios con etiquetas explícitas de campo para evitar errores de edición.
+- Se añade administración de estructura futbolística en Supabase: países, ligas (con nivel) y clubes, todos con logo.
+- Se permite asignar club a un usuario para resolver su escudo de perfil desde `set_player_profile_logo` usando clubes activos.
+- Se actualiza SQL con tablas y RPC nuevos (`uft_countries`, `uft_leagues`, `uft_clubs`, `player_profile_club`, `upsert/list`).
+
+## 0.1.5-prealpha
+- Se crea una pantalla dedicada para elegir escudo de equipo (`ClubCrestMenu2D`) con navegación horizontal por flechas y diseño tipo tarjeta (país + logo arriba, club al centro, liga + logo abajo).
+- `ProfileMenu2D` deja de mostrar listas de escudos inline y ahora abre el selector dedicado conectado a Supabase.
+- `list_uft_clubs()` amplía payload para incluir logos de país y liga (`country_logo_url`, `league_logo_url`) usados por el nuevo layout.
+
 ## 0.1.0-prealpha
 - Se implementó el modo **UFT / Ultimate Futsal Team** integrado al juego con menú propio (`UFTMenu2D`) y autoload `UFTManager`.
 - Se añadieron club persistente, economía (`coins/points/xp`), colección de cartas, validación central de quinteto titular sin duplicados por `player_id`, sobres, mercado local, eventos por fecha y pase de batalla por temporada.

@@ -14,31 +14,6 @@ function hash_password(string $password): string {
     return hash('sha256', $password);
 }
 
-function uft_data_path(string $name): string {
-    return __DIR__ . '/godot-futsal/uft_data/' . $name . '.json';
-}
-
-function load_uft_json(string $name): string {
-    $path = uft_data_path($name);
-    if (!file_exists($path)) {
-        return '';
-    }
-    $content = file_get_contents($path);
-    return $content === false ? '' : $content;
-}
-
-function save_uft_json(string $name, string $content): bool {
-    $decoded = json_decode($content, true);
-    if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
-        return false;
-    }
-    $pretty = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($pretty === false) {
-        return false;
-    }
-    return file_put_contents(uft_data_path($name), $pretty . PHP_EOL) !== false;
-}
-
 function api_request(string $method, string $url, string $serviceRoleKey, ?array $body = null): array {
     $ch = curl_init($url);
     $headers = [
@@ -236,27 +211,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
             }
         }
 
-        if ($action === 'save_uft_config') {
-            $configName = trim((string) ($_POST['uft_config_name'] ?? ''));
-            $configJson = (string) ($_POST['uft_config_json'] ?? '');
-            $allowed = ['base_players', 'cards', 'packs', 'season', 'events', 'market'];
-            $decoded = json_decode($configJson, true);
-            if (!in_array($configName, $allowed, true)) {
-                $errors[] = 'Configuración UFT inválida.';
-            } elseif ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
-                $errors[] = 'JSON UFT inválido.';
-            } else {
-                $rpcUrl = $supabaseUrl . '/rest/v1/rpc/save_uft_config';
-                $payload = ['p_key' => $configName, 'p_payload' => $decoded];
-                $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
-                if ($result['ok']) {
-                    $success = 'Configuración UFT guardada en Supabase: ' . $configName;
-                } else {
-                    $errors[] = 'No se pudo guardar configuración UFT en Supabase: ' . $result['error'];
-                }
-            }
-        }
-
         if ($action === 'upsert_uft_player') {
             $payload = [
                 'p_player_id' => trim((string) ($_POST['p_player_id'] ?? '')),
@@ -285,7 +239,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
                 'p_card_type' => trim((string) ($_POST['p_card_type'] ?? 'Base')),
                 'p_rarity' => trim((string) ($_POST['p_rarity'] ?? 'Common')),
                 'p_ovr' => (int) ($_POST['p_ovr'] ?? 1),
-                'p_main_stats' => json_decode((string) ($_POST['p_main_stats'] ?? '{}'), true),
+                'p_pace' => (int) ($_POST['p_pace'] ?? 1),
+                'p_dribbling' => (int) ($_POST['p_dribbling'] ?? 1),
+                'p_passing' => (int) ($_POST['p_passing'] ?? 1),
+                'p_shooting' => (int) ($_POST['p_shooting'] ?? 1),
+                'p_defense' => (int) ($_POST['p_defense'] ?? 1),
+                'p_physical' => (int) ($_POST['p_physical'] ?? 1),
+                'p_gk_reflejos' => (int) ($_POST['p_gk_reflejos'] ?? 1),
+                'p_gk_parada' => (int) ($_POST['p_gk_parada'] ?? 1),
+                'p_gk_uno_vs_uno' => (int) ($_POST['p_gk_uno_vs_uno'] ?? 1),
+                'p_gk_colocacion' => (int) ($_POST['p_gk_colocacion'] ?? 1),
+                'p_gk_juego_pies' => (int) ($_POST['p_gk_juego_pies'] ?? 1),
+                'p_gk_fisico' => (int) ($_POST['p_gk_fisico'] ?? 1),
                 'p_evolution_level' => (int) ($_POST['p_evolution_level'] ?? 1),
                 'p_card_frame_url' => trim((string) ($_POST['p_card_frame_url'] ?? '')),
                 'p_face_url' => trim((string) ($_POST['p_face_url'] ?? '')),
@@ -293,8 +258,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
                 'p_transferable' => isset($_POST['p_transferable']),
                 'p_locked' => isset($_POST['p_locked']),
                 'p_suggested_price' => (int) ($_POST['p_suggested_price'] ?? 0),
-                'p_field_substats' => json_decode((string) ($_POST['p_field_substats'] ?? '{}'), true),
-                'p_gk_substats' => json_decode((string) ($_POST['p_gk_substats'] ?? '{}'), true),
             ];
             $rpcUrl = $supabaseUrl . '/rest/v1/rpc/upsert_uft_card';
             $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
@@ -417,6 +380,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
                 }
             }
         }
+
+        if ($action === 'upsert_country') {
+            $payload = [
+                'p_country_id' => ($id = trim((string) ($_POST['country_id'] ?? ''))) === '' ? null : $id,
+                'p_name' => trim((string) ($_POST['country_name'] ?? '')),
+                'p_iso_code' => trim((string) ($_POST['country_iso_code'] ?? '')),
+                'p_logo_url' => trim((string) ($_POST['country_logo_url'] ?? '')),
+                'p_active' => isset($_POST['country_active']),
+            ];
+            $result = api_request('POST', $supabaseUrl . '/rest/v1/rpc/upsert_uft_country', $serviceRoleKey, $payload);
+            if ($result['ok']) {
+                $success = 'País guardado correctamente.';
+            } else {
+                $errors[] = 'No se pudo guardar país: ' . $result['error'];
+            }
+        }
+
+        if ($action === 'upsert_league') {
+            $payload = [
+                'p_league_id' => ($id = trim((string) ($_POST['league_id'] ?? ''))) === '' ? null : $id,
+                'p_country_id' => ($id = trim((string) ($_POST['league_country_id'] ?? ''))) === '' ? null : $id,
+                'p_name' => trim((string) ($_POST['league_name'] ?? '')),
+                'p_tier_level' => (int) ($_POST['league_tier_level'] ?? 1),
+                'p_logo_url' => trim((string) ($_POST['league_logo_url'] ?? '')),
+                'p_active' => isset($_POST['league_active']),
+            ];
+            $result = api_request('POST', $supabaseUrl . '/rest/v1/rpc/upsert_uft_league', $serviceRoleKey, $payload);
+            if ($result['ok']) {
+                $success = 'Liga guardada correctamente.';
+            } else {
+                $errors[] = 'No se pudo guardar liga: ' . $result['error'];
+            }
+        }
+
+        if ($action === 'upsert_club') {
+            $payload = [
+                'p_club_id' => ($id = trim((string) ($_POST['club_id'] ?? ''))) === '' ? null : $id,
+                'p_league_id' => ($id = trim((string) ($_POST['club_league_id'] ?? ''))) === '' ? null : $id,
+                'p_name' => trim((string) ($_POST['club_name'] ?? '')),
+                'p_logo_url' => trim((string) ($_POST['club_logo_url'] ?? '')),
+                'p_active' => isset($_POST['club_active']),
+            ];
+            $result = api_request('POST', $supabaseUrl . '/rest/v1/rpc/upsert_uft_club', $serviceRoleKey, $payload);
+            if ($result['ok']) {
+                $success = 'Club guardado correctamente.';
+            } else {
+                $errors[] = 'No se pudo guardar club: ' . $result['error'];
+            }
+        }
+
+        if ($action === 'assign_user_club') {
+            $targetUserId = trim((string) ($_POST['club_target_user_id'] ?? ''));
+            $targetClubId = trim((string) ($_POST['club_target_club_id'] ?? ''));
+            if ($targetUserId === '' || $targetClubId === '') {
+                $errors[] = 'Usuario/club inválido para asignación.';
+            } else {
+                $payload = [
+                    'p_player_id' => $targetUserId,
+                    'p_logo_id' => $targetClubId,
+                    'p_custom_image_url' => '',
+                ];
+                $result = api_request('POST', $supabaseUrl . '/rest/v1/rpc/set_player_profile_logo', $serviceRoleKey, $payload);
+                if ($result['ok']) {
+                    $success = 'Escudo de club asignado al usuario.';
+                } else {
+                    $errors[] = 'No se pudo asignar club: ' . $result['error'];
+                }
+            }
+        }
     }
 }
 
@@ -430,11 +462,9 @@ $uftEvents = [];
 $uftPacks = [];
 $uftMarketListings = [];
 $uftSeasons = [];
-$uftConfigNames = ['base_players', 'cards', 'packs', 'season', 'events', 'market'];
-$uftConfigs = [];
-foreach ($uftConfigNames as $cfgName) {
-    $uftConfigs[$cfgName] = '';
-}
+$uftCountries = [];
+$uftLeagues = [];
+$uftClubs = [];
 if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
     $url = $supabaseUrl . '/rest/v1/player_accounts?select=id,username,created_at,updated_at&order=created_at.desc';
     $result = api_request('GET', $url, $serviceRoleKey);
@@ -459,19 +489,6 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
         $profileLogos = $logosResult['data'];
     } elseif (!$logosResult['ok']) {
         $errors[] = 'No se pudo cargar lista de logos de perfil: ' . $logosResult['error'];
-    }
-
-    $uftCfgUrl = $supabaseUrl . '/rest/v1/rpc/list_uft_configs';
-    $uftCfgResult = api_request('POST', $uftCfgUrl, $serviceRoleKey, []);
-    if ($uftCfgResult['ok'] && is_array($uftCfgResult['data'])) {
-        foreach ($uftCfgResult['data'] as $row) {
-            $k = (string) ($row['key'] ?? '');
-            if ($k !== '' && in_array($k, $uftConfigNames, true)) {
-                $uftConfigs[$k] = json_encode($row['payload'] ?? null, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            }
-        }
-    } elseif (!$uftCfgResult['ok']) {
-        $errors[] = 'No se pudo cargar configuración UFT desde Supabase: ' . $uftCfgResult['error'];
     }
 
     $uftPlayersResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_players', $serviceRoleKey, []);
@@ -509,6 +526,19 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
         $uftSeasons = $uftSeasonsResult['data'];
     }
 
+    $countriesResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_countries', $serviceRoleKey, []);
+    if ($countriesResult['ok'] && is_array($countriesResult['data'])) {
+        $uftCountries = $countriesResult['data'];
+    }
+    $leaguesResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_leagues', $serviceRoleKey, []);
+    if ($leaguesResult['ok'] && is_array($leaguesResult['data'])) {
+        $uftLeagues = $leaguesResult['data'];
+    }
+    $clubsResult = api_request('POST', $supabaseUrl . '/rest/v1/rpc/list_uft_clubs', $serviceRoleKey, []);
+    if ($clubsResult['ok'] && is_array($clubsResult['data'])) {
+        $uftClubs = $clubsResult['data'];
+    }
+
 }
 ?>
 <!doctype html>
@@ -518,34 +548,91 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
     <title>Admin UFT27</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body {font-family: Arial, sans-serif; background:#020617; color:#e2e8f0; margin:0; padding:24px;}
-        .top {display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
-        .panel {background:#0f172a; border:1px solid #1e293b; border-radius:12px; padding:16px; margin-top:16px;}
-        table {width:100%; border-collapse: collapse; margin-top:12px;}
+        :root {
+            --bg: #020617;
+            --bg-soft: #0b1220;
+            --panel: #0f172a;
+            --panel-2: #111827;
+            --line: #1e293b;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --blue: #2563eb;
+            --green: #16a34a;
+            --red: #dc2626;
+        }
+        body {font-family: Inter, Arial, sans-serif; background:var(--bg); color:var(--text); margin:0; padding:20px;}
+        .top {display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px;}
+        .top h1 {margin:0;}
+        .top p {margin:8px 0 0 0; color:var(--muted);}
+        .quick-nav {display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+        .quick-nav a {text-decoration:none; color:var(--text); font-size:13px; background:var(--bg-soft); border:1px solid #334155; border-radius:999px; padding:6px 10px;}
+        .stats {display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); margin-top:16px;}
+        .stat {background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px;}
+        .stat .label {font-size:12px; color:var(--muted);}
+        .stat .value {font-size:24px; font-weight:700; margin-top:6px;}
+        .panel {background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:16px;}
+        .panel h2 {margin:0 0 8px 0;}
+        table {width:100%; border-collapse: collapse; margin-top:12px; font-size:14px;}
         th, td {padding:10px; border-bottom:1px solid #1e293b; text-align:left; vertical-align:top;}
-        th {background:#111827;}
+        th {background:var(--panel-2);}
         .error {background:#7f1d1d; border:1px solid #ef4444; padding:10px; border-radius:8px; margin-top:10px;}
         .success {background:#14532d; border:1px solid #22c55e; padding:10px; border-radius:8px; margin-top:10px;}
-        input[type="password"], input[type="text"], textarea, select {padding:8px; border-radius:8px; border:1px solid #334155; background:#0b1220; color:#e2e8f0;}
-input[type="password"] {width:180px;}
-textarea {width:100%; box-sizing:border-box;}
+        input[type="password"], input[type="text"], input[type="number"], textarea, select {padding:8px; border-radius:8px; border:1px solid #334155; background:var(--bg-soft); color:var(--text);}
+        input[type="password"] {width:180px;}
+        textarea {width:100%; box-sizing:border-box;}
         .btn {padding:8px 12px; border-radius:8px; border:none; cursor:pointer; color:#fff;}
-        .btn-primary {background:#2563eb;}
-        .btn-danger {background:#dc2626;}
+        .btn-primary {background:var(--blue);}
+        .btn-danger {background:var(--red);}
         .btn-secondary {background:#475569;}
         form.inline {display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap;}
-        code {background:#111827; padding:2px 6px; border-radius:6px;}
+        code {background:var(--panel-2); padding:2px 6px; border-radius:6px;}
+        .panel-grid {display:grid; gap:16px;}
+        .field {display:grid; gap:6px;}
+        .field label {font-size:12px; color:var(--muted);}
+        @media (min-width: 980px) { .panel-grid {grid-template-columns:1fr 1fr;} }
     </style>
 </head>
 <body>
     <div class="top">
         <div>
             <h1 style="margin:0;">UFT 27 - Panel Admin</h1>
-            <p style="margin:6px 0 0 0; color:#94a3b8;">Moderación de cuentas <code>player_accounts</code> en Supabase.</p>
+            <p>Administración centralizada del servidor y contenido UFT directamente desde Supabase.</p>
+            <div class="quick-nav">
+                <a href="#usuarios">Usuarios</a>
+                <a href="#logos">Logos</a>
+                <a href="#notificaciones">Notificaciones</a>
+                <a href="#jugadores-uft">Jugadores UFT</a>
+                <a href="#cartas-uft">Cartas UFT</a>
+                <a href="#eventos-uft">Eventos UFT</a>
+                <a href="#sobres-uft">Sobres UFT</a>
+                <a href="#mercado-uft">Mercado UFT</a>
+                <a href="#estructura-futbol">Países/Ligas/Clubes</a>
+                <a href="#temporadas-uft">Temporadas UFT</a>
+                <a href="market_admin.php">Página Mercado</a>
+            </div>
         </div>
         <form method="post" class="inline">
             <button class="btn btn-secondary" name="logout" value="1" type="submit">Cerrar sesión</button>
         </form>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="label">Usuarios registrados</div>
+            <div class="value"><?php echo count($users); ?></div>
+        </div>
+        <div class="stat">
+            <div class="label">Notificaciones activas</div>
+            <div class="value"><?php echo count(array_filter($notifications, fn($n) => (bool) ($n['active'] ?? false))); ?></div>
+        </div>
+        <div class="stat">
+            <div class="label">Cartas UFT</div>
+            <div class="value"><?php echo count($uftCards); ?></div>
+        </div>
+        <div class="stat">
+            <div class="label">Eventos UFT</div>
+            <div class="value"><?php echo count($uftEvents); ?></div>
+        </div>
     </div>
 
     <?php foreach ($errors as $error): ?>
@@ -555,7 +642,7 @@ textarea {width:100%; box-sizing:border-box;}
         <div class="success"><?php echo h($success); ?></div>
     <?php endif; ?>
 
-    <div class="panel">
+    <div class="panel" id="usuarios">
         <strong>Total usuarios:</strong> <?php echo count($users); ?>
         <table>
             <thead>
@@ -599,7 +686,7 @@ textarea {width:100%; box-sizing:border-box;}
     </div>
 
 
-    <div class="panel">
+    <div class="panel" id="logos">
         <h2 style="margin-top:0;">Logos de perfil (eventos/equipos)</h2>
         <p style="color:#94a3b8; margin-top:0;">Crea logos desbloqueables (evento/equipo) y asígnalos a usuarios.</p>
         <form method="post" style="display:grid; gap:10px; max-width:900px; margin-bottom:14px;">
@@ -650,7 +737,7 @@ textarea {width:100%; box-sizing:border-box;}
         </table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="notificaciones">
         <h2 style="margin-top:0;">Notificaciones in-game</h2>
         <p style="color:#94a3b8; margin-top:0;">Creá eventos con imagen (URL pública o ruta accesible) para mostrarlos en el juego.</p>
         <form method="post" style="display:grid; gap:10px; max-width:900px;">
@@ -690,37 +777,20 @@ textarea {width:100%; box-sizing:border-box;}
         </table>
     </div>
 
-    <div class="panel">
-        <h2 style="margin-top:0;">Configuración UFT (modo Ultimate Team)</h2>
-        <p style="color:#94a3b8; margin-top:0;">Editá datos base del modo UFT guardados en Supabase: jugadores, cartas, sobres, mercado, eventos y temporada.</p>
-        <form method="post" style="display:grid; gap:10px; max-width:1000px;">
-            <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
-            <input type="hidden" name="action" value="save_uft_config">
-            <select name="uft_config_name" onchange="document.getElementById('uft_json').value = this.options[this.selectedIndex].dataset.content;">
-                <?php foreach ($uftConfigNames as $cfgName): ?>
-                    <option value="<?php echo h($cfgName); ?>" data-content="<?php echo h((string) ($uftConfigs[$cfgName] ?? '')); ?>"><?php echo h($cfgName); ?></option>
-                <?php endforeach; ?>
-            </select>
-            <textarea id="uft_json" name="uft_config_json" rows="16" placeholder="JSON válido"><?php echo h((string) ($uftConfigs['base_players'] ?? '')); ?></textarea>
-            <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar configuración UFT</button>
-        </form>
-    </div>
-
-
-    <div class="panel">
+    <div class="panel" id="jugadores-uft">
         <h2 style="margin-top:0;">Jugadores UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
             <input type="hidden" name="action" value="upsert_uft_player">
-            <input type="text" name="p_player_id" placeholder="player_id único" required>
-            <input type="text" name="p_name" placeholder="Nombre" required>
-            <input type="text" name="p_main_position" placeholder="POS (POR/C/AI/AD/P)" required>
-            <input type="text" name="p_secondary_positions" placeholder='["AI","AD"]'>
-            <input type="text" name="p_photo_face_url" placeholder="URL foto cara">
-            <input type="text" name="p_dominant_foot" placeholder="Pie dominante">
-            <input type="text" name="p_nationality" placeholder="Nacionalidad">
-            <input type="text" name="p_club" placeholder="Club">
-            <textarea name="p_metadata" rows="3" placeholder="{}"></textarea>
+            <div class="field"><label>player_id (único)</label><input type="text" name="p_player_id" placeholder="ej: p_ronaldo01" required></div>
+            <div class="field"><label>Nombre del jugador</label><input type="text" name="p_name" placeholder="Nombre" required></div>
+            <div class="field"><label>Posición principal</label><input type="text" name="p_main_position" placeholder="POR/C/AI/AD/P" required></div>
+            <div class="field"><label>Posiciones secundarias (JSON array)</label><input type="text" name="p_secondary_positions" placeholder='["AI","AD"]'></div>
+            <div class="field"><label>URL foto de cara</label><input type="text" name="p_photo_face_url" placeholder="https://..."></div>
+            <div class="field"><label>Pie dominante</label><input type="text" name="p_dominant_foot" placeholder="Derecho / Izquierdo"></div>
+            <div class="field"><label>Nacionalidad</label><input type="text" name="p_nationality" placeholder="Argentina"></div>
+            <div class="field"><label>Club (texto libre)</label><input type="text" name="p_club" placeholder="Club"></div>
+            <div class="field"><label>Metadata adicional (JSON)</label><textarea name="p_metadata" rows="3" placeholder='{"height_cm":178}'></textarea></div>
             <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar jugador UFT</button>
         </form>
         <table><thead><tr><th>player_id</th><th>Nombre</th><th>Pos</th><th>Club</th></tr></thead><tbody>
@@ -730,7 +800,7 @@ textarea {width:100%; box-sizing:border-box;}
         </tbody></table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="tipos-carta-uft">
         <h2 style="margin-top:0;">Tipos de carta UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
@@ -749,26 +819,35 @@ textarea {width:100%; box-sizing:border-box;}
         </tbody></table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="cartas-uft">
         <h2 style="margin-top:0;">Cartas UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
             <input type="hidden" name="action" value="upsert_uft_card">
-            <input type="text" name="p_card_id" placeholder="card_id único" required>
-            <input type="text" name="p_card_player_id" placeholder="player_id" required>
-            <input type="text" name="p_card_type" placeholder="Tipo carta" required>
-            <input type="text" name="p_rarity" placeholder="Rareza" required>
-            <input type="number" name="p_ovr" min="1" max="120" value="75" required>
-            <input type="number" name="p_evolution_level" min="1" value="1" required>
-            <input type="number" name="p_suggested_price" min="0" value="0">
-            <input type="text" name="p_card_frame_url" placeholder="URL frame carta">
-            <input type="text" name="p_face_url" placeholder="URL foto cara">
+            <div class="field"><label>card_id (único)</label><input type="text" name="p_card_id" placeholder="ej: card_p_ronaldo01_base" required></div>
+            <div class="field"><label>player_id relacionado</label><input type="text" name="p_card_player_id" placeholder="player_id" required></div>
+            <div class="field"><label>Tipo de carta</label><input type="text" name="p_card_type" placeholder="Base / Evento / TOTW" required></div>
+            <div class="field"><label>Rareza</label><input type="text" name="p_rarity" placeholder="Common / Rare / Epic" required></div>
+            <div class="field"><label>OVR base</label><input type="number" name="p_ovr" min="1" max="120" value="75" required></div>
+            <div class="field"><label>Nivel de evolución</label><input type="number" name="p_evolution_level" min="1" value="1" required></div>
+            <div class="field"><label>Precio sugerido mercado</label><input type="number" name="p_suggested_price" min="0" value="0"></div>
+            <div class="field"><label>URL frame de carta</label><input type="text" name="p_card_frame_url" placeholder="https://..."></div>
+            <div class="field"><label>URL rostro</label><input type="text" name="p_face_url" placeholder="https://..."></div>
+            <div class="field"><label>Ritmo (pace)</label><input type="number" name="p_pace" min="1" max="120" value="60"></div>
+            <div class="field"><label>Regate (dribbling)</label><input type="number" name="p_dribbling" min="1" max="120" value="60"></div>
+            <div class="field"><label>Pase (passing)</label><input type="number" name="p_passing" min="1" max="120" value="60"></div>
+            <div class="field"><label>Tiro (shooting)</label><input type="number" name="p_shooting" min="1" max="120" value="60"></div>
+            <div class="field"><label>Defensa (defense)</label><input type="number" name="p_defense" min="1" max="120" value="60"></div>
+            <div class="field"><label>Físico (physical)</label><input type="number" name="p_physical" min="1" max="120" value="60"></div>
+            <div class="field"><label>POR reflejos</label><input type="number" name="p_gk_reflejos" min="1" max="120" value="60"></div>
+            <div class="field"><label>POR parada</label><input type="number" name="p_gk_parada" min="1" max="120" value="60"></div>
+            <div class="field"><label>POR uno vs uno</label><input type="number" name="p_gk_uno_vs_uno" min="1" max="120" value="60"></div>
+            <div class="field"><label>POR colocación</label><input type="number" name="p_gk_colocacion" min="1" max="120" value="60"></div>
+            <div class="field"><label>POR juego con pies</label><input type="number" name="p_gk_juego_pies" min="1" max="120" value="60"></div>
+            <div class="field"><label>POR físico</label><input type="number" name="p_gk_fisico" min="1" max="120" value="60"></div>
             <label><input type="checkbox" name="p_owned" checked> Poseída</label>
             <label><input type="checkbox" name="p_transferable" checked> Transferible</label>
             <label><input type="checkbox" name="p_locked"> Bloqueada</label>
-            <textarea name="p_main_stats" rows="3" placeholder='{"pace":80,"dribbling":78,"passing":75,"shooting":82,"defense":60,"physical":74}'></textarea>
-            <textarea name="p_field_substats" rows="3" placeholder="{}"></textarea>
-            <textarea name="p_gk_substats" rows="3" placeholder="{}"></textarea>
             <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar carta UFT</button>
         </form>
         <table><thead><tr><th>card_id</th><th>player_id</th><th>Tipo</th><th>Rareza</th><th>Evo</th><th>OVR</th><th>Poseída</th><th>Transferible</th><th>Precio</th></tr></thead><tbody>
@@ -788,7 +867,7 @@ textarea {width:100%; box-sizing:border-box;}
         </tbody></table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="eventos-uft">
         <h2 style="margin-top:0;">Eventos UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
@@ -811,7 +890,7 @@ textarea {width:100%; box-sizing:border-box;}
         </tbody></table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="sobres-uft">
         <h2 style="margin-top:0;">Sobres UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
@@ -832,7 +911,7 @@ textarea {width:100%; box-sizing:border-box;}
         </tbody></table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="mercado-uft">
         <h2 style="margin-top:0;">Mercado UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
@@ -851,7 +930,86 @@ textarea {width:100%; box-sizing:border-box;}
         </tbody></table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="estructura-futbol">
+        <h2 style="margin-top:0;">Estructura de fútbol: Países → Ligas → Clubes</h2>
+        <p style="color:#94a3b8; margin-top:0;">Esta estructura reemplaza la selección manual de escudo: ahora el perfil puede usar el escudo del club asignado al usuario.</p>
+
+        <div class="panel-grid">
+            <form method="post" style="display:grid; gap:8px;">
+                <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+                <input type="hidden" name="action" value="upsert_country">
+                <h3 style="margin:0;">Crear / editar país</h3>
+                <div class="field"><label>ID país (UUID opcional para editar)</label><input type="text" name="country_id" placeholder="vacío para crear nuevo"></div>
+                <div class="field"><label>Nombre del país</label><input type="text" name="country_name" required></div>
+                <div class="field"><label>Código ISO (2-3 letras)</label><input type="text" name="country_iso_code" required></div>
+                <div class="field"><label>Logo del país (URL)</label><input type="text" name="country_logo_url" placeholder="https://..."></div>
+                <label><input type="checkbox" name="country_active" checked> Activo</label>
+                <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar país</button>
+            </form>
+
+            <form method="post" style="display:grid; gap:8px;">
+                <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+                <input type="hidden" name="action" value="upsert_league">
+                <h3 style="margin:0;">Crear / editar liga</h3>
+                <div class="field"><label>ID liga (UUID opcional para editar)</label><input type="text" name="league_id" placeholder="vacío para crear nueva"></div>
+                <div class="field">
+                    <label>País de la liga</label>
+                    <select name="league_country_id" required>
+                        <option value="">Selecciona país</option>
+                        <?php foreach ($uftCountries as $country): ?>
+                            <option value="<?php echo h((string) ($country['id'] ?? '')); ?>"><?php echo h((string) ($country['name'] ?? '')); ?> (<?php echo h((string) ($country['iso_code'] ?? '')); ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="field"><label>Nombre de la liga</label><input type="text" name="league_name" required></div>
+                <div class="field"><label>Nivel de liga (1,2,3...)</label><input type="number" name="league_tier_level" min="1" value="1" required></div>
+                <div class="field"><label>Logo de la liga (URL)</label><input type="text" name="league_logo_url" placeholder="https://..."></div>
+                <label><input type="checkbox" name="league_active" checked> Activa</label>
+                <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar liga</button>
+            </form>
+        </div>
+
+        <div class="panel-grid" style="margin-top:12px;">
+            <form method="post" style="display:grid; gap:8px;">
+                <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+                <input type="hidden" name="action" value="upsert_club">
+                <h3 style="margin:0;">Crear / editar club</h3>
+                <div class="field"><label>ID club (UUID opcional para editar)</label><input type="text" name="club_id" placeholder="vacío para crear nuevo"></div>
+                <div class="field">
+                    <label>Liga del club</label>
+                    <select name="club_league_id" required>
+                        <option value="">Selecciona liga</option>
+                        <?php foreach ($uftLeagues as $league): ?>
+                            <option value="<?php echo h((string) ($league['id'] ?? '')); ?>"><?php echo h((string) ($league['country_name'] ?? '')); ?> · <?php echo h((string) ($league['name'] ?? '')); ?> (Nivel <?php echo h((string) ($league['tier_level'] ?? '1')); ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="field"><label>Nombre del club</label><input type="text" name="club_name" required></div>
+                <div class="field"><label>Logo del club (URL)</label><input type="text" name="club_logo_url" placeholder="https://..."></div>
+                <label><input type="checkbox" name="club_active" checked> Activo</label>
+                <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar club</button>
+            </form>
+
+            <form method="post" style="display:grid; gap:8px;">
+                <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">
+                <input type="hidden" name="action" value="assign_user_club">
+                <h3 style="margin:0;">Asignar club (escudo) a usuario</h3>
+                <div class="field"><label>Usuario (UUID)</label><input type="text" name="club_target_user_id" required></div>
+                <div class="field">
+                    <label>Club para el perfil</label>
+                    <select name="club_target_club_id" required>
+                        <option value="">Selecciona club</option>
+                        <?php foreach ($uftClubs as $club): ?>
+                            <option value="<?php echo h((string) ($club['id'] ?? '')); ?>"><?php echo h((string) ($club['country_name'] ?? '')); ?> · <?php echo h((string) ($club['league_name'] ?? '')); ?> · <?php echo h((string) ($club['name'] ?? '')); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button class="btn btn-secondary" type="submit" style="width:max-content;">Asignar club</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="panel" id="temporadas-uft">
         <h2 style="margin-top:0;">Temporadas UFT (Supabase)</h2>
         <form method="post" style="display:grid; gap:8px; max-width:1000px; margin-bottom:12px;">
             <input type="hidden" name="csrf_token" value="<?php echo h($_SESSION['csrf_token']); ?>">

@@ -683,13 +683,17 @@ create table if not exists public.uft_events_catalog (
 create table if not exists public.uft_packs_catalog (
   pack_id text primary key,
   name text not null,
+  image_url text not null default '',
   cost_coins integer not null default 0,
   cost_points integer not null default 0,
   cards_count integer not null default 1,
   duplicate_policy text not null default 'allow',
   pool jsonb not null default '[]'::jsonb,
+  probability_rules jsonb not null default '[]'::jsonb,
   updated_at timestamptz not null default now()
 );
+alter table public.uft_packs_catalog add column if not exists image_url text not null default '';
+alter table public.uft_packs_catalog add column if not exists probability_rules jsonb not null default '[]'::jsonb;
 
 create table if not exists public.player_uft_cards (
   player_id uuid not null references public.player_accounts(id) on delete cascade,
@@ -989,11 +993,13 @@ $$;
 create or replace function public.upsert_uft_pack(
   p_pack_id text,
   p_name text,
+  p_image_url text default '',
   p_cost_coins integer default 0,
   p_cost_points integer default 0,
   p_cards_count integer default 1,
   p_duplicate_policy text default 'allow',
-  p_pool jsonb default '[]'::jsonb
+  p_pool jsonb default '[]'::jsonb,
+  p_probability_rules jsonb default '[]'::jsonb
 )
 returns boolean
 language plpgsql
@@ -1002,15 +1008,28 @@ set search_path = public
 as $$
 begin
   if p_pack_id is null or trim(p_pack_id) = '' then return false; end if;
-  insert into public.uft_packs_catalog(pack_id, name, cost_coins, cost_points, cards_count, duplicate_policy, pool, updated_at)
-  values (trim(p_pack_id), coalesce(p_name, 'Sobre'), greatest(coalesce(p_cost_coins, 0), 0), greatest(coalesce(p_cost_points, 0), 0), greatest(coalesce(p_cards_count, 1), 1), coalesce(p_duplicate_policy, 'allow'), coalesce(p_pool, '[]'::jsonb), now())
+  insert into public.uft_packs_catalog(pack_id, name, image_url, cost_coins, cost_points, cards_count, duplicate_policy, pool, probability_rules, updated_at)
+  values (
+    trim(p_pack_id),
+    coalesce(p_name, 'Sobre'),
+    coalesce(p_image_url, ''),
+    greatest(coalesce(p_cost_coins, 0), 0),
+    greatest(coalesce(p_cost_points, 0), 0),
+    greatest(coalesce(p_cards_count, 1), 1),
+    coalesce(p_duplicate_policy, 'allow'),
+    coalesce(p_pool, '[]'::jsonb),
+    coalesce(p_probability_rules, '[]'::jsonb),
+    now()
+  )
   on conflict (pack_id) do update set
     name = excluded.name,
+    image_url = excluded.image_url,
     cost_coins = excluded.cost_coins,
     cost_points = excluded.cost_points,
     cards_count = excluded.cards_count,
     duplicate_policy = excluded.duplicate_policy,
     pool = excluded.pool,
+    probability_rules = excluded.probability_rules,
     updated_at = now();
   return true;
 end;
@@ -1163,6 +1182,15 @@ declare
   v_duplicates integer := 0;
   v_duplicate_coins integer := 0;
   v_card_suggested integer := 0;
+  v_probability_rules jsonb := '[]'::jsonb;
+  v_selected_rule jsonb;
+  v_filter jsonb;
+  v_min_ovr integer;
+  v_max_ovr integer;
+  v_card_type text;
+  v_nationality text;
+  v_league_id uuid;
+  v_club_id uuid;
 begin
   if p_player_id is null or p_pack_id is null or trim(p_pack_id) = '' then
     return jsonb_build_object('ok', false, 'error', 'Parámetros inválidos');
@@ -1181,13 +1209,55 @@ begin
   v_duplicate_policy := coalesce(nullif(trim(v_pack.duplicate_policy), ''), 'allow');
   v_pool := array(select jsonb_array_elements_text(coalesce(v_pack.pool, '[]'::jsonb)));
   v_pool_len := coalesce(array_length(v_pool, 1), 0);
-
-  if v_pool_len = 0 then
-    return jsonb_build_object('ok', false, 'error', 'El sobre no tiene pool de cartas');
+  v_probability_rules := coalesce(v_pack.probability_rules, '[]'::jsonb);
+  if v_pool_len = 0 and coalesce(jsonb_array_length(v_probability_rules), 0) = 0 then
+    return jsonb_build_object('ok', false, 'error', 'El sobre no tiene pool ni reglas de probabilidad');
   end if;
 
   for i in 1..v_count loop
-    v_card_id := v_pool[1 + floor(random() * v_pool_len)::int];
+    v_card_id := null;
+
+    if coalesce(jsonb_array_length(v_probability_rules), 0) > 0 then
+      select elem
+      into v_selected_rule
+      from jsonb_array_elements(v_probability_rules) elem
+      order by power(random(), 1.0 / greatest(coalesce((elem->>'weight')::numeric, 1), 0.001)) desc
+      limit 1;
+
+      v_filter := coalesce(v_selected_rule->'filters', '{}'::jsonb);
+      v_min_ovr := coalesce(nullif(v_filter->>'min_ovr', '')::integer, 1);
+      v_max_ovr := coalesce(nullif(v_filter->>'max_ovr', '')::integer, 999);
+      v_card_type := nullif(trim(coalesce(v_filter->>'card_type', '')), '');
+      v_nationality := nullif(trim(coalesce(v_filter->>'nationality', '')), '');
+      v_league_id := nullif(trim(coalesce(v_filter->>'league_id', '')), '')::uuid;
+      v_club_id := nullif(trim(coalesce(v_filter->>'club_id', '')), '')::uuid;
+
+      select c.card_id
+      into v_card_id
+      from public.uft_cards_catalog c
+      join public.uft_players p on p.player_id = c.player_id
+      left join public.uft_clubs club on club.id = p.club_id
+      where c.ovr between v_min_ovr and v_max_ovr
+        and (v_card_type is null or c.card_type = v_card_type)
+        and (v_nationality is null or lower(coalesce(p.nationality, '')) = lower(v_nationality))
+        and (v_league_id is null or club.league_id = v_league_id)
+        and (v_club_id is null or p.club_id = v_club_id)
+      order by random()
+      limit 1;
+    end if;
+
+    if v_card_id is null and v_pool_len > 0 then
+      v_card_id := v_pool[1 + floor(random() * v_pool_len)::int];
+    end if;
+
+    if v_card_id is null then
+      select c.card_id
+      into v_card_id
+      from public.uft_cards_catalog c
+      order by random()
+      limit 1;
+    end if;
+
     if v_card_id is null or trim(v_card_id) = '' then
       continue;
     end if;
@@ -1258,7 +1328,7 @@ grant execute on function public.upsert_uft_player(text, text, text, jsonb, text
 grant execute on function public.upsert_uft_card(text, text, text, text, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, text, text, boolean, boolean, integer, boolean, integer) to anon, authenticated;
 grant execute on function public.upsert_uft_card_type(text, text, text, jsonb, boolean) to anon, authenticated;
 grant execute on function public.upsert_uft_event(text, text, text, bigint, bigint, boolean, integer, jsonb, jsonb) to anon, authenticated;
-grant execute on function public.upsert_uft_pack(text, text, integer, integer, integer, text, jsonb) to anon, authenticated;
+grant execute on function public.upsert_uft_pack(text, text, text, integer, integer, integer, text, jsonb, jsonb) to anon, authenticated;
 grant execute on function public.upsert_uft_market_listing(text, text, integer, integer, integer, integer, text, bigint, text, boolean) to anon, authenticated;
 grant execute on function public.upsert_uft_season(text, text, bigint, bigint, jsonb) to anon, authenticated;
 grant execute on function public.list_uft_players() to anon, authenticated;

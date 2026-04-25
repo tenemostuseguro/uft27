@@ -310,11 +310,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
             $payload = [
                 'p_pack_id' => trim((string) ($_POST['p_pack_id'] ?? '')),
                 'p_name' => trim((string) ($_POST['p_pack_name'] ?? '')),
+                'p_image_url' => trim((string) ($_POST['p_pack_image_url'] ?? '')),
                 'p_cost_coins' => (int) ($_POST['p_cost_coins'] ?? 0),
                 'p_cost_points' => (int) ($_POST['p_cost_points'] ?? 0),
                 'p_cards_count' => (int) ($_POST['p_cards_count'] ?? 1),
                 'p_duplicate_policy' => trim((string) ($_POST['p_duplicate_policy'] ?? 'allow')),
                 'p_pool' => json_decode((string) ($_POST['p_pool'] ?? '[]'), true),
+                'p_probability_rules' => json_decode((string) ($_POST['p_probability_rules'] ?? '[]'), true),
             ];
             $rpcUrl = $supabaseUrl . '/rest/v1/rpc/upsert_uft_pack';
             $result = api_request('POST', $rpcUrl, $serviceRoleKey, $payload);
@@ -611,6 +613,7 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
                 <a href="market_admin.php">Página Mercado</a>
                 <a href="player_card_wizard.php">Asistente Jugador/Carta</a>
                 <a href="pack_system_admin.php">Sistema de Sobres</a>
+                <a href="store_admin.php">Tienda UFT</a>
             </div>
         </div>
         <form method="post" class="inline">
@@ -915,16 +918,27 @@ if ($supabaseUrl !== '' && $serviceRoleKey !== '') {
             <input type="hidden" name="action" value="upsert_uft_pack">
             <input type="text" name="p_pack_id" placeholder="pack_id" required>
             <input type="text" name="p_pack_name" placeholder="Nombre sobre" required>
+            <input type="text" name="p_pack_image_url" placeholder="Imagen del sobre (URL)">
             <input type="number" name="p_cost_coins" placeholder="Coste coins" value="0">
             <input type="number" name="p_cost_points" placeholder="Coste points" value="0">
             <input type="number" name="p_cards_count" placeholder="Cantidad de cartas" value="1" min="1" required>
             <input type="text" name="p_duplicate_policy" placeholder="Política duplicados (allow/no_dupes)" value="allow">
-            <textarea name="p_pool" rows="3" placeholder="[]"></textarea>
+            <textarea name="p_pool" rows="3" placeholder='Pool fijo opcional: ["card_1","card_2"]'></textarea>
+            <textarea name="p_probability_rules" rows="6" placeholder='Reglas de probabilidad (JSON): [{"weight":60,"filters":{"min_ovr":70,"max_ovr":84,"card_type":"Base"}},{"weight":30,"filters":{"nationality":"Argentina"}},{"weight":10,"filters":{"league_id":"UUID_LIGA","club_id":"UUID_CLUB"}}]'></textarea>
             <button class="btn btn-primary" type="submit" style="width:max-content;">Guardar sobre UFT</button>
         </form>
-        <table><thead><tr><th>pack_id</th><th>Nombre</th><th>Coins</th><th>Points</th><th>Cards</th></tr></thead><tbody>
+        <table><thead><tr><th>pack_id</th><th>Nombre</th><th>Imagen</th><th>Coins</th><th>Points</th><th>Cards</th><th>Policy</th><th>Reglas</th></tr></thead><tbody>
             <?php foreach ($uftPacks as $p): ?>
-                <tr><td><code><?php echo h((string)($p['pack_id'] ?? '')); ?></code></td><td><?php echo h((string)($p['name'] ?? '')); ?></td><td><?php echo h((string)($p['cost_coins'] ?? '')); ?></td><td><?php echo h((string)($p['cost_points'] ?? '')); ?></td><td><?php echo h((string)($p['cards_count'] ?? '')); ?></td></tr>
+                <tr>
+                    <td><code><?php echo h((string)($p['pack_id'] ?? '')); ?></code></td>
+                    <td><?php echo h((string)($p['name'] ?? '')); ?></td>
+                    <td><code><?php echo h((string)($p['image_url'] ?? '')); ?></code></td>
+                    <td><?php echo h((string)($p['cost_coins'] ?? '')); ?></td>
+                    <td><?php echo h((string)($p['cost_points'] ?? '')); ?></td>
+                    <td><?php echo h((string)($p['cards_count'] ?? '')); ?></td>
+                    <td><?php echo h((string)($p['duplicate_policy'] ?? '')); ?></td>
+                    <td><code><?php echo h((string)json_encode($p['probability_rules'] ?? [])); ?></code></td>
+                </tr>
             <?php endforeach; ?>
         </tbody></table>
     </div>

@@ -5,7 +5,7 @@ const COURT_TEXTURE_PATH := "res://assets/court.png"
 const EMPTY_SLOT_TEXTURE_PATH := "res://assets/vacio.png"
 const POSITIONS: Array[String] = ["POR", "C", "AI", "AD", "P"]
 const FIELD_LEFT_MARGIN_RATIO := 0.04
-const FIELD_RIGHT_MARGIN_RATIO := 0.20
+const FIELD_RIGHT_MARGIN_RATIO := 0.06
 const FIELD_TOP_MARGIN_RATIO := 0.05
 const FIELD_BOTTOM_MARGIN_RATIO := 0.05
 
@@ -24,6 +24,10 @@ const FORMATIONS := {
 @onready var collection_toggle_btn: Button = $Margin/VBox/CollectionToggle
 @onready var collection_scroll: ScrollContainer = $Margin/VBox/CollectionScroll
 @onready var collection_grid: GridContainer = $Margin/VBox/CollectionScroll/CollectionGrid
+@onready var lineup_title_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/LineupTitle
+@onready var lineup_state_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/LineupState
+@onready var grl_value_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/GrlBadge/GrlCenter/GrlValue
+@onready var formation_info_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/FormationInfo
 
 var current_formation := "1-2-1"
 var lineup_cards: Dictionary = {"POR":"", "C":"", "AI":"", "AD":"", "P":""}
@@ -64,13 +68,16 @@ func _setup_visuals() -> void:
 	var court_tex: Variant = load(COURT_TEXTURE_PATH)
 	if court_tex is Texture2D:
 		court_rect.texture = court_tex
-	# Mostramos el PNG completo (incluido el panel derecho integrado en court.png)
-	# y evitamos que el modo "covered" lo recorte en pantallas anchas.
-	court_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+	# Como ahora el panel derecho es UI real aparte, dejamos el campo en modo "covered"
+	# dentro de su zona izquierda para que llene mejor el espacio disponible.
+	court_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	formation_select.clear()
 	for key in FORMATIONS.keys():
 		formation_select.add_item(key)
 	formation_select.select(0)
+	formation_info_label.text = current_formation
+	lineup_title_label.text = "LINEUP 1"
+	lineup_state_label.text = "ACTIVE"
 	_apply_collection_visibility()
 
 func _refresh() -> void:
@@ -399,6 +406,7 @@ func _on_auto_fill_pressed() -> void:
 
 func _on_formation_selected(index: int) -> void:
 	current_formation = formation_select.get_item_text(index)
+	formation_info_label.text = current_formation
 	_rebuild_slot_nodes()
 	_refresh_slot_visuals()
 
@@ -430,6 +438,7 @@ func _refresh_squad_meta(uft: Node) -> void:
 	var rating: int = int(round(float(total) / float(max(1, count)))) if count > 0 else 0
 	var chemistry := count * 20
 	squad_meta_label.text = "Rating %d · Chemistry %d" % [rating, chemistry]
+	grl_value_label.text = str(rating)
 
 func _on_collection_toggle_pressed() -> void:
 	collection_expanded = not collection_expanded

@@ -26,37 +26,6 @@ theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 10
 
-[node name="LineupGrlBadge" type="Control" parent="Margin"]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -74.0
-offset_top = 4.0
-offset_right = -8.0
-offset_bottom = 78.0
-mouse_filter = 2
-
-[node name="Badge" type="TextureRect" parent="Margin/LineupGrlBadge"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="Value" type="Label" parent="Margin/LineupGrlBadge/Badge"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-horizontal_alignment = 1
-vertical_alignment = 1
-theme_override_font_sizes/font_size = 22
-text = "0"
-mouse_filter = 2
-
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -75,6 +44,31 @@ size_flags_horizontal = 3
 text = "Alineación UFT"
 theme_override_font_sizes/font_size = 24
 vertical_alignment = 1
+
+[node name="LineupGrlBadge" type="Control" parent="Margin/VBox/Header"]
+custom_minimum_size = Vector2(54, 54)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Badge" type="TextureRect" parent="Margin/VBox/Header/LineupGrlBadge"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Value" type="Label" parent="Margin/VBox/Header/LineupGrlBadge/Badge"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 20
+text = "0"
+mouse_filter = 2
 
 [node name="Back" type="Button" parent="Margin/VBox/Header"]
 layout_mode = 2

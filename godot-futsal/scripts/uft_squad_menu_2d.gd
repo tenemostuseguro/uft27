@@ -25,8 +25,8 @@ const FORMATIONS := {
 @onready var court_rect: TextureRect = $Margin/VBox/FieldArea/Court
 @onready var slot_layer: Control = $Margin/VBox/FieldArea/SlotLayer
 @onready var collection_grid: GridContainer = $Margin/VBox/CollectionScroll/CollectionGrid
-@onready var lineup_grl_badge: TextureRect = $Margin/LineupGrlBadge/Badge
-@onready var lineup_grl_label: Label = $Margin/LineupGrlBadge/Badge/Value
+@onready var lineup_grl_badge: TextureRect = $Margin/VBox/Header/LineupGrlBadge/Badge
+@onready var lineup_grl_label: Label = $Margin/VBox/Header/LineupGrlBadge/Badge/Value
 
 var current_formation := "1-2-1"
 var lineup_cards: Dictionary = {"POR":"", "C":"", "AI":"", "AD":"", "P":""}

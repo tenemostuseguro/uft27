@@ -32,7 +32,7 @@ const FORMATIONS := {
 @onready var lineup_title_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/LineupTitle
 @onready var lineup_state_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/LineupState
 @onready var grl_badge_image: TextureRect = $Margin/VBox/FieldArea/RightPanel/RightVBox/GrlBadge/BadgeImage
-@onready var grl_value_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/GrlBadge/GrlValue
+@onready var grl_value_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/GrlBadge/GrlCenter/GrlValue
 @onready var formation_info_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/FormationInfo
 
 var current_formation := "1-2-1"
@@ -40,6 +40,7 @@ var lineup_cards: Dictionary = {"POR":"", "C":"", "AI":"", "AD":"", "P":""}
 var slot_nodes: Dictionary = {}
 var card_cache: Dictionary = {}
 var collection_card_ids: Array[String] = []
+var collection_nodes: Dictionary = {}
 var selected_slot := "P"
 
 var dragging := false
@@ -108,12 +109,16 @@ func _build_collection(uft: Node) -> void:
 	for child in collection_grid.get_children():
 		child.queue_free()
 	collection_card_ids.clear()
+	collection_nodes.clear()
 	card_cache.clear()
 	for card in uft.get_collection_cards():
 		var card_id := str(card.get("card_id", ""))
 		card_cache[card_id] = card
 		collection_card_ids.append(card_id)
-		collection_grid.add_child(_create_collection_card_widget(card_id, card))
+		var card_widget := _create_collection_card_widget(card_id, card)
+		collection_nodes[card_id] = card_widget
+		collection_grid.add_child(card_widget)
+	_refresh_collection_visuals()
 
 func _create_collection_card_widget(card_id: String, card: Dictionary) -> Control:
 	var holder := PanelContainer.new()
@@ -132,6 +137,7 @@ func _create_collection_card_widget(card_id: String, card: Dictionary) -> Contro
 	var player: Dictionary = card.get("player", {})
 	card_name.text = "%s %d" % [str(player.get("main_position", "")), int(card.get("ovr", 0))]
 	vb.add_child(card_name)
+	holder.set_meta("card_name_label", card_name)
 	holder.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			_start_drag_from_collection(card_id, tex.texture)
@@ -149,6 +155,20 @@ func _create_collection_card_widget(card_id: String, card: Dictionary) -> Contro
 	else:
 		_load_remote_texture_into(tex, image_url)
 	return holder
+
+func _refresh_collection_visuals() -> void:
+	for card_id in collection_nodes.keys():
+		var holder: Control = collection_nodes.get(card_id, null)
+		if holder == null:
+			continue
+		var in_lineup := _find_slot_with_card_id(card_id) != ""
+		holder.modulate = Color(0.72, 0.72, 0.72, 1) if in_lineup else Color(1, 1, 1, 1)
+		var name_label: Label = holder.get_meta("card_name_label", null) as Label
+		if name_label != null:
+			var base_text := name_label.text
+			if " · EN XI" in base_text:
+				base_text = base_text.replace(" · EN XI", "")
+			name_label.text = "%s · EN XI" % base_text if in_lineup else base_text
 
 func _rebuild_slot_nodes() -> void:
 	for child in slot_layer.get_children():
@@ -359,6 +379,7 @@ func _swap_slots(from_pos: String, to_pos: String) -> void:
 	lineup_cards = simulated
 	_commit_lineup()
 	_refresh_slot_visuals()
+	_refresh_collection_visuals()
 	_refresh_squad_meta(get_node_or_null("/root/UFTManager"))
 
 func _has_unique_players(lineup: Dictionary) -> bool:
@@ -371,15 +392,17 @@ func _has_unique_players(lineup: Dictionary) -> bool:
 		if card_id.is_empty():
 			continue
 		var details: Dictionary = uft.get_card_details(card_id)
-		var player: Dictionary = details.get("player", {})
-		var player_id := str(player.get("player_id", ""))
-		if seen.has(player_id):
+		var unique_key := _get_card_unique_player_key(card_id, details)
+		if seen.has(unique_key):
 			return false
-		seen[player_id] = true
+		seen[unique_key] = true
 	return true
 
 func _assign_collection_card_to_slot(card_id: String, slot_pos: String) -> void:
 	var simulated := lineup_cards.duplicate(true)
+	var existing_slot := _find_slot_with_card_id(card_id)
+	if not existing_slot.is_empty() and existing_slot != slot_pos:
+		simulated[existing_slot] = ""
 	simulated[slot_pos] = card_id
 	if not _has_unique_players(simulated):
 		status_label.text = "No puedes usar dos cartas del mismo jugador en el quinteto."
@@ -387,6 +410,7 @@ func _assign_collection_card_to_slot(card_id: String, slot_pos: String) -> void:
 	lineup_cards = simulated
 	_commit_lineup()
 	_refresh_slot_visuals()
+	_refresh_collection_visuals()
 	_refresh_squad_meta(get_node_or_null("/root/UFTManager"))
 
 func _on_auto_fill_pressed() -> void:
@@ -396,22 +420,22 @@ func _on_auto_fill_pressed() -> void:
 		if card_id.is_empty():
 			continue
 		var details: Dictionary = card_cache.get(card_id, {})
-		var player: Dictionary = details.get("player", {})
-		used_players[str(player.get("player_id", ""))] = true
+		var key := _get_card_unique_player_key(card_id, details)
+		used_players[key] = true
 	for pos in POSITIONS:
 		if not str(lineup_cards.get(pos, "")).is_empty():
 			continue
 		for card_id in collection_card_ids:
 			var card: Dictionary = card_cache.get(card_id, {})
-			var player: Dictionary = card.get("player", {})
-			var player_id := str(player.get("player_id", ""))
-			if used_players.has(player_id):
+			var key := _get_card_unique_player_key(card_id, card)
+			if used_players.has(key):
 				continue
 			lineup_cards[pos] = card_id
-			used_players[player_id] = true
+			used_players[key] = true
 			break
 	_commit_lineup()
 	_refresh_slot_visuals()
+	_refresh_collection_visuals()
 	_refresh_squad_meta(get_node_or_null("/root/UFTManager"))
 
 func _on_formation_selected(index: int) -> void:
@@ -501,3 +525,16 @@ func _load_texture_direct_image(path: String) -> Texture2D:
 	if err != OK:
 		return null
 	return ImageTexture.create_from_image(image)
+
+func _find_slot_with_card_id(card_id: String) -> String:
+	for pos in POSITIONS:
+		if str(lineup_cards.get(pos, "")) == card_id:
+			return pos
+	return ""
+
+func _get_card_unique_player_key(card_id: String, details: Dictionary) -> String:
+	var player: Dictionary = details.get("player", {})
+	var player_id := str(player.get("player_id", ""))
+	if not player_id.is_empty():
+		return "player::%s" % player_id
+	return "card::%s" % card_id

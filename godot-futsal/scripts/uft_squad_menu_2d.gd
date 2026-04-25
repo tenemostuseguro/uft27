@@ -473,8 +473,11 @@ func _update_grl_badge(grl: int) -> void:
 	var badge_tex: Texture2D = _load_texture_from_candidates(badge_candidates)
 	if badge_tex != null:
 		grl_badge_image.texture = badge_tex
+		grl_badge_image.visible = true
+		grl_badge_image.modulate = Color(1, 1, 1, 1)
 	else:
 		grl_badge_image.texture = null
+		grl_badge_image.visible = false
 		push_warning("No se pudo cargar insignia GRL. Probadas rutas: %s" % [", ".join(PackedStringArray(badge_candidates))])
 
 func _load_texture_from_candidates(paths: Array[String]) -> Texture2D:

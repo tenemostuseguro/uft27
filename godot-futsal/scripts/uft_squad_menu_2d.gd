@@ -3,6 +3,13 @@ extends Control
 const UFT_MENU_SCENE := "res://scenes/UFTMenu2D.tscn"
 const COURT_TEXTURE_PATH := "res://assets/court.png"
 const EMPTY_SLOT_TEXTURE_PATH := "res://assets/vacio.png"
+const GRL_FONT_PATH := "res://assets/fonts/grl.otf"
+const GRL_BADGE_TEXTURES := {
+	"low": "res://assets/amagrl.png",
+	"mid": "res://assets/rojgrl.png",
+	"high": "res://assets/morgrl.png",
+	"elite": "res://assets/blagrl.png"
+}
 const POSITIONS: Array[String] = ["POR", "C", "AI", "AD", "P"]
 
 const FORMATIONS := {
@@ -30,6 +37,7 @@ var dragging := false
 var drag_from_slot := ""
 var drag_from_collection_card_id := ""
 var drag_preview: TextureRect = null
+var grl_font: FontFile = null
 
 func _ready() -> void:
 	$Margin/VBox/Header/Back.pressed.connect(func() -> void: get_tree().change_scene_to_file(UFT_MENU_SCENE))
@@ -53,6 +61,7 @@ func _input(event: InputEvent) -> void:
 		_finish_drag("")
 
 func _setup_visuals() -> void:
+	grl_font = load(GRL_FONT_PATH) as FontFile
 	var court_tex: Variant = load(COURT_TEXTURE_PATH)
 	if court_tex is Texture2D:
 		court_rect.texture = court_tex
@@ -90,6 +99,7 @@ func _build_collection(uft: Node) -> void:
 func _create_collection_card_widget(card_id: String, card: Dictionary) -> Control:
 	var holder := PanelContainer.new()
 	holder.custom_minimum_size = Vector2(90, 122)
+	holder.mouse_filter = Control.MOUSE_FILTER_STOP
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 2)
 	holder.add_child(vb)
@@ -101,9 +111,11 @@ func _create_collection_card_widget(card_id: String, card: Dictionary) -> Contro
 	var card_name := Label.new()
 	card_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card_name.add_theme_font_size_override("font_size", 12)
-	var player: Dictionary = card.get("player", {})
-	card_name.text = "%s %d" % [str(player.get("main_position", "")), int(card.get("ovr", 0))]
+	var player := card.get("player", {}) as Dictionary
+	var ovr := int(card.get("ovr", 0))
+	card_name.text = "%s %d" % [str(player.get("main_position", "")), ovr]
 	vb.add_child(card_name)
+	_add_grl_badge(holder, ovr)
 	holder.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			_start_drag_from_collection(card_id, tex.texture)
@@ -143,6 +155,37 @@ func _rebuild_slot_nodes() -> void:
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 		lbl.anchors_preset = Control.PRESET_FULL_RECT
 		marker.add_child(lbl)
+		var badge_root := Control.new()
+		badge_root.name = "BadgeRoot"
+		badge_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge_root.anchors_preset = Control.PRESET_TOP_RIGHT
+		badge_root.anchor_left = 1.0
+		badge_root.anchor_right = 1.0
+		badge_root.anchor_top = 0.0
+		badge_root.anchor_bottom = 0.0
+		badge_root.offset_left = -46
+		badge_root.offset_top = 4
+		badge_root.offset_right = -2
+		badge_root.offset_bottom = 48
+		marker.add_child(badge_root)
+		var badge_tex := TextureRect.new()
+		badge_tex.name = "Badge"
+		badge_tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		badge_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		badge_tex.anchors_preset = Control.PRESET_FULL_RECT
+		badge_root.add_child(badge_tex)
+		var badge_label := Label.new()
+		badge_label.name = "BadgeLabel"
+		badge_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge_label.anchors_preset = Control.PRESET_FULL_RECT
+		badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		badge_label.add_theme_color_override("font_color", Color.WHITE)
+		badge_label.add_theme_font_size_override("font_size", 14)
+		if grl_font != null:
+			badge_label.add_theme_font_override("font", grl_font)
+		badge_root.add_child(badge_label)
 		slot_nodes[pos] = marker
 
 func _refresh_slot_visuals() -> void:
@@ -153,8 +196,15 @@ func _refresh_slot_visuals() -> void:
 		var card_id := str(lineup_cards.get(pos, ""))
 		if card_id.is_empty():
 			_assign_empty_texture(slot)
+			_set_slot_badge(slot, 0, false)
 		else:
 			_load_card_slot_texture(slot, card_id)
+			var details := card_cache.get(card_id, {}) as Dictionary
+			if details.is_empty():
+				var uft := get_node_or_null("/root/UFTManager")
+				if uft != null:
+					details = uft.get_card_details(card_id)
+			_set_slot_badge(slot, int(details.get("ovr", 0)), true)
 		slot.modulate = Color(1, 1, 1, 1) if pos == selected_slot else Color(0.85, 0.85, 0.85, 1)
 
 func _assign_empty_texture(slot: TextureRect) -> void:
@@ -257,6 +307,8 @@ func _start_drag(pos: String) -> void:
 		drag_preview.queue_free()
 	drag_preview = TextureRect.new()
 	drag_preview.size = Vector2(92, 128)
+	drag_preview.top_level = true
+	drag_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	drag_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	drag_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	drag_preview.z_index = 99
@@ -264,6 +316,7 @@ func _start_drag(pos: String) -> void:
 	if origin != null:
 		drag_preview.texture = origin.texture
 	add_child(drag_preview)
+	drag_preview.global_position = get_global_mouse_position() - drag_preview.size * 0.5
 
 func _start_drag_from_collection(card_id: String, source_texture: Texture2D) -> void:
 	if card_id.is_empty():
@@ -275,11 +328,14 @@ func _start_drag_from_collection(card_id: String, source_texture: Texture2D) -> 
 		drag_preview.queue_free()
 	drag_preview = TextureRect.new()
 	drag_preview.size = Vector2(92, 128)
+	drag_preview.top_level = true
+	drag_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	drag_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	drag_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	drag_preview.z_index = 99
 	drag_preview.texture = source_texture
 	add_child(drag_preview)
+	drag_preview.global_position = get_global_mouse_position() - drag_preview.size * 0.5
 
 func _finish_drag(target_pos: String) -> void:
 	if not dragging:
@@ -305,9 +361,64 @@ func _find_slot_under_mouse() -> String:
 		var slot: TextureRect = slot_nodes.get(pos, null)
 		if slot == null:
 			continue
-		if Rect2(slot.global_position, slot.size).has_point(mouse):
+		if slot.get_global_rect().has_point(mouse):
 			return pos
 	return ""
+
+func _select_grl_badge_texture_path(ovr: int) -> String:
+	if ovr >= 100:
+		return str(GRL_BADGE_TEXTURES.get("elite", ""))
+	if ovr >= 90:
+		return str(GRL_BADGE_TEXTURES.get("high", ""))
+	if ovr >= 80:
+		return str(GRL_BADGE_TEXTURES.get("mid", ""))
+	return str(GRL_BADGE_TEXTURES.get("low", ""))
+
+func _add_grl_badge(parent: Control, ovr: int) -> void:
+	var badge := TextureRect.new()
+	badge.name = "Badge"
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.custom_minimum_size = Vector2(34, 40)
+	badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	badge.anchors_preset = Control.PRESET_TOP_RIGHT
+	badge.anchor_left = 1.0
+	badge.anchor_right = 1.0
+	badge.offset_left = -34
+	badge.offset_right = 0
+	badge.offset_top = 2
+	badge.offset_bottom = 42
+	parent.add_child(badge)
+	var badge_label := Label.new()
+	badge_label.name = "BadgeLabel"
+	badge_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge_label.anchors_preset = Control.PRESET_FULL_RECT
+	badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	badge_label.add_theme_color_override("font_color", Color.WHITE)
+	badge_label.add_theme_font_size_override("font_size", 12)
+	if grl_font != null:
+		badge_label.add_theme_font_override("font", grl_font)
+	badge.add_child(badge_label)
+	_set_badge_visuals(badge, badge_label, ovr, true)
+
+func _set_slot_badge(slot: TextureRect, ovr: int, visible: bool) -> void:
+	var badge_root := slot.get_node_or_null("BadgeRoot") as Control
+	if badge_root == null:
+		return
+	var badge := badge_root.get_node_or_null("Badge") as TextureRect
+	var badge_label := badge_root.get_node_or_null("BadgeLabel") as Label
+	if badge == null or badge_label == null:
+		return
+	_set_badge_visuals(badge, badge_label, ovr, visible)
+
+func _set_badge_visuals(badge: TextureRect, badge_label: Label, ovr: int, visible: bool) -> void:
+	if not visible:
+		badge.visible = false
+		return
+	badge.visible = true
+	badge.texture = load(_select_grl_badge_texture_path(ovr)) as Texture2D
+	badge_label.text = str(ovr)
 
 func _swap_slots(from_pos: String, to_pos: String) -> void:
 	var from_id := str(lineup_cards.get(from_pos, ""))

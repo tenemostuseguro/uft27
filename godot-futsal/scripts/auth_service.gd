@@ -177,8 +177,43 @@ func list_uft_events() -> Dictionary:
 func list_uft_packs() -> Dictionary:
 	return await _list_uft_catalog("list_uft_packs")
 
+func list_player_uft_cards() -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	if not is_authenticated():
+		return {"ok": false, "error": "No hay sesión activa"}
+	var endpoint := "%s/rest/v1/rpc/list_player_uft_cards" % DEFAULT_SUPABASE_URL
+	var payload := {"p_player_id": user_id}
+	return await _request_json(endpoint, HTTPClient.METHOD_POST, payload)
+
+func open_uft_pack(pack_id: String) -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	if not is_authenticated():
+		return {"ok": false, "error": "No hay sesión activa"}
+	if pack_id.strip_edges().is_empty():
+		return {"ok": false, "error": "pack_id inválido"}
+	var endpoint := "%s/rest/v1/rpc/open_uft_pack" % DEFAULT_SUPABASE_URL
+	var payload := {
+		"p_player_id": user_id,
+		"p_pack_id": pack_id.strip_edges()
+	}
+	var result := await _request_json(endpoint, HTTPClient.METHOD_POST, payload)
+	if not result.get("ok", false):
+		return result
+	var json_payload: Variant = result.get("json", {})
+	if json_payload is Dictionary:
+		return {"ok": true, "result": json_payload}
+	return {"ok": false, "error": "Respuesta inválida al abrir sobre"}
+
 func list_uft_market_listings() -> Dictionary:
 	return await _list_uft_catalog("list_uft_market_listings")
+
+func list_uft_store_slots() -> Dictionary:
+	if not is_configured():
+		return {"ok": false, "error": "Configuración interna de auth incompleta"}
+	var endpoint := "%s/rest/v1/rpc/list_uft_store_slots" % DEFAULT_SUPABASE_URL
+	return await _request_json(endpoint, HTTPClient.METHOD_POST, {})
 
 func upsert_uft_market_listing(listing: Dictionary) -> Dictionary:
 	if not is_configured():

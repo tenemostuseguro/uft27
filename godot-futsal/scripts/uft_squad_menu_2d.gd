@@ -3,7 +3,16 @@ extends Control
 const UFT_MENU_SCENE := "res://scenes/UFTMenu2D.tscn"
 const COURT_TEXTURE_PATH := "res://assets/court.png"
 const EMPTY_SLOT_TEXTURE_PATH := "res://assets/vacio.png"
+const GRL_FONT_PATH := "res://assets/fonts/grl.otf"
+const GRL_BADGE_LOW_PATH := "res://assets/amagrl.png"
+const GRL_BADGE_MID_PATH := "res://assets/rojgrl.png"
+const GRL_BADGE_HIGH_PATH := "res://assets/morgrl.png"
+const GRL_BADGE_ELITE_PATH := "res://assets/blagrl.png"
 const POSITIONS: Array[String] = ["POR", "C", "AI", "AD", "P"]
+const FIELD_LEFT_MARGIN_RATIO := 0.04
+const FIELD_RIGHT_MARGIN_RATIO := 0.06
+const FIELD_TOP_MARGIN_RATIO := 0.05
+const FIELD_BOTTOM_MARGIN_RATIO := 0.05
 
 const FORMATIONS := {
 	"1-2-1": {"POR": Vector2(0.50, 0.88), "C": Vector2(0.50, 0.62), "AI": Vector2(0.28, 0.42), "AD": Vector2(0.72, 0.42), "P": Vector2(0.50, 0.18)},
@@ -17,25 +26,35 @@ const FORMATIONS := {
 @onready var auto_fill_btn: Button = $Margin/VBox/FormationRow/AutoFill
 @onready var court_rect: TextureRect = $Margin/VBox/FieldArea/Court
 @onready var slot_layer: Control = $Margin/VBox/FieldArea/SlotLayer
+@onready var collection_toggle_btn: Button = $Margin/VBox/CollectionToggle
+@onready var collection_scroll: ScrollContainer = $Margin/VBox/CollectionScroll
 @onready var collection_grid: GridContainer = $Margin/VBox/CollectionScroll/CollectionGrid
+@onready var lineup_title_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/LineupTitle
+@onready var lineup_state_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/LineupState
+@onready var grl_badge_image: TextureRect = $Margin/VBox/FieldArea/RightPanel/RightVBox/GrlBadge/BadgeImage
+@onready var grl_value_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/GrlBadge/GrlCenter/GrlValue
+@onready var formation_info_label: Label = $Margin/VBox/FieldArea/RightPanel/RightVBox/FormationInfo
 
 var current_formation := "1-2-1"
 var lineup_cards: Dictionary = {"POR":"", "C":"", "AI":"", "AD":"", "P":""}
 var slot_nodes: Dictionary = {}
 var card_cache: Dictionary = {}
 var collection_card_ids: Array[String] = []
+var collection_nodes: Dictionary = {}
 var selected_slot := "P"
 
 var dragging := false
 var drag_from_slot := ""
 var drag_from_collection_card_id := ""
 var drag_preview: TextureRect = null
+var collection_expanded := false
 
 func _ready() -> void:
 	$Margin/VBox/Header/Back.pressed.connect(func() -> void: get_tree().change_scene_to_file(UFT_MENU_SCENE))
 	auto_fill_btn.pressed.connect(_on_auto_fill_pressed)
 	formation_select.item_selected.connect(_on_formation_selected)
 	slot_layer.resized.connect(_on_slot_layer_resized)
+	collection_toggle_btn.pressed.connect(_on_collection_toggle_pressed)
 	set_process(true)
 	_setup_visuals()
 	_refresh()
@@ -56,11 +75,21 @@ func _setup_visuals() -> void:
 	var court_tex: Variant = load(COURT_TEXTURE_PATH)
 	if court_tex is Texture2D:
 		court_rect.texture = court_tex
+	# Como ahora el panel derecho es UI real aparte, dejamos el campo en modo "covered"
+	# dentro de su zona izquierda para que llene mejor el espacio disponible.
 	court_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	formation_select.clear()
 	for key in FORMATIONS.keys():
 		formation_select.add_item(key)
 	formation_select.select(0)
+	formation_info_label.text = current_formation
+	lineup_title_label.text = "LINEUP 1"
+	lineup_state_label.text = "ACTIVE"
+	var grl_font: FontFile = load(GRL_FONT_PATH) as FontFile
+	if grl_font != null:
+		grl_value_label.add_theme_font_override("font", grl_font)
+	grl_value_label.add_theme_color_override("font_color", Color.WHITE)
+	_apply_collection_visibility()
 
 func _refresh() -> void:
 	var uft := get_node_or_null("/root/UFTManager")
@@ -80,12 +109,16 @@ func _build_collection(uft: Node) -> void:
 	for child in collection_grid.get_children():
 		child.queue_free()
 	collection_card_ids.clear()
+	collection_nodes.clear()
 	card_cache.clear()
 	for card in uft.get_collection_cards():
 		var card_id := str(card.get("card_id", ""))
 		card_cache[card_id] = card
 		collection_card_ids.append(card_id)
-		collection_grid.add_child(_create_collection_card_widget(card_id, card))
+		var card_widget := _create_collection_card_widget(card_id, card)
+		collection_nodes[card_id] = card_widget
+		collection_grid.add_child(card_widget)
+	_refresh_collection_visuals()
 
 func _create_collection_card_widget(card_id: String, card: Dictionary) -> Control:
 	var holder := PanelContainer.new()
@@ -100,10 +133,11 @@ func _create_collection_card_widget(card_id: String, card: Dictionary) -> Contro
 	vb.add_child(tex)
 	var card_name := Label.new()
 	card_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	card_name.add_theme_font_size_override("font_size", 12)
+	card_name.add_theme_font_size_override("font_size", 16)
 	var player: Dictionary = card.get("player", {})
 	card_name.text = "%s %d" % [str(player.get("main_position", "")), int(card.get("ovr", 0))]
 	vb.add_child(card_name)
+	holder.set_meta("card_name_label", card_name)
 	holder.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			_start_drag_from_collection(card_id, tex.texture)
@@ -122,11 +156,32 @@ func _create_collection_card_widget(card_id: String, card: Dictionary) -> Contro
 		_load_remote_texture_into(tex, image_url)
 	return holder
 
+func _refresh_collection_visuals() -> void:
+	for card_id in collection_nodes.keys():
+		var holder: Control = collection_nodes.get(card_id, null)
+		if holder == null:
+			continue
+		var in_lineup := _find_slot_with_card_id(card_id) != ""
+		holder.modulate = Color(0.72, 0.72, 0.72, 1) if in_lineup else Color(1, 1, 1, 1)
+		var name_label: Label = holder.get_meta("card_name_label", null) as Label
+		if name_label != null:
+			var base_text := name_label.text
+			if " · EN XI" in base_text:
+				base_text = base_text.replace(" · EN XI", "")
+			name_label.text = "%s · EN XI" % base_text if in_lineup else base_text
+
 func _rebuild_slot_nodes() -> void:
 	for child in slot_layer.get_children():
 		child.queue_free()
 	slot_nodes.clear()
 	var formation: Dictionary = FORMATIONS.get(current_formation, FORMATIONS["1-2-1"])
+	var usable_rect := Rect2(
+		Vector2(slot_layer.size.x * FIELD_LEFT_MARGIN_RATIO, slot_layer.size.y * FIELD_TOP_MARGIN_RATIO),
+		Vector2(
+			slot_layer.size.x * (1.0 - FIELD_LEFT_MARGIN_RATIO - FIELD_RIGHT_MARGIN_RATIO),
+			slot_layer.size.y * (1.0 - FIELD_TOP_MARGIN_RATIO - FIELD_BOTTOM_MARGIN_RATIO)
+		)
+	)
 	for pos in POSITIONS:
 		var marker := TextureRect.new()
 		marker.size = Vector2(92, 128)
@@ -134,7 +189,10 @@ func _rebuild_slot_nodes() -> void:
 		marker.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		marker.mouse_filter = Control.MOUSE_FILTER_STOP
 		var p: Vector2 = formation.get(pos, Vector2(0.5, 0.5))
-		marker.position = Vector2(slot_layer.size.x * p.x - marker.size.x * 0.5, slot_layer.size.y * p.y - marker.size.y * 0.5)
+		marker.position = Vector2(
+			usable_rect.position.x + usable_rect.size.x * p.x - marker.size.x * 0.5,
+			usable_rect.position.y + usable_rect.size.y * p.y - marker.size.y * 0.5
+		)
 		marker.gui_input.connect(_on_slot_gui_input.bind(pos))
 		slot_layer.add_child(marker)
 		var lbl := Label.new()
@@ -321,6 +379,7 @@ func _swap_slots(from_pos: String, to_pos: String) -> void:
 	lineup_cards = simulated
 	_commit_lineup()
 	_refresh_slot_visuals()
+	_refresh_collection_visuals()
 	_refresh_squad_meta(get_node_or_null("/root/UFTManager"))
 
 func _has_unique_players(lineup: Dictionary) -> bool:
@@ -333,15 +392,17 @@ func _has_unique_players(lineup: Dictionary) -> bool:
 		if card_id.is_empty():
 			continue
 		var details: Dictionary = uft.get_card_details(card_id)
-		var player: Dictionary = details.get("player", {})
-		var player_id := str(player.get("player_id", ""))
-		if seen.has(player_id):
+		var unique_key := _get_card_unique_player_key(card_id, details)
+		if seen.has(unique_key):
 			return false
-		seen[player_id] = true
+		seen[unique_key] = true
 	return true
 
 func _assign_collection_card_to_slot(card_id: String, slot_pos: String) -> void:
 	var simulated := lineup_cards.duplicate(true)
+	var existing_slot := _find_slot_with_card_id(card_id)
+	if not existing_slot.is_empty() and existing_slot != slot_pos:
+		simulated[existing_slot] = ""
 	simulated[slot_pos] = card_id
 	if not _has_unique_players(simulated):
 		status_label.text = "No puedes usar dos cartas del mismo jugador en el quinteto."
@@ -349,6 +410,7 @@ func _assign_collection_card_to_slot(card_id: String, slot_pos: String) -> void:
 	lineup_cards = simulated
 	_commit_lineup()
 	_refresh_slot_visuals()
+	_refresh_collection_visuals()
 	_refresh_squad_meta(get_node_or_null("/root/UFTManager"))
 
 func _on_auto_fill_pressed() -> void:
@@ -358,26 +420,27 @@ func _on_auto_fill_pressed() -> void:
 		if card_id.is_empty():
 			continue
 		var details: Dictionary = card_cache.get(card_id, {})
-		var player: Dictionary = details.get("player", {})
-		used_players[str(player.get("player_id", ""))] = true
+		var key := _get_card_unique_player_key(card_id, details)
+		used_players[key] = true
 	for pos in POSITIONS:
 		if not str(lineup_cards.get(pos, "")).is_empty():
 			continue
 		for card_id in collection_card_ids:
 			var card: Dictionary = card_cache.get(card_id, {})
-			var player: Dictionary = card.get("player", {})
-			var player_id := str(player.get("player_id", ""))
-			if used_players.has(player_id):
+			var key := _get_card_unique_player_key(card_id, card)
+			if used_players.has(key):
 				continue
 			lineup_cards[pos] = card_id
-			used_players[player_id] = true
+			used_players[key] = true
 			break
 	_commit_lineup()
 	_refresh_slot_visuals()
+	_refresh_collection_visuals()
 	_refresh_squad_meta(get_node_or_null("/root/UFTManager"))
 
 func _on_formation_selected(index: int) -> void:
 	current_formation = formation_select.get_item_text(index)
+	formation_info_label.text = current_formation
 	_rebuild_slot_nodes()
 	_refresh_slot_visuals()
 
@@ -396,6 +459,7 @@ func _commit_lineup() -> void:
 func _refresh_squad_meta(uft: Node) -> void:
 	if uft == null:
 		squad_meta_label.text = "Rating 0 · Chemistry 0"
+		_update_grl_badge(0)
 		return
 	var total := 0
 	var count := 0
@@ -409,3 +473,68 @@ func _refresh_squad_meta(uft: Node) -> void:
 	var rating: int = int(round(float(total) / float(max(1, count)))) if count > 0 else 0
 	var chemistry := count * 20
 	squad_meta_label.text = "Rating %d · Chemistry %d" % [rating, chemistry]
+	_update_grl_badge(rating)
+
+func _on_collection_toggle_pressed() -> void:
+	collection_expanded = not collection_expanded
+	_apply_collection_visibility()
+
+func _apply_collection_visibility() -> void:
+	if collection_scroll == null or collection_toggle_btn == null:
+		return
+	collection_scroll.visible = collection_expanded
+	collection_toggle_btn.text = "Mi colección UFT ▾" if collection_expanded else "Mi colección UFT ▸"
+
+func _update_grl_badge(grl: int) -> void:
+	grl_value_label.text = str(grl)
+	var badge_candidates: Array[String] = [GRL_BADGE_LOW_PATH, "res://assets/grl/amagrl.png", "res://assets/AMAGRL.png"]
+	if grl >= 100:
+		badge_candidates = [GRL_BADGE_ELITE_PATH, "res://assets/grl/blagrl.png", "res://assets/BLAGRL.png"]
+	elif grl >= 90:
+		badge_candidates = [GRL_BADGE_HIGH_PATH, "res://assets/grl/morgrl.png", "res://assets/MORGRL.png"]
+	elif grl >= 81:
+		badge_candidates = [GRL_BADGE_MID_PATH, "res://assets/grl/rojgrl.png", "res://assets/ROJGRL.png"]
+	var badge_tex: Texture2D = _load_texture_from_candidates(badge_candidates)
+	if badge_tex != null:
+		grl_badge_image.texture = badge_tex
+		grl_badge_image.visible = true
+		grl_badge_image.modulate = Color(1, 1, 1, 1)
+	else:
+		grl_badge_image.texture = null
+		grl_badge_image.visible = false
+		push_warning("No se pudo cargar insignia GRL. Probadas rutas: %s" % [", ".join(PackedStringArray(badge_candidates))])
+
+func _load_texture_from_candidates(paths: Array[String]) -> Texture2D:
+	for path in paths:
+		if ResourceLoader.exists(path):
+			var tex: Texture2D = load(path) as Texture2D
+			if tex != null:
+				return tex
+		var image_tex := _load_texture_direct_image(path)
+		if image_tex != null:
+			return image_tex
+	return null
+
+func _load_texture_direct_image(path: String) -> Texture2D:
+	var image := Image.new()
+	var err := image.load(path)
+	if err != OK:
+		var global_path := ProjectSettings.globalize_path(path)
+		if FileAccess.file_exists(global_path):
+			err = image.load(global_path)
+	if err != OK:
+		return null
+	return ImageTexture.create_from_image(image)
+
+func _find_slot_with_card_id(card_id: String) -> String:
+	for pos in POSITIONS:
+		if str(lineup_cards.get(pos, "")) == card_id:
+			return pos
+	return ""
+
+func _get_card_unique_player_key(card_id: String, details: Dictionary) -> String:
+	var player: Dictionary = details.get("player", {})
+	var player_id := str(player.get("player_id", ""))
+	if not player_id.is_empty():
+		return "player::%s" % player_id
+	return "card::%s" % card_id

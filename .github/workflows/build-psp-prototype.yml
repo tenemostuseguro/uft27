@@ -1,4 +1,4 @@
-name: Build UFT11 PSP Prototype
+name: Build UFT15 Visual PSP Prototype
 
 on:
   push:
@@ -38,17 +38,21 @@ jobs:
             -v "$GITHUB_WORKSPACE:/src" \
             -w /src/psp-prototype \
             pspdev/pspdev:latest \
-            bash -c 'echo "PSPDEV=$PSPDEV"; which psp-config; psp-config --pspsdk-path; make clean && make -j2'
+            bash -c 'make clean && make -j2'
 
       - name: Prepare PPSSPP folder
         run: |
-          mkdir -p artifact/UFT11
-          cp psp-prototype/EBOOT.PBP artifact/UFT11/EBOOT.PBP
-          cp psp-prototype/README.md artifact/UFT11/README.md
-          cp psp-prototype/FUT15_DATABASE_INFO.txt artifact/UFT11/FUT15_DATABASE_INFO.txt
+          mkdir -p artifact/UFT15
+          cp psp-prototype/EBOOT.PBP artifact/UFT15/EBOOT.PBP
+          cp psp-prototype/FUT15_DATABASE_INFO.txt artifact/UFT15/FUT15_DATABASE_INFO.txt
+          if [ -f psp-prototype/card_assets_psp.zip ]; then
+            unzip -q psp-prototype/card_assets_psp.zip -d artifact/UFT15/assets
+          else
+            echo "WARNING: psp-prototype/card_assets_psp.zip is missing. EBOOT will run with missing visual assets."
+          fi
 
-      - name: Upload EBOOT
+      - name: Upload visual prototype
         uses: actions/upload-artifact@v4
         with:
-          name: UFT15-Card-Lab-PPSSPP
-          path: artifact/UFT11
+          name: UFT15-Visual-Card-Lab-PPSSPP
+          path: artifact/UFT15

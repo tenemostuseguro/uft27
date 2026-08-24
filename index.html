@@ -3,15 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Catastro de la Ciudad de Córdoba</title>
+    <title>UFT - Editor de Alineación</title>
     <style>
+      @font-face {
+        font-family: "GRL";
+        src: url("res://assets/fonts/grl.otf");
+      }
+
       :root {
-        color-scheme: light;
-        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-        line-height: 1.5;
-        --primary: #1d4ed8;
-        --secondary: #0f172a;
-        --accent: #e2e8f0;
+        --bg: #000d2d;
+        --panel: #04102f;
+        --text: #ffffff;
       }
 
       * {
@@ -20,235 +22,266 @@
 
       body {
         margin: 0;
-        background: #f8fafc;
-        color: var(--secondary);
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: radial-gradient(circle at top, #0a1e55 0%, var(--bg) 55%);
+        color: var(--text);
       }
 
-      header {
-        background: linear-gradient(135deg, #1e3a8a, #2563eb);
-        color: #fff;
-        padding: 32px 16px;
-      }
-
-      .container {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 0 16px;
-      }
-
-      .hero {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 24px;
-        align-items: center;
-      }
-
-      .hero h1 {
-        font-size: clamp(2rem, 3vw, 3rem);
-        margin: 0 0 12px;
-      }
-
-      .hero p {
-        margin: 0;
-        max-width: 520px;
-      }
-
-      .stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 16px;
-        margin-top: 24px;
-      }
-
-      .stat-card {
-        background: rgba(255, 255, 255, 0.2);
+      .layout {
         padding: 16px;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        margin-bottom: 10px;
+        font-size: 30px;
+      }
+
+      .pitch {
+        position: relative;
+        width: 100%;
+        max-width: 980px;
+        aspect-ratio: 16 / 9;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        margin-bottom: 10px;
+        background: radial-gradient(circle, #2d2f35 0%, #1f2025 60%, #16171b 100%);
+      }
+
+      .line {
+        position: absolute;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+      }
+
+      .line.mid {
+        top: 50%;
+        width: 100%;
+      }
+
+      .line.circle {
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .slot {
+        position: absolute;
+        width: 124px;
+        height: 168px;
+        transform: translate(-50%, -50%);
+        border: 1px dashed rgba(255, 255, 255, 0.25);
         border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        backdrop-filter: blur(6px);
-      }
-
-      main {
-        padding: 32px 0 48px;
-      }
-
-      .section-title {
-        font-size: 1.5rem;
-        margin-bottom: 16px;
-      }
-
-      .grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 20px;
+        place-items: center;
+      }
+
+      .slot.drag-over {
+        border-color: #6ec8ff;
+        box-shadow: 0 0 0 2px rgba(110, 200, 255, 0.25);
+      }
+
+      .position {
+        position: absolute;
+        top: -26px;
+        left: 0;
+        font-size: 24px;
+      }
+
+      .collection {
+        background: var(--panel);
+        border-radius: 8px;
+        padding: 10px;
+        min-height: 170px;
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
       }
 
       .card {
-        background: #fff;
-        border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        position: relative;
+        width: 124px;
+        height: 168px;
+        border-radius: 12px;
+        overflow: hidden;
+        flex: 0 0 auto;
+        user-select: none;
+        cursor: grab;
       }
 
-      .tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 12px;
-        background: var(--accent);
-        color: var(--secondary);
-        border-radius: 999px;
-        font-size: 0.85rem;
-        margin-bottom: 12px;
+      .card.dragging {
+        opacity: 0.6;
+        cursor: grabbing;
       }
 
-      .list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: grid;
-        gap: 10px;
+      .card > img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
 
-      .list li {
-        display: flex;
-        justify-content: space-between;
-        padding: 10px 12px;
-        border-radius: 10px;
-        background: #f1f5f9;
-      }
-
-      .list span {
-        font-weight: 600;
-        color: var(--primary);
-      }
-
-      .map {
-        background: linear-gradient(135deg, #e2e8f0, #f8fafc);
-        border-radius: 16px;
-        padding: 24px;
-        border: 1px dashed #94a3b8;
-        min-height: 220px;
+      .grl-badge {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 46px;
+        height: 52px;
         display: grid;
         place-items: center;
-        text-align: center;
-      }
-
-      .cta {
-        background: #0f172a;
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
         color: #fff;
-        border-radius: 16px;
-        padding: 24px;
-        display: grid;
-        gap: 12px;
+        font-family: "GRL", "Segoe UI", sans-serif;
+        font-size: 17px;
+        font-weight: 700;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
       }
 
-      .cta button {
-        background: #38bdf8;
-        color: #0f172a;
-        border: none;
-        border-radius: 999px;
-        padding: 10px 18px;
-        font-weight: 600;
-        cursor: pointer;
-        width: fit-content;
+      .grl-amagrl {
+        background-image: url("assets/amagrl.png");
       }
 
-      footer {
-        padding: 24px 0 32px;
-        color: #64748b;
-        font-size: 0.9rem;
+      .grl-rojgrl {
+        background-image: url("assets/rojgrl.png");
       }
+
+      .grl-morgrl {
+        background-image: url("assets/morgrl.png");
+      }
+
+      .grl-blagrl {
+        background-image: url("assets/blagrl.png");
+      }
+
+      .grl-fallback {
+        clip-path: polygon(50% 0%, 96% 22%, 96% 77%, 50% 100%, 4% 77%, 4% 22%);
+      }
+
+      .grl-amagrl.grl-fallback { background: #a08d2b; }
+      .grl-rojgrl.grl-fallback { background: #b01818; }
+      .grl-morgrl.grl-fallback { background: #6d2a9f; }
+      .grl-blagrl.grl-fallback { background: #111111; }
+
+      h2 { margin: 8px 0; font-size: 32px; }
     </style>
   </head>
   <body>
-    <header>
-      <div class="container hero">
-        <div>
-          <h1>Catastro de la Ciudad de Córdoba</h1>
-          <p>
-            Portal informativo para visualizar la situación dominial, usos del suelo y
-            planificación urbana de Córdoba. Datos de referencia para ciudadanos,
-            desarrolladores y gestores públicos.
-          </p>
-        </div>
-        <div class="stats">
-          <div class="stat-card">
-            <strong>1.860.000</strong>
-            <div>Habitantes estimados</div>
-          </div>
-          <div class="stat-card">
-            <strong>576 km²</strong>
-            <div>Superficie urbana</div>
-          </div>
-          <div class="stat-card">
-            <strong>15 distritos</strong>
-            <div>División administrativa</div>
-          </div>
-        </div>
+    <div class="layout">
+      <div class="toolbar">
+        <strong>Rating 0 · Chemistry 100</strong>
+        <label>Formación <select><option>1-2-1</option></select></label>
       </div>
-    </header>
 
-    <main class="container">
-      <section>
-        <h2 class="section-title">Estado catastral por distrito</h2>
-        <div class="grid">
-          <article class="card">
-            <div class="tag">📍 Centro</div>
-            <ul class="list">
-              <li>Parcelas registradas <span>12.450</span></li>
-              <li>Usos mixtos <span>38%</span></li>
-              <li>Última actualización <span>Julio 2023</span></li>
-            </ul>
-          </article>
-          <article class="card">
-            <div class="tag">🌳 Zona Norte</div>
-            <ul class="list">
-              <li>Parcelas registradas <span>18.920</span></li>
-              <li>Áreas verdes <span>22%</span></li>
-              <li>Última actualización <span>Abril 2024</span></li>
-            </ul>
-          </article>
-          <article class="card">
-            <div class="tag">🏘️ Zona Sur</div>
-            <ul class="list">
-              <li>Parcelas registradas <span>16.305</span></li>
-              <li>Residencial <span>71%</span></li>
-              <li>Última actualización <span>Enero 2024</span></li>
-            </ul>
-          </article>
-        </div>
-      </section>
+      <div class="pitch" id="pitch">
+        <div class="line mid"></div>
+        <div class="line circle"></div>
 
-      <section style="margin-top: 32px;">
-        <h2 class="section-title">Mapa de zonas y consultas rápidas</h2>
-        <div class="grid">
-          <div class="map">
-            <div>
-              <h3>Mapa catastral interactivo</h3>
-              <p>
-                Integre aquí su visor GIS con capas de parcelas, límites distritales y
-                restricciones urbanísticas.
-              </p>
-            </div>
-          </div>
-          <div class="cta">
-            <h3>Consulta online de parcelas</h3>
-            <p>
-              Ingrese el código de parcela o manzana para obtener planos, estado
-              dominial y normativa aplicable.
-            </p>
-            <button type="button">Iniciar consulta</button>
-          </div>
-        </div>
-      </section>
-    </main>
+        <div class="slot" data-slot="P" style="left:50%;top:16%;"><span class="position">P</span></div>
+        <div class="slot" data-slot="AI" style="left:20%;top:40%;"><span class="position">AI</span></div>
+        <div class="slot" data-slot="AD" style="left:80%;top:40%;"><span class="position">AD</span></div>
+        <div class="slot" data-slot="C" style="left:50%;top:54%;"><span class="position">C</span></div>
+        <div class="slot" data-slot="POR" style="left:50%;top:78%;"><span class="position">POR</span></div>
+      </div>
 
-    <footer class="container">
-      <p>
-        Catastro Córdoba · Datos referenciales. Para información oficial consulte la
-        Dirección General de Catastro Municipal.
-      </p>
-    </footer>
+      <h2>Mi colección UFT</h2>
+      <div class="collection" id="collection"></div>
+    </div>
+
+    <template id="card-template">
+      <article class="card" draggable="true">
+        <img alt="Jugador" />
+        <div class="grl-badge"></div>
+      </article>
+    </template>
+
+    <script>
+      const players = [
+        { id: "p1", name: "Díaz", grl: 93, image: "https://picsum.photos/id/1027/248/336" },
+        { id: "p2", name: "Soto", grl: 86, image: "https://picsum.photos/id/1005/248/336" },
+        { id: "p3", name: "Mora", grl: 77, image: "https://picsum.photos/id/64/248/336" },
+        { id: "p4", name: "Vega", grl: 104, image: "https://picsum.photos/id/433/248/336" }
+      ];
+
+      const collection = document.getElementById("collection");
+      const template = document.getElementById("card-template");
+      const slots = [...document.querySelectorAll(".slot")];
+      let dragCard = null;
+
+      function getBadgeClass(grl) {
+        if (grl <= 79) return "grl-amagrl";
+        if (grl >= 81 && grl <= 89) return "grl-rojgrl";
+        if (grl >= 90 && grl <= 99) return "grl-morgrl";
+        if (grl >= 100) return "grl-blagrl";
+        return "grl-amagrl";
+      }
+
+      function createCard(player) {
+        const node = template.content.firstElementChild.cloneNode(true);
+        node.dataset.playerId = player.id;
+        const image = node.querySelector("img");
+        image.src = player.image;
+        image.alt = player.name;
+
+        const badge = node.querySelector(".grl-badge");
+        const className = getBadgeClass(player.grl);
+        badge.className = `grl-badge ${className}`;
+        badge.textContent = player.grl;
+
+        const probe = new Image();
+        probe.onerror = () => badge.classList.add("grl-fallback");
+        probe.src = getComputedStyle(badge).backgroundImage.replace(/^url\(["']?/, "").replace(/["']?\)$/, "");
+
+        bindDrag(node);
+        return node;
+      }
+
+      function bindDrag(card) {
+        card.addEventListener("dragstart", (e) => {
+          dragCard = card;
+          card.classList.add("dragging");
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", card.dataset.playerId);
+        });
+
+        card.addEventListener("dragend", () => {
+          card.classList.remove("dragging");
+          dragCard = null;
+          slots.forEach((slot) => slot.classList.remove("drag-over"));
+        });
+      }
+
+      function enableDropArea(area) {
+        area.addEventListener("dragover", (e) => {
+          if (!dragCard) return;
+          e.preventDefault();
+          area.classList.add("drag-over");
+        });
+
+        area.addEventListener("dragleave", () => area.classList.remove("drag-over"));
+
+        area.addEventListener("drop", (e) => {
+          e.preventDefault();
+          area.classList.remove("drag-over");
+          if (!dragCard) return;
+
+          const existingCard = area.querySelector(".card");
+          const originParent = dragCard.parentElement;
+
+          if (existingCard && existingCard !== dragCard) {
+            originParent.appendChild(existingCard);
+          }
+
+          area.appendChild(dragCard);
+        });
+      }
+
+      players.forEach((p) => collection.appendChild(createCard(p)));
+      slots.forEach(enableDropArea);
+      enableDropArea(collection);
+    </script>
   </body>
 </html>

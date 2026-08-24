@@ -58,5 +58,5 @@ jobs:
       - name: Upload visual prototype
         uses: actions/upload-artifact@v4
         with:
-          name: UFT15-Visual-Card-Lab-PPSSPP
+          name: UFT15-Visual-v0.5-PPSSPP
           path: artifact/UFT15

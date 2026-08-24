@@ -1,0 +1,62 @@
+name: Build UFT15 Visual PSP
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-uft15-visual-bridge.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PSP prototype branch
+        uses: actions/checkout@v4
+        with:
+          ref: psp-prototype-fut11
+
+      - name: Verify visual assets
+        run: |
+          test -f psp-prototype/card_assets_psp.zip
+          echo "Visual asset archive found:"
+          ls -lh psp-prototype/card_assets_psp.zip
+
+      - name: Generate FIFA 15 database
+        run: |
+          mkdir -p /tmp/uft15
+          curl -fsSL https://raw.githubusercontent.com/kafagy/fifa-FUT-Data/master/FIFA15.csv -o /tmp/uft15/FIFA15.csv
+          curl -fsSL https://raw.githubusercontent.com/MateuszMachowina/PackOpenerF15/main/players.json -o /tmp/uft15/players.json
+          python3 psp-prototype/tools/generate_fut15_db.py \
+            --csv /tmp/uft15/FIFA15.csv \
+            --specials /tmp/uft15/players.json \
+            --out-c psp-prototype/fut15_data.c \
+            --out-h psp-prototype/fut15_data.h \
+            --summary psp-prototype/FUT15_DATABASE_INFO.txt
+          cat psp-prototype/FUT15_DATABASE_INFO.txt
+
+      - name: Build with official PSPDEV image
+        run: |
+          docker pull pspdev/pspdev:latest
+          docker run --rm \
+            -e PSPDEV=/usr/local/pspdev \
+            -e PATH=/usr/local/pspdev/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+            -v "$GITHUB_WORKSPACE:/src" \
+            -w /src/psp-prototype \
+            pspdev/pspdev:latest \
+            bash -c 'make clean && make -j2'
+
+      - name: Prepare PPSSPP folder
+        run: |
+          mkdir -p artifact/UFT15
+          cp psp-prototype/EBOOT.PBP artifact/UFT15/EBOOT.PBP
+          cp psp-prototype/FUT15_DATABASE_INFO.txt artifact/UFT15/FUT15_DATABASE_INFO.txt
+          unzip -q psp-prototype/card_assets_psp.zip -d artifact/UFT15/assets
+          find artifact/UFT15 -maxdepth 4 -type f | sort | head -100
+
+      - name: Upload visual prototype
+        uses: actions/upload-artifact@v4
+        with:
+          name: UFT15-Visual-Card-Lab-PPSSPP
+          path: artifact/UFT15

@@ -16,6 +16,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Generate FIFA 15 database
+        run: |
+          mkdir -p /tmp/uft15
+          curl -fsSL https://raw.githubusercontent.com/kafagy/fifa-FUT-Data/master/FIFA15.csv -o /tmp/uft15/FIFA15.csv
+          curl -fsSL https://raw.githubusercontent.com/MateuszMachowina/PackOpenerF15/main/players.json -o /tmp/uft15/players.json
+          python3 psp-prototype/tools/generate_fut15_db.py \
+            --csv /tmp/uft15/FIFA15.csv \
+            --specials /tmp/uft15/players.json \
+            --out-c psp-prototype/fut15_data.c \
+            --out-h psp-prototype/fut15_data.h \
+            --summary psp-prototype/FUT15_DATABASE_INFO.txt
+          cat psp-prototype/FUT15_DATABASE_INFO.txt
+
       - name: Build with official PSPDEV image
         run: |
           docker pull pspdev/pspdev:latest
@@ -32,9 +45,10 @@ jobs:
           mkdir -p artifact/UFT11
           cp psp-prototype/EBOOT.PBP artifact/UFT11/EBOOT.PBP
           cp psp-prototype/README.md artifact/UFT11/README.md
+          cp psp-prototype/FUT15_DATABASE_INFO.txt artifact/UFT11/FUT15_DATABASE_INFO.txt
 
       - name: Upload EBOOT
         uses: actions/upload-artifact@v4
         with:
-          name: UFT11-PPSSPP-Prototype
+          name: UFT15-Card-Lab-PPSSPP
           path: artifact/UFT11

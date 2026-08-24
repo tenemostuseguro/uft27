@@ -5,141 +5,243 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "fut15_data.h"
 
-PSP_MODULE_INFO("UFT 11 Prototype", 0, 1, 0);
+PSP_MODULE_INFO("UFT FUT15 Cards", 0, 0, 3);
 PSP_MAIN_THREAD_ATTR(PSP_THREAD_ATTR_USER | PSP_THREAD_ATTR_VFPU);
 
 #define SCREEN_W 60
-#define PITCH_LEFT 1
-#define PITCH_RIGHT 58
-#define PITCH_TOP 4
-#define PITCH_BOTTOM 29
-
 #define COL_WHITE  0xFFFFFFFF
+#define COL_BLACK  0xFF101010
 #define COL_GREY   0xFFB8B8B8
+#define COL_DARK   0xFF171B1D
 #define COL_GREEN  0xFF67E89A
 #define COL_YELLOW 0xFF5BE7FF
-#define COL_RED    0xFF6A6AFF
 #define COL_BLUE   0xFFFFB56A
-#define COL_GOLD   0xFF49C8FF
+#define COL_RED    0xFF6A6AFF
 
-#define PACK_COST 750
-#define ARRAY_COUNT(x) ((int)(sizeof(x) / sizeof((x)[0])))
+typedef enum { SCR_HOME=0, SCR_PACK, SCR_DETAIL, SCR_DATABASE, SCR_TYPES } Screen;
 
-typedef struct { const char *name; const char *pos; int ovr; } Card;
-typedef struct { int x; int y; } Point;
-typedef enum { SCREEN_HOME=0, SCREEN_SQUAD, SCREEN_PACK, SCREEN_MATCH, SCREEN_RESULT } Screen;
-
-static const Card squad[11] = {
-    {"Alvarez","POR",82},{"Vega","LD",80},{"Soler","DFC",84},{"Rivas","DFC",83},{"Navarro","LI",81},
-    {"Leon","MCD",84},{"Campos","MC",86},{"Prieto","MC",85},{"Vidal","ED",87},{"Mora","DC",88},{"Gil","EI",86}
-};
-
-static const Card packPool[] = {
-    {"Santos","POR",78},{"Herrera","DFC",79},{"Ruiz","LD",76},{"Torres","LI",77},{"Cano","MCD",80},
-    {"Barros","MC",82},{"Serra","MCO",83},{"Costa","ED",81},{"Blanco","EI",80},{"Duran","DC",84},
-    {"Rey","DFC",75},{"Roca","MC",74},{"Navas","POR",72},{"Vera","DC",77},{"Alba","MCO",85}
-};
-
-static Point homePlayers[11], awayPlayers[11];
-static int selectedHome=0, homeMenu=0, coins=12500, packsOpened=0;
-static int scoreHome=0, scoreAway=0, matchMinute=0, matchFrame=0;
-static int homePossession=1, ballOwnerHome=9, ballOwnerAway=9;
-static int lastPack[3]={0,1,2};
-static Screen screen=SCREEN_HOME;
+static Screen screen=SCR_HOME;
+static int homeMenu=0;
+static int packCards[6]={0,0,0,0,0,0};
+static unsigned char revealed[6]={0,0,0,0,0,0};
+static int packSel=0, packModeLab=1, packsOpened=0;
+static unsigned int dbIndex=0;
+static int detailIndex=0;
+static Screen detailReturn=SCR_PACK;
 
 static int exit_callback(int a,int b,void *c){(void)a;(void)b;(void)c;sceKernelExitGame();return 0;}
 static int callback_thread(SceSize a,void *b){(void)a;(void)b;int cb=sceKernelCreateCallback("Exit Callback",exit_callback,NULL);sceKernelRegisterExitCallback(cb);sceKernelSleepThreadCB();return 0;}
 static void setup_callbacks(void){int th=sceKernelCreateThread("callback_thread",callback_thread,0x11,0xFA0,0,NULL);if(th>=0)sceKernelStartThread(th,0,NULL);}
 
-static void color(unsigned int c){pspDebugScreenSetTextColor(c);}
-static void text(int x,int y,unsigned int c,const char *s){pspDebugScreenSetXY(x,y);color(c);pspDebugScreenPrintf("%s",s);}
-static void chr(int x,int y,unsigned int c,char ch){pspDebugScreenSetXY(x,y);color(c);pspDebugScreenPrintf("%c",ch);}
+static void set_bg(unsigned int c){pspDebugScreenSetBackColor(c);}
+static void text_bg(int x,int y,unsigned int fg,unsigned int bg,const char *s){
+    pspDebugScreenSetXY(x,y); pspDebugScreenSetTextColor(fg); set_bg(bg); pspDebugScreenPrintf("%s",s); set_bg(COL_DARK);
+}
+static void text(int x,int y,unsigned int c,const char *s){text_bg(x,y,c,COL_DARK,s);}
 static void center(int y,unsigned int c,const char *s){int x=(SCREEN_W-(int)strlen(s))/2;if(x<0)x=0;text(x,y,c,s);}
+static void fill_box(int x,int y,int w,int h,unsigned int bg){
+    int r; char line[64]; if(w>60)w=60; memset(line,' ',w);line[w]=0;
+    for(r=0;r<h;r++) text_bg(x,y+r,COL_WHITE,bg,line);
+}
+static void put_trunc(int x,int y,unsigned int fg,unsigned int bg,const char *s,int width){
+    char b[64]; int n=(int)strlen(s); if(n>width)n=width; memcpy(b,s,n);b[n]=0;text_bg(x,y,fg,bg,b);
+}
+static unsigned int pressed(unsigned int now,unsigned int old,unsigned int mask){return (now&mask)&&!(old&mask);}
 
-static void header(const char *section){
-    char b[96]; pspDebugScreenClear();
-    snprintf(b,sizeof(b),"UFT 11 PORTABLE  |  %s",section); text(1,0,COL_GREEN,b);
-    snprintf(b,sizeof(b),"Coins: %d   Packs: %d",coins,packsOpened); text(1,1,COL_GREY,b);
+static int is_base_version(const char *v){
+    return !strcmp(v,"Gold") || !strcmp(v,"Silver") || !strcmp(v,"Bronze") || !strcmp(v,"Gold_Non-rare");
+}
+static int is_special(const Fut15Card *c){return !is_base_version(c->version);}
+
+static unsigned int card_bg(const Fut15Card *c){
+    const char *v=c->version;
+    if(!strcmp(v,"IF")) return 0xFF25221B;
+    if(!strcmp(v,"TOTY")) return 0xFFC97212;
+    if(!strcmp(v,"TOTS")) return 0xFF8A6514;
+    if(!strcmp(v,"MOTM")) return 0xFF1D73E8;
+    if(!strcmp(v,"POTY")) return 0xFFA83F69;
+    if(!strcmp(v,"RB")) return 0xFF5C4ED8;
+    if(!strcmp(v,"Futties")) return 0xFFC84CCB;
+    if(!strcmp(v,"Legend")) return 0xFFE8E8D8;
+    if(!strcmp(v,"Silver")) return 0xFFC0B9AA;
+    if(!strcmp(v,"Bronze")) return 0xFF7A5B45;
+    if(!strcmp(v,"Gold_Non-rare")) return 0xFFBCA879;
+    return 0xFF2EA5CB;
+}
+static unsigned int card_fg(const Fut15Card *c){
+    if(!strcmp(c->version,"Legend") || !strcmp(c->version,"Silver")) return COL_BLACK;
+    return COL_WHITE;
+}
+static void clear_screen(void){set_bg(COL_DARK);pspDebugScreenClear();}
+static void header(const char *title){
+    char b[96]; clear_screen();
+    snprintf(b,sizeof(b),"UFT PORTABLE  |  %s",title);text(1,0,COL_GREEN,b);
+    snprintf(b,sizeof(b),"FUT 15 DB: %u cards  |  %u clubs  |  %u pos",
+             fut15_card_count,fut15_club_count,fut15_position_count);text(1,1,COL_GREY,b);
     text(1,2,COL_GREY,"----------------------------------------------------------");
 }
 static void footer(const char *s){text(1,31,COL_GREY,"----------------------------------------------------------");text(1,32,COL_GREY,s);}
 
-static void resetPositions(void){
-    Point hp[11]={{5,17},{14,7},{14,13},{14,21},{14,27},{25,17},{29,10},{29,24},{40,8},{43,17},{40,26}};
-    Point ap[11]={{54,17},{45,7},{45,13},{45,21},{45,27},{34,17},{31,10},{31,24},{20,8},{17,17},{20,26}};
-    memcpy(homePlayers,hp,sizeof(hp)); memcpy(awayPlayers,ap,sizeof(ap));
-    selectedHome=9; homePossession=1; ballOwnerHome=9; ballOwnerAway=9;
+static int same_player_in_pack(int upto, int idx){
+    int i;for(i=0;i<upto;i++) if(!strcmp(fut15_cards[packCards[i]].name,fut15_cards[idx].name)) return 1;return 0;
 }
-static void resetMatch(void){scoreHome=0;scoreAway=0;matchMinute=0;matchFrame=0;resetPositions();}
-static void kickoff(int toHome){resetPositions();homePossession=toHome;if(toHome){ballOwnerHome=9;selectedHome=9;}else{ballOwnerAway=9;selectedHome=5;}}
-static int clampi(int v,int lo,int hi){if(v<lo)return lo;if(v>hi)return hi;return v;}
-static int distance(Point a,Point b){int x=a.x-b.x,y=a.y-b.y;if(x<0)x=-x;if(y<0)y=-y;return x+y;}
-
-static void drawHome(void){
-    static const char *items[]={"JUGAR PARTIDO","PLANTILLA 4-3-3","ABRIR SOBRE","SALIR"};
-    int i; header("ULTIMATE TEAM"); center(5,COL_WHITE,"ULTIMATE TEAM - FUTBOL 11"); center(7,COL_GREY,"Prototype v0.2 for PSP / PPSSPP");
-    for(i=0;i<4;i++){char b[64];snprintf(b,sizeof(b),"%s %s",homeMenu==i?">":" ",items[i]);text(14,12+i*3,homeMenu==i?COL_GREEN:COL_WHITE,b);} footer("D-Pad: mover   X: aceptar   START: salir");
+static int pick_by_type(int wantSpecial){
+    int tries=0;int idx=0;
+    do{
+        idx=rand()%(int)fut15_card_count;
+        tries++;
+        if(!!is_special(&fut15_cards[idx])==!!wantSpecial) return idx;
+    }while(tries<30000);
+    return idx;
 }
-
-static void drawSquad(void){
-    header("PLANTILLA"); center(4,COL_WHITE,"UFT CORDOBA  |  4-3-3");
-    text(5,8,COL_GOLD,"EI 86 Gil"); center(8,COL_GOLD,"DC 88 Mora"); text(44,8,COL_GOLD,"Vidal 87 ED");
-    text(11,14,COL_GOLD,"MC 86 Campos"); center(17,COL_GOLD,"MCD 84 Leon"); text(39,14,COL_GOLD,"Prieto 85 MC");
-    text(3,23,COL_GOLD,"LI 81 Navarro"); text(18,22,COL_GOLD,"DFC 83 Rivas"); text(34,22,COL_GOLD,"Soler 84 DFC"); text(48,23,COL_GOLD,"Vega 80 LD"); center(27,COL_GOLD,"POR 82 Alvarez");
-    footer("O: volver");
+static void open_pack(int lab){
+    int i; packsOpened++; packModeLab=lab; packSel=0;
+    for(i=0;i<6;i++){
+        int idx,tries=0;
+        int specialRoll = lab ? ((rand()%100)<35) : ((rand()%1000)<12);
+        do{idx=pick_by_type(specialRoll);tries++;}while(same_player_in_pack(i,idx)&&tries<100);
+        packCards[i]=idx;revealed[i]=0;
+    }
+    screen=SCR_PACK;
 }
 
-static void openPack(void){int i;if(coins<PACK_COST)return;coins-=PACK_COST;packsOpened++;for(i=0;i<3;i++)lastPack[i]=rand()%ARRAY_COUNT(packPool);}
-static void drawPack(void){int i;header("SOBRE ORO");center(5,COL_YELLOW,"SOBRE ABIERTO");for(i=0;i<3;i++){const Card *c=&packPool[lastPack[i]];char b[80];snprintf(b,sizeof(b),"%d  %-4s  %s",c->ovr,c->pos,c->name);center(10+i*5,c->ovr>=80?COL_GOLD:COL_WHITE,b);}footer("X: abrir otro (750)   O: volver");}
-
-static void drawPitch(void){
-    int x,y,i;char b[96];pspDebugScreenClear();
-    snprintf(b,sizeof(b),"UFT 11  %d-%d  CPU       %02d'",scoreHome,scoreAway,matchMinute);text(1,0,COL_WHITE,b);
-    text(1,1,homePossession?COL_GREEN:COL_RED,homePossession?"POSESION: UFT":"POSESION: CPU");
-    for(x=PITCH_LEFT;x<=PITCH_RIGHT;x++){chr(x,PITCH_TOP,COL_GREY,'-');chr(x,PITCH_BOTTOM,COL_GREY,'-');}
-    for(y=PITCH_TOP;y<=PITCH_BOTTOM;y++){chr(PITCH_LEFT,y,COL_GREY,'|');chr(PITCH_RIGHT,y,COL_GREY,'|');chr(30,y,COL_GREY,y==17?'+':':');}
-    for(y=15;y<=18;y++){chr(1,y,COL_GREY,'[');chr(58,y,COL_GREY,']');}
-    for(i=0;i<11;i++){chr(homePlayers[i].x,homePlayers[i].y,i==selectedHome?COL_YELLOW:COL_BLUE,i==selectedHome?'@':'o');chr(awayPlayers[i].x,awayPlayers[i].y,COL_RED,'x');}
-    if(homePossession)chr(homePlayers[ballOwnerHome].x+1,homePlayers[ballOwnerHome].y,COL_WHITE,'*');else chr(awayPlayers[ballOwnerAway].x-1,awayPlayers[ballOwnerAway].y,COL_WHITE,'*');
-    text(1,31,COL_GREY,"D-Pad mover  X pase/entrada  O tiro  TRIANGULO cambiar");text(1,32,COL_GREY,"START: abandonar partido");
+static void draw_home(void){
+    static const char *items[]={
+        "ABRIR SOBRE LAB (35% ESPECIALES)",
+        "ABRIR SOBRE NORMAL",
+        "NAVEGAR BASE DE DATOS FUT 15",
+        "TIPOS DE CARTA",
+        "SALIR"
+    };
+    int i;char b[96];header("FIFA 15 CARD LAB");
+    center(5,COL_WHITE,"ULTIMATE TEAM - CARD & PACK PROTOTYPE");
+    snprintf(b,sizeof(b),"Sobres abiertos: %d  |  Especiales compilados: %u",packsOpened,fut15_special_count);center(7,COL_GREY,b);
+    for(i=0;i<5;i++){
+        snprintf(b,sizeof(b),"%s %s",homeMenu==i?">":" ",items[i]);
+        text(7,11+i*3,homeMenu==i?COL_YELLOW:COL_WHITE,b);
+    }
+    footer("D-Pad mover | X aceptar | START salir");
 }
 
-static int chooseForwardPass(int from){int i,best=from,bestScore=-9999;for(i=0;i<11;i++){int s;if(i==from)continue;s=(homePlayers[i].x-homePlayers[from].x)*4-abs(homePlayers[i].y-homePlayers[from].y)+(rand()%8);if(s>bestScore){bestScore=s;best=i;}}return best;}
-static void passOrTackle(void){if(homePossession){int r=chooseForwardPass(ballOwnerHome);ballOwnerHome=r;selectedHome=r;if((rand()%100)<12){homePossession=0;ballOwnerAway=rand()%11;}}else if(distance(homePlayers[selectedHome],awayPlayers[ballOwnerAway])<=3&&(rand()%100)<65){homePossession=1;ballOwnerHome=selectedHome;}}
-static void shoot(void){int chance;if(!homePossession||ballOwnerHome!=selectedHome)return;chance=8;if(homePlayers[selectedHome].x>=38)chance=25;if(homePlayers[selectedHome].x>=47)chance=55;if((rand()%100)<chance){scoreHome++;kickoff(0);}else{homePossession=0;ballOwnerAway=0;}}
-
-static void updateOpponent(void){
-    Point *p;if(homePossession)return;p=&awayPlayers[ballOwnerAway];
-    if((matchFrame%10)==0){if(p->x>7)p->x--;if(p->y<17&&(rand()%2))p->y++;else if(p->y>17&&(rand()%2))p->y--;}
-    if((matchFrame%40)==0&&(rand()%100)<18)ballOwnerAway=rand()%11;
-    if(p->x<=8){if((rand()%100)<38)scoreAway++;kickoff(1);}
+static void draw_tile(int slot){
+    int col=slot%3,row=slot/3;
+    int x=2+col*19,y=5+row*13,w=17,h=11;
+    char b[48];unsigned int bg,fg;
+    if(slot==packSel) text(x-1,y,COL_YELLOW,">");
+    if(!revealed[slot]){
+        bg=0xFF33383A;fill_box(x,y,w,h,bg);
+        text_bg(x+6,y+3,COL_WHITE,bg,"???");
+        text_bg(x+3,y+6,COL_GREY,bg,"X REVELAR");
+        return;
+    }
+    {
+        const Fut15Card *c=&fut15_cards[packCards[slot]];
+        bg=card_bg(c);fg=card_fg(c);fill_box(x,y,w,h,bg);
+        snprintf(b,sizeof(b),"%d %-4s",c->rating,c->position);text_bg(x+1,y+1,fg,bg,b);
+        put_trunc(x+1,y+3,fg,bg,c->name,15);
+        put_trunc(x+1,y+5,fg,bg,c->club,15);
+        put_trunc(x+1,y+7,fg,bg,c->version,15);
+        snprintf(b,sizeof(b),"%02dP %02dS %02dD",c->pac,c->sho,c->dri);text_bg(x+1,y+9,fg,bg,b);
+    }
 }
-static void moveSelected(int dx,int dy){Point *p=&homePlayers[selectedHome];p->x=clampi(p->x+dx,PITCH_LEFT+1,PITCH_RIGHT-1);p->y=clampi(p->y+dy,PITCH_TOP+1,PITCH_BOTTOM-1);}
-static void updateMatch(void){matchFrame++;if((matchFrame%15)==0&&matchMinute<90)matchMinute++;updateOpponent();if(matchMinute>=90)screen=SCREEN_RESULT;}
+static void draw_pack(void){
+    int i;char b[80];header(packModeLab?"SOBRE LAB":"SOBRE NORMAL");
+    snprintf(b,sizeof(b),"Sobre #%d - seleccion %d/6",packsOpened,packSel+1);center(3,COL_GREY,b);
+    for(i=0;i<6;i++)draw_tile(i);
+    footer("D-Pad seleccionar | X revelar/abrir | TRIANGULO todas | O menu");
+}
 
-static void drawResult(void){char b[96];int reward=scoreHome>=scoreAway?600:300;header("FINAL");center(8,COL_WHITE,"FINAL DEL PARTIDO");snprintf(b,sizeof(b),"UFT 11   %d - %d   CPU",scoreHome,scoreAway);center(12,COL_YELLOW,b);snprintf(b,sizeof(b),"Recompensa: %d monedas",reward);center(17,COL_GREEN,b);center(22,COL_GREY,"X: cobrar y volver al menu");}
-static unsigned int pressed(unsigned int now,unsigned int old,unsigned int mask){return(now&mask)&&!(old&mask);}
+static void draw_full_card(const Fut15Card *c,const char *title){
+    unsigned int bg=card_bg(c),fg=card_fg(c);char b[96];
+    header(title);fill_box(9,4,42,25,bg);
+    snprintf(b,sizeof(b),"%d   %s",c->rating,c->position);text_bg(12,6,fg,bg,b);
+    put_trunc(12,9,fg,bg,c->name,34);
+    put_trunc(12,11,fg,bg,c->club,34);
+    put_trunc(12,13,fg,bg,c->league,34);
+    snprintf(b,sizeof(b),"VERSION: %s",c->version);put_trunc(12,15,fg,bg,b,34);
+    snprintf(b,sizeof(b),"%02d PAC     %02d DRI",c->pac,c->dri);text_bg(12,18,fg,bg,b);
+    snprintf(b,sizeof(b),"%02d SHO     %02d DEF",c->sho,c->def);text_bg(12,20,fg,bg,b);
+    snprintf(b,sizeof(b),"%02d PAS     %02d PHY",c->pas,c->phy);text_bg(12,22,fg,bg,b);
+    snprintf(b,sizeof(b),"ID DB: %d",detailIndex);text_bg(12,26,fg,bg,b);
+}
+static void draw_detail(void){
+    draw_full_card(&fut15_cards[detailIndex],"DETALLE DE CARTA");
+    footer("IZQ/DER otra carta del sobre | O volver");
+}
+static void draw_database(void){
+    char title[80];detailIndex=(int)dbIndex;
+    snprintf(title,sizeof(title),"BASE FUT15  %u/%u",dbIndex+1,fut15_card_count);
+    draw_full_card(&fut15_cards[dbIndex],title);
+    footer("IZQ/DER +/-1 | ARR/ABA +/-50 | TRIANGULO aleatoria | O menu");
+}
+static void draw_types(void){
+    header("TIPOS DE CARTA FUT 15");
+    text(3,5,COL_WHITE,"Base: Bronze | Silver | Gold | Gold Non-Rare");
+    text(3,8,0xFF49C8FF,"IF / TOTW         - In Form semanal");
+    text(3,10,0xFFC97212,"TOTY              - Team of the Year");
+    text(3,12,0xFF8A6514,"TOTS              - Team of the Season");
+    text(3,14,0xFF1D73E8,"MOTM              - Man of the Match");
+    text(3,16,0xFFA83F69,"POTY / Hero       - especiales moradas");
+    text(3,18,0xFF5C4ED8,"RB                - Record Breaker");
+    text(3,20,0xFFC84CCB,"Futties           - FUTTIES");
+    text(3,22,COL_WHITE,"Legend            - Legends (Xbox en FUT 15)");
+    text(3,25,COL_GREY,"La BD compilada asigna versiones usando datos historicos");
+    text(3,27,COL_GREY,"FUT15 y un catalogo de 720 cartas / 408 jugadores.");
+    footer("O volver");
+}
 
 int main(int argc,char *argv[]){
-    SceCtrlData pad;unsigned int oldButtons=0;int moveRepeat=0;(void)argc;(void)argv;(void)squad;
-    setup_callbacks();pspDebugScreenInit();pspDebugScreenEnableBackColor(1);pspDebugScreenSetBackColor(0xFF0C1510);sceCtrlSetSamplingCycle(0);sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);srand((unsigned int)sceKernelGetSystemTimeLow());resetMatch();
+    SceCtrlData pad;unsigned int old=0;(void)argc;(void)argv;
+    setup_callbacks();pspDebugScreenInit();pspDebugScreenEnableBackColor(1);set_bg(COL_DARK);
+    sceCtrlSetSamplingCycle(0);sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
+    srand((unsigned int)sceKernelGetSystemTimeLow());
     while(1){
         sceCtrlPeekBufferPositive(&pad,1);
-        if(pad.Buttons&PSP_CTRL_START){if(screen==SCREEN_MATCH)screen=SCREEN_HOME;else sceKernelExitGame();}
-        if(screen==SCREEN_HOME){
-            if(pressed(pad.Buttons,oldButtons,PSP_CTRL_UP))homeMenu=(homeMenu+3)%4;
-            if(pressed(pad.Buttons,oldButtons,PSP_CTRL_DOWN))homeMenu=(homeMenu+1)%4;
-            if(pressed(pad.Buttons,oldButtons,PSP_CTRL_CROSS)){if(homeMenu==0){resetMatch();screen=SCREEN_MATCH;}else if(homeMenu==1)screen=SCREEN_SQUAD;else if(homeMenu==2){openPack();screen=SCREEN_PACK;}else sceKernelExitGame();}
-            drawHome();
-        }else if(screen==SCREEN_SQUAD){if(pressed(pad.Buttons,oldButtons,PSP_CTRL_CIRCLE))screen=SCREEN_HOME;drawSquad();}
-        else if(screen==SCREEN_PACK){if(pressed(pad.Buttons,oldButtons,PSP_CTRL_CIRCLE))screen=SCREEN_HOME;if(pressed(pad.Buttons,oldButtons,PSP_CTRL_CROSS)&&coins>=PACK_COST)openPack();drawPack();}
-        else if(screen==SCREEN_MATCH){
-            int dx=0,dy=0;if(pad.Buttons&(PSP_CTRL_UP|PSP_CTRL_DOWN|PSP_CTRL_LEFT|PSP_CTRL_RIGHT)){if(moveRepeat<=0){if(pad.Buttons&PSP_CTRL_UP)dy=-1;if(pad.Buttons&PSP_CTRL_DOWN)dy=1;if(pad.Buttons&PSP_CTRL_LEFT)dx=-1;if(pad.Buttons&PSP_CTRL_RIGHT)dx=1;moveSelected(dx,dy);moveRepeat=3;}else moveRepeat--;}else moveRepeat=0;
-            if(pressed(pad.Buttons,oldButtons,PSP_CTRL_TRIANGLE)){selectedHome=(selectedHome+1)%11;if(homePossession)ballOwnerHome=selectedHome;}
-            if(pressed(pad.Buttons,oldButtons,PSP_CTRL_CROSS))passOrTackle();if(pressed(pad.Buttons,oldButtons,PSP_CTRL_CIRCLE))shoot();updateMatch();drawPitch();
-        }else if(screen==SCREEN_RESULT){if(pressed(pad.Buttons,oldButtons,PSP_CTRL_CROSS)){coins+=(scoreHome>=scoreAway)?600:300;screen=SCREEN_HOME;}drawResult();}
-        oldButtons=pad.Buttons;sceDisplayWaitVblankStart();
+        if(pressed(pad.Buttons,old,PSP_CTRL_START))sceKernelExitGame();
+
+        if(screen==SCR_HOME){
+            if(pressed(pad.Buttons,old,PSP_CTRL_UP))homeMenu=(homeMenu+4)%5;
+            if(pressed(pad.Buttons,old,PSP_CTRL_DOWN))homeMenu=(homeMenu+1)%5;
+            if(pressed(pad.Buttons,old,PSP_CTRL_CROSS)){
+                if(homeMenu==0)open_pack(1);
+                else if(homeMenu==1)open_pack(0);
+                else if(homeMenu==2){dbIndex=0;screen=SCR_DATABASE;}
+                else if(homeMenu==3)screen=SCR_TYPES;
+                else sceKernelExitGame();
+            }
+            draw_home();
+        }else if(screen==SCR_PACK){
+            if(pressed(pad.Buttons,old,PSP_CTRL_LEFT))packSel=(packSel+5)%6;
+            if(pressed(pad.Buttons,old,PSP_CTRL_RIGHT))packSel=(packSel+1)%6;
+            if(pressed(pad.Buttons,old,PSP_CTRL_UP))packSel=(packSel+3)%6;
+            if(pressed(pad.Buttons,old,PSP_CTRL_DOWN))packSel=(packSel+3)%6;
+            if(pressed(pad.Buttons,old,PSP_CTRL_TRIANGLE)){int i;for(i=0;i<6;i++)revealed[i]=1;}
+            if(pressed(pad.Buttons,old,PSP_CTRL_CROSS)){
+                if(!revealed[packSel])revealed[packSel]=1;
+                else{detailIndex=packCards[packSel];detailReturn=SCR_PACK;screen=SCR_DETAIL;}
+            }
+            if(pressed(pad.Buttons,old,PSP_CTRL_CIRCLE))screen=SCR_HOME;
+            if(screen==SCR_PACK)draw_pack();
+        }else if(screen==SCR_DETAIL){
+            if(pressed(pad.Buttons,old,PSP_CTRL_LEFT)){packSel=(packSel+5)%6;revealed[packSel]=1;detailIndex=packCards[packSel];}
+            if(pressed(pad.Buttons,old,PSP_CTRL_RIGHT)){packSel=(packSel+1)%6;revealed[packSel]=1;detailIndex=packCards[packSel];}
+            if(pressed(pad.Buttons,old,PSP_CTRL_CIRCLE))screen=detailReturn;
+            if(screen==SCR_DETAIL)draw_detail();
+        }else if(screen==SCR_DATABASE){
+            if(pressed(pad.Buttons,old,PSP_CTRL_LEFT))dbIndex=(dbIndex==0?fut15_card_count-1:dbIndex-1);
+            if(pressed(pad.Buttons,old,PSP_CTRL_RIGHT))dbIndex=(dbIndex+1)%fut15_card_count;
+            if(pressed(pad.Buttons,old,PSP_CTRL_UP))dbIndex=(dbIndex+fut15_card_count-(50%fut15_card_count))%fut15_card_count;
+            if(pressed(pad.Buttons,old,PSP_CTRL_DOWN))dbIndex=(dbIndex+50)%fut15_card_count;
+            if(pressed(pad.Buttons,old,PSP_CTRL_TRIANGLE))dbIndex=rand()%(int)fut15_card_count;
+            if(pressed(pad.Buttons,old,PSP_CTRL_CIRCLE))screen=SCR_HOME;
+            if(screen==SCR_DATABASE)draw_database();
+        }else if(screen==SCR_TYPES){
+            if(pressed(pad.Buttons,old,PSP_CTRL_CIRCLE))screen=SCR_HOME;
+            if(screen==SCR_TYPES)draw_types();
+        }
+        old=pad.Buttons;sceDisplayWaitVblankStart();
     }
     return 0;
 }

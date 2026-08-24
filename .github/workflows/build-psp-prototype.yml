@@ -1,0 +1,38 @@
+name: Build UFT11 PSP Prototype
+
+on:
+  push:
+    branches:
+      - psp-prototype-fut11
+    paths:
+      - 'psp-prototype/**'
+      - '.github/workflows/build-psp-prototype.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build with official PSPDEV image
+        run: |
+          docker pull pspdev/pspdev:latest
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/src" \
+            -w /src/psp-prototype \
+            pspdev/pspdev:latest \
+            bash -lc 'make clean && make -j2'
+
+      - name: Prepare PPSSPP folder
+        run: |
+          mkdir -p artifact/UFT11
+          cp psp-prototype/EBOOT.PBP artifact/UFT11/EBOOT.PBP
+          cp psp-prototype/README.md artifact/UFT11/README.md
+
+      - name: Upload EBOOT
+        uses: actions/upload-artifact@v4
+        with:
+          name: UFT11-PPSSPP-Prototype
+          path: artifact/UFT11

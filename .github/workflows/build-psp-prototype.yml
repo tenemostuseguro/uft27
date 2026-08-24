@@ -20,10 +20,12 @@ jobs:
         run: |
           docker pull pspdev/pspdev:latest
           docker run --rm \
+            -e PSPDEV=/usr/local/pspdev \
+            -e PATH=/usr/local/pspdev/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
             -v "$GITHUB_WORKSPACE:/src" \
             -w /src/psp-prototype \
             pspdev/pspdev:latest \
-            bash -lc 'make clean && make -j2'
+            bash -c 'echo "PSPDEV=$PSPDEV"; which psp-config; psp-config --pspsdk-path; make clean && make -j2'
 
       - name: Prepare PPSSPP folder
         run: |
